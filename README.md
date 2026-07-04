@@ -67,6 +67,12 @@ ZoneDirective / WarCommandExecutor / RuleEngine
 
 ---
 
+## 协作与云端验证
+
+当前默认协作流使用 `main` 作为唯一上传、提交、推送和云端验证分支。Agent B 在本机只跑 `md/test/test.md` 允许的轻量检查，提交后直接 push 到 `origin/main` 触发 GitHub Actions；Agent C 使用 GitHub CLI 下载未加密 CI 结果包，核对 manifest、JUnit、构建日志和失败摘要后再验收。角色召唤、身份标识、main 直推规则和结果包复判细节以 `AGENTS.md`、`md/test/test.md`、`md/flow/flow.md` 与 `md/prompt/README.md` 为准。
+
+---
+
 ## 项目架构
 
 ```

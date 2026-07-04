@@ -1162,6 +1162,7 @@ guerrillaWarfare 额外参考 infrastructure
 
 以下提交不作为正式 v 版本，但影响项目资料完整性：
 
+- 2026-07-04：升级项目协作流程为 `main` 直推 + GitHub Actions 云端验证 + Agent C 下载未加密结果包复判；新增角色召唤与身份标识规则，补齐 `md/prompt/README.md`，新增 `.github/workflows/ci-results.yml`。本次是流程制度和验证骨架变更，不代表业务功能或运行时质量提升。关键文件：`AGENTS.md`、`README.md`、`md/test/test.md`、`md/flow/flow.md`、`md/flow/flowchart.md`、`md/prompt/README.md`、`.github/workflows/ci-results.yml`。
 - 2026-06-15：重整 `md` 目录，添加 README，补充 v0.1-v1.0 提示词。
 - 2026-06-15：打捞 Agent D 与误删代码，恢复 AI 决策管线。
 - 2026-06-15：记录 v0.5 擅自编程与回退资料，保留为历史警示；当前主线不得引入 Cabinet/StrategicDirective/Minister 污染。

@@ -23,6 +23,15 @@
 - 不恢复 organization；当前战斗核心是 strength、retreat、supply、encirclement。
 - 严守用户给定范围。不要擅自扩展功能、重构架构、删除旧实现或回滚其他人改动。
 ## 3. 标准迭代工作流
+### 3.0 角色召唤与身份标识
+- 用户消息以 `agenta`、`a:` 或 `A:` 开头，表示召唤 Agent A。
+- 用户消息以 `agentb`、`b:` 或 `B:` 开头，表示召唤 Agent B。
+- 用户消息以 `agentc`、`c:` 或 `C:` 开头，表示召唤 Agent C。
+- 没有这些前缀时，按普通 Codex 任务处理；若任务需要 A/B/C 边界，提醒用户指定角色或说明本轮按普通任务执行。
+- Agent A 最终回复第一行必须写：`我是 Agent A。`
+- Agent B 最终回复第一行必须写：`我是 Agent B。`
+- Agent C 最终回复第一行必须写：`我是 Agent C。`
+
 ### 3.1 人工
 人工提出实现目标；精做任务可同时给出算法框架、边界、验收标准和禁止项。人工把 `AGENTS.md`、`update_log.md`、`md/flow/flow.md` 和相关上下文交给 Agent A。
 ### 3.2 Agent A：目标分析与提示词
@@ -37,35 +46,40 @@ Agent A 输出的提示词应包含：目标、范围、禁止项、当前架构
 Agent B 负责按 Agent A 的提示词完成实现。
 Agent B 必须：
 1. 阅读 Agent A 提示词、`AGENTS.md`、`update_log.md`、`md/flow/flow.md`、`md/test/test.md` 和相关源码。
-2. 按提示词小步实现；先定位根因，再改代码；必要时可阅读既有测试作为语义参考，但不默认新增、修改或执行测试。
-3. 严禁主动运行耗费性能的验证：包括 `xcodebuild test`、`xcodebuild build-for-testing`、Probe、Smoke、Stage Regression、Dynamic Theater Regression、Full、模拟器启动、UI test、性能测试和全量构建。
-4. 只运行 `md/test/test.md` 允许的轻量语法/格式检查；若某问题必须依赖重测试才能确认，只记录风险，不擅自运行。
-5. 更新必要文档；若轻量检查规则、核心逻辑、分支策略或版本状态变化，必须同步更新 `md/test/test.md`、`md/flow/*`、`README.md` 或 `update_log.md`。
-6. 输出实现结果：改动摘要、关键文件、轻量检查命令和结果、未跑重测试及原因、遗留风险。
+2. 默认先同步云端主线：`git fetch origin`、`git switch main`、`git pull --ff-only origin main`，确认工作区无无关改动后再开始。
+3. 按提示词小步实现；先定位根因，再改代码；必要时可阅读既有测试作为语义参考，但不默认新增、修改或执行测试。
+4. 本机只运行 `md/test/test.md` 允许的轻量语法、格式和配置检查；除非人工明确要求“本机测试/本地 build/本地 xcodebuild/本地跑探针”，不得主动跑本机重验证。
+5. 更新必要文档；若轻量检查规则、核心逻辑、分支策略、CI 规则或版本状态变化，必须同步更新 `md/test/test.md`、`md/flow/*`、`README.md`、`md/prompt/README.md` 或 `update_log.md`。
+6. 完成本地轻量检查后在 `main` 提交，并直接 `git push origin main` 触发 GitHub Actions。
+7. 输出实现结果：改动摘要、关键文件、本地轻量检查命令和结果、云端 workflow run 信息、未跑的本机重测试及原因、遗留风险。
 ### 3.4 Agent C：验收与核心逻辑文档
-Agent C 负责验收 Agent B 的结果，并把当前进展沉淀进项目核心逻辑文档。
+Agent C 负责验收 Agent B 的结果和云端 CI 结果包，并把当前进展沉淀进项目核心逻辑文档。
 Agent C 必须：
 1. 阅读 Agent B 输出、实际 diff、轻量检查结果、`AGENTS.md`、`update_log.md`、`md/flow/flow.md` 和 `md/test/test.md`。
-2. 核对实现是否满足 Agent A 提示词和人工目标，重点检查架构边界、文档同步、冲突风险和未说明风险。
-3. 根据当前真实进展更新 `md/flow/` 下的 markdown 与 mermaid/流程图文件，至少关注 `md/flow/flow.md` 和 `md/flow/flowchart.md`。
-4. 若形成正式版本或历史维护事项，更新 `update_log.md`，让下一轮 Agent A 能接上上下文。
-5. 若本轮使用多分支或多个子 Agent，必须检查文件级冲突、接口分叉、重复实现、项目文件变更冲突、数据 schema 冲突和文档口径冲突。
-6. 输出验收结论：通过/不通过、问题清单、已更新文档、轻量检查结果、建议下一步。
+2. 确认 `origin/main` 最新 commit 与 Agent B 提交一致，并只验收该 commit 对应的 GitHub Actions run。
+3. 使用 `gh auth login` 后下载未加密 CI 结果包，默认缓存到 `/private/tmp/wwiihexv0-c-review-<run_id>/`。
+4. 核对 `ci-artifact-manifest.json` 的 `branch=main`、`commitSha`、`runId`、`runAttempt`，并阅读 `junit.xml`、主构建日志和 `ci-failure-summary.md`。
+5. 核对实现是否满足 Agent A 提示词和人工目标，重点检查架构边界、文档同步、冲突风险和未说明风险。
+6. 根据当前真实进展更新 `md/flow/` 下的 markdown 与 mermaid/流程图文件，至少关注 `md/flow/flow.md` 和 `md/flow/flowchart.md`。
+7. 若形成正式版本或历史维护事项，更新 `update_log.md`，让下一轮 Agent A 能接上上下文。
+8. 如云端失败，不做回滚式处理；写清退回清单，由 Agent B 在 `main` 上追加修复 commit 后重新 push。
+9. 输出验收结论：通过/不通过、问题清单、已更新文档、本地轻量检查结果、云端 run/artifact 核对结果、建议下一步。
 ### 3.5 回到人工
 人工阅读 Agent C 的验收、核心逻辑文档和轻量检查结果，决定是否接受、授权补测、修正、合并分支或进入下一轮开发。下一轮通过 `update_log.md` 和新的目标继续交给 Agent A，形成循环迭代。
 ### 3.6 多分支与并发子 Agent 规则
-- 后续可以多开分支，每个分支实现一个不同版本、方向或候选方案；分支之间不得共享未记录的隐式状态。
-- 分支命名应能表达目标，例如 `v0.4-chat-command-a`、`v0.4-ui-alt-b`、`refactor-deploy-candidate`。
-- 每个分支必须记录：目标、范围、关键文件、与其他分支的预期重叠、轻量检查结果和未确认风险。
+- 本轮默认流程固定使用 `main` 作为唯一上传、提交、推送和云端验证分支。
+- 暂不设计 `smalldata_test`、`develop`、`codeb/...` 或其他长期/候选分支，也不创建 PR 或执行 PR merge。
+- 项目中已有历史分支和本地 worktree 只能作为现状记录，不进入默认迭代流程。
+- 任何 Agent 在 `git push origin main` 或改变远端 `main` 前，必须确认当前分支是 `main`、目标远端是 `origin/main`、提交范围只包含本轮相关文件。
 - 大任务可以多开子 Agent 并发执行，但主 Agent 必须先分配清晰边界，尽量避免多个子 Agent 同时改同一文件或同一 public API。
 - 并发完成后，主 Agent 必须做整合检查：文件冲突、重复逻辑、命名冲突、public API 兼容、数据 schema 兼容、Xcode project 变更冲突、文档冲突。
-- 没有完成冲突检查前，不得声称多分支/多 Agent 工作已可合并。
+- 没有完成冲突检查和 `main` 最新云端结果包验收前，不得声称多 Agent 工作已可交付。
 ## 4. 检查规则
 - 每轮实现或验收前必须读 `md/test/test.md`。
-- 现在默认不做 Xcode / XCTest / 模拟器测试，也不做耗费性能的构建验证。
-- 禁止主动运行：`xcodebuild test`、`xcodebuild build-for-testing`、Probe、Smoke、Stage Regression、Dynamic Theater Regression、Full、UI test、性能测试、模拟器启动和全量 app 构建。
+- 默认云端重验证、本机只做轻量检查。Swift / Xcode / Web / CLI / 业务探针相关改动完成后，默认 commit 并 push 到 `origin/main`，由 GitHub Actions 运行重验证并上传结果包。
+- 未获人工明确授权时，禁止在本机主动运行：`xcodebuild test`、`xcodebuild build`、`xcodebuild build-for-testing`、Probe、Smoke、Stage Regression、Dynamic Theater Regression、Full、UI test、性能测试、模拟器启动和全量 app 构建。
 - 默认只做轻量语法/格式检查：Markdown 文本检查、`plutil -lint`、`xmllint --noout`、`jq empty`、针对改动文件的轻量静态检查等，具体以 `md/test/test.md` 为准。
-- 若任务风险必须靠重测试才能排除，Agent 只能在交付中说明“按当前规范未跑重测试，风险未验证”，不得自行扩大验证。
+- 若任务风险必须靠重测试才能排除，本机不擅自扩大验证；通过 `origin/main` 的 GitHub Actions 结果包确认，或在交付中说明云端未验证的阻塞原因。
 - 不得用“已验证”代替具体命令和结果；不得伪造测试通过。
 ## 5. 文档规则
 - `AGENTS.md` 只写工作流、入口规则和基本信息，保持精简，不堆阶段细节。

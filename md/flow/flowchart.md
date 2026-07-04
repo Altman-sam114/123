@@ -155,6 +155,47 @@ flowchart TD
     classDef warn fill:#ffedd5,stroke:#f97316,color:#431407
 ```
 
+## 9. 云端协作：main 直推与 CI 结果包验收
+
+这张图记录协作和验证闭环，不改变游戏内 `Hex -> Region -> Theater -> Front -> Deploy -> RuleEngine` 业务链路。
+
+```mermaid
+flowchart TD
+    HUMAN["人工提出目标<br/>明确业务目标、边界和验收标准"]:::input
+    A["Agent A<br/>本地分析 + 写阶段提示词<br/>必须包含 main push / CI / artifact 要求"]:::agent
+    BSTART["Agent B 开始<br/>git fetch origin<br/>git switch main<br/>git pull --ff-only origin main"]:::git
+    BWORK["Agent B 实现<br/>只改本轮范围<br/>本机只跑轻量检查"]:::agent
+    COMMIT["main commit<br/>提交本轮相关文件"]:::git
+    PUSH["push origin main<br/>触发 GitHub Actions"]:::git
+    GHA["GitHub Actions<br/>ci-results.yml<br/>静态检查 + Xcode 云端 build"]:::cloud
+    ART["未加密 CI 结果包<br/>manifest + JUnit + xcodebuild.log<br/>static-checks.log + failure summary + xcresult"]:::artifact
+    C["Agent C<br/>gh auth login / gh run download<br/>下载到 /private/tmp/wwiihexv0-c-review-run"]:::agent
+    CHECK["结果包复判<br/>核对 branch=main<br/>commitSha / runId / runAttempt / 日志"]:::review
+    PASS{"最新 main run 通过?"}:::decision
+    ACCEPT["验收通过<br/>更新 flow / update_log<br/>人工复核进入下一轮"]:::done
+    REJECT["退回清单<br/>列出失败日志和修复点"]:::warn
+    FIX["Agent B 追加修复 commit<br/>仍在 main 上 push 触发新 run"]:::git
+
+    HUMAN --> A --> BSTART --> BWORK --> COMMIT --> PUSH --> GHA --> ART --> C --> CHECK --> PASS
+    PASS -->|是| ACCEPT
+    PASS -->|否| REJECT --> FIX --> PUSH
+
+    RULE1["边界<br/>本轮不创建 PR / develop / smalldata_test / codeb 分支流"]:::warn
+    RULE2["边界<br/>不把旧 output 或旧 artifact 冒充本轮云端结果"]:::warn
+    BSTART -.守住.-> RULE1
+    CHECK -.守住.-> RULE2
+
+    classDef input fill:#fef3c7,stroke:#d97706,color:#1f1600
+    classDef agent fill:#e0e7ff,stroke:#4f46e5,color:#111827
+    classDef git fill:#dcfce7,stroke:#16a34a,color:#052e16
+    classDef cloud fill:#dbeafe,stroke:#2563eb,color:#0f172a
+    classDef artifact fill:#f8f9fb,stroke:#6b7280,color:#111827
+    classDef review fill:#fae8ff,stroke:#a21caf,color:#2a0a2f
+    classDef decision fill:#fff7ed,stroke:#ea580c,color:#1f1300
+    classDef done fill:#ccfbf1,stroke:#0f766e,color:#042f2e
+    classDef warn fill:#ffedd5,stroke:#f97316,color:#431407
+```
+
 ## 3. v0.8 经济、生产与补员链路
 
 这张图看 v0.8 初级经济。经济总账是 faction 级资源池，但收入和部署资格仍回到真实 hex 控制和 region 聚合；生产命令仍走 `RuleEngine`，UI 不直接改 `GameState`。

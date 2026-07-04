@@ -1,0 +1,79 @@
+# Prompt 工作流说明
+
+本目录保存各阶段 Agent A 写给 Agent B 的实现提示词、迁移路线和验收记录。当前默认协作制度已经升级为 `main` 直推 + GitHub Actions 云端验证 + Agent C 下载结果包复判。
+
+## 1. 角色召唤
+
+- 用户消息以 `agenta`、`a:` 或 `A:` 开头，表示召唤 Agent A。
+- 用户消息以 `agentb`、`b:` 或 `B:` 开头，表示召唤 Agent B。
+- 用户消息以 `agentc`、`c:` 或 `C:` 开头，表示召唤 Agent C。
+- 没有这些前缀时，按普通 Codex 任务处理；若任务需要 A/B/C 边界，应提醒用户指定角色或说明本轮按普通任务执行。
+
+身份标识：
+
+- Agent A 最终回复第一行必须写：`我是 Agent A。`
+- Agent B 最终回复第一行必须写：`我是 Agent B。`
+- Agent C 最终回复第一行必须写：`我是 Agent C。`
+
+## 2. Agent A 提示词必须写清
+
+Agent A 生成阶段提示词时，必须包含：
+
+1. 目标与非目标。
+2. 当前架构依据和必须阅读的源码 / 文档。
+3. 本轮只使用 `main`：Agent B 开始前同步 `origin/main`，完成后 commit 并直接 push 到 `origin/main`。
+4. 本机检查范围：只跑 `md/test/test.md` 允许的轻量检查；未获人工授权不得本机跑 Xcode build/test、模拟器、Probe、Smoke、Stage Regression、Dynamic Theater Regression、Full 或性能测试。
+5. 云端验证要求：push 到 `main` 后由 `.github/workflows/ci-results.yml` 触发 GitHub Actions。
+6. CI 结果包要求：未加密 artifact 必须包含 manifest、failure summary、JUnit、主构建日志、静态检查日志和项目原生结果包。
+7. Agent C 验收要求：只验收 `origin/main` 最新 commit 对应的 run；必须下载 artifact 并核对 `commitSha`、`runId`、`runAttempt`、日志和摘要。
+8. 云端失败处理：不回滚；退回 Agent B 在 `main` 上追加修复 commit 并重新 push。
+9. 文档同步要求：若流程、验证、核心逻辑或版本状态变化，必须更新 `AGENTS.md`、`md/test/test.md`、`md/flow/*`、`README.md`、`update_log.md` 或本目录相关文档。
+10. 验收标准、风险提示和最终交付格式。
+
+## 3. Agent B 实现提示词模板要点
+
+Agent B 的提示词应明确：
+
+```text
+先同步：
+git fetch origin
+git switch main
+git pull --ff-only origin main
+
+本机只跑轻量检查：
+git diff --check
+按改动类型追加 plutil / xmllint / jq / YAML parse。
+
+完成后：
+git add 相关文件
+git commit -m "vX.Y: 简要说明"
+git push origin main
+记录 workflow run id、attempt、artifact 名称和未跑本机重测试的原因。
+```
+
+## 4. Agent C 验收提示词模板要点
+
+Agent C 的提示词应明确：
+
+```text
+gh auth status
+gh run list --workflow "WWIIHexV0 CI Results" --branch main --limit 5
+gh run download <run_id> --dir /private/tmp/wwiihexv0-c-review-<run_id>
+```
+
+必须打开并核对：
+
+- `ci-artifact-manifest.json`
+- `junit.xml`
+- `xcodebuild.log`
+- `static-checks.log`
+- `ci-failure-summary.md`
+
+只有 `manifest.commitSha == origin/main 最新 commit` 且 run / artifact 与最新 main 提交一致时，才可验收通过。
+
+## 5. 禁止项
+
+- 不把 AITRANS 的漫画探针、GGUF、模型 Release、`test/1.png`、`smalldata_test` 等项目特例复制到 WWIIHexV0。
+- 不把旧 artifact、旧 output 或 checkout 自带报告冒充本轮云端结果。
+- 不创建 PR 或候选分支流程；本轮默认就是 `main` 直推。
+- 不提交模型、大数据、证书、密码或 secret。

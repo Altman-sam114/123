@@ -1840,3 +1840,55 @@ Data/generals.json
 - v0.4 没有实现真正抗命、政变、完整 RPG 成长树或真实 LLM 聊天解析；当前是忠诚/满意度和干预次数的可视化与数据底座。
 - v0.4 没有做自由手绘前线。采用 region 锚点法：选择战区/目标 region 后自动画箭头，符合 0.44 文档中的移动端妥协方案。
 - 当前工作树混有 v0.5、v0.7、v0.9、v1.x 外部改动；合并前必须重新做文件/API/schema/project 冲突审查。
+
+---
+
+## 14. 云端协作与 main 直推验证链路
+
+本节记录协作制度，不改变 WWIIHexV0 的业务规则、AI 管线或地图权威边界。当前默认开发闭环是：
+
+```text
+人工提出目标
+  -> Agent A 本地分析并写版本化提示词
+  -> Agent B 同步 origin/main，在 main 上实现
+  -> Agent B 本机只跑轻量检查
+  -> Agent B commit 并 push 到 origin/main
+  -> GitHub Actions 运行静态检查和 Xcode 云端 build
+  -> Actions 上传未加密 ci-results artifact
+  -> Agent C 下载 artifact，核对 manifest / JUnit / 日志 / failure summary
+      -> 失败：退回 Agent B 在 main 上追加修复 commit
+      -> 通过：Agent C 确认最新 main run 并更新文档
+  -> 人工复核，进入下一轮
+```
+
+关键约束：
+
+- `main` 是默认唯一上传、提交、推送和云端验证分支。
+- 不创建 PR，不默认使用 `smalldata_test`、`develop`、`codeb/...` 或其他候选分支。
+- Agent B push 前必须确认当前分支是 `main`、目标远端是 `origin/main`、提交范围只包含本轮相关文件。
+- 本机默认只跑 `md/test/test.md` 允许的轻量检查；Xcode build/test、Probe、Smoke、Stage Regression、Dynamic Theater Regression、Full 和模拟器验证默认交给云端或人工明确授权后执行。
+- Agent C 只验收 `origin/main` 最新 commit 对应的 workflow run 和 artifact，不能验收旧 run 或旧结果包。
+
+GitHub Actions 当前入口：
+
+```text
+.github/workflows/ci-results.yml
+  -> push main / workflow_dispatch
+  -> git diff --check
+  -> plutil / xmllint / jq
+  -> xcodebuild target WWIIHexV0Mac Debug build
+  -> ci-results/ci-artifact-manifest.json
+  -> ci-results/junit.xml
+  -> ci-results/xcodebuild.log
+  -> ci-results/static-checks.log
+  -> ci-results/ci-failure-summary.md
+  -> upload-artifact
+```
+
+Agent C 下载缓存位置：
+
+```text
+/private/tmp/wwiihexv0-c-review-<run_id>/
+```
+
+这条云端协作流只迁移 AITRANS 的协作制度和验证骨架；不复制其漫画探针、GGUF、模型 Release、`test/1.png`、`smalldata_test` 等项目特例。

@@ -1,0 +1,214 @@
+name: WWIIHexV0 CI Results
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  ci-results:
+    name: Build and package CI results
+    runs-on: macos-15
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - name: Prepare metadata
+        id: meta
+        shell: bash
+        run: |
+          set -euo pipefail
+          short_sha="${GITHUB_SHA::7}"
+          branch_slug="$(printf '%s' "${GITHUB_REF_NAME}" | tr '/[:upper:]' '-[:lower:]')"
+          artifact_name="wwiihexv0-ci-cloud-process-${branch_slug}-${short_sha}-run${GITHUB_RUN_ID}-attempt${GITHUB_RUN_ATTEMPT}"
+          {
+            echo "short_sha=${short_sha}"
+            echo "branch_slug=${branch_slug}"
+            echo "artifact_name=${artifact_name}"
+          } >> "${GITHUB_OUTPUT}"
+
+      - name: Run checks and build
+        id: ci
+        shell: bash
+        continue-on-error: true
+        run: |
+          set +e
+          mkdir -p ci-results
+
+          static_status=0
+          build_status=0
+          static_outcome="success"
+          build_outcome="success"
+          test_outcome="skipped"
+          failure_summary="ci-results/ci-failure-summary.md"
+          junit_path="ci-results/junit.xml"
+          build_log="ci-results/xcodebuild.log"
+          result_bundle="ci-results/WWIIHexV0Mac.xcresult"
+
+          {
+            echo "# CI failure summary"
+            echo
+            echo "- Workflow: ${GITHUB_WORKFLOW}"
+            echo "- Branch: ${GITHUB_REF_NAME}"
+            echo "- Commit: ${GITHUB_SHA}"
+            echo "- Run: ${GITHUB_RUN_ID}"
+            echo "- Attempt: ${GITHUB_RUN_ATTEMPT}"
+            echo
+          } > "${failure_summary}"
+
+          {
+            echo "== git diff --check =="
+            if git rev-parse HEAD^ >/dev/null 2>&1; then
+              git diff --check HEAD^ HEAD
+            else
+              git diff --check
+            fi
+            echo
+            echo "== plutil =="
+            plutil -lint WWIIHexV0.xcodeproj/project.pbxproj
+            echo
+            echo "== xmllint =="
+            xmllint --noout WWIIHexV0.xcodeproj/xcshareddata/xcschemes/WWIIHexV0.xcscheme
+            xmllint --noout WWIIHexV0.xcodeproj/xcshareddata/xcschemes/WWIIHexV0Probes.xcscheme
+            echo
+            echo "== jq =="
+            jq empty WWIIHexV0/Data/ardennes_v0_scenario.json
+            jq empty WWIIHexV0/Data/ardennes_v02_regions.json
+            jq empty WWIIHexV0/Data/general_agents.json
+            jq empty WWIIHexV0/Data/generals.json
+            jq empty WWIIHexV0/Data/terrain_rules.json
+            jq empty WWIIHexV0/Data/unit_templates.json
+          } > "ci-results/static-checks.log" 2>&1
+          static_status=$?
+          if [ "${static_status}" -ne 0 ]; then
+            static_outcome="failure"
+            {
+              echo "## Static checks failed"
+              echo
+              echo "See ci-results/static-checks.log."
+              echo
+            } >> "${failure_summary}"
+          fi
+
+          xcodebuild \
+            -project WWIIHexV0.xcodeproj \
+            -target WWIIHexV0Mac \
+            -configuration Debug \
+            -derivedDataPath .derivedData-ci \
+            -resultBundlePath "${result_bundle}" \
+            CODE_SIGNING_ALLOWED=NO \
+            build > "${build_log}" 2>&1
+          build_status=$?
+          if [ "${build_status}" -ne 0 ]; then
+            build_outcome="failure"
+            {
+              echo "## Xcode build failed"
+              echo
+              echo "See ci-results/xcodebuild.log and the result bundle if present."
+              echo
+            } >> "${failure_summary}"
+          fi
+
+          if [ "${static_status}" -eq 0 ] && [ "${build_status}" -eq 0 ]; then
+            {
+              echo "## CI passed"
+              echo
+              echo "Static checks and the WWIIHexV0Mac Debug build completed successfully."
+              echo
+            } >> "${failure_summary}"
+          fi
+
+          STATIC_STATUS="${static_status}" BUILD_STATUS="${build_status}" python3 - <<'PY'
+          import os
+          import xml.etree.ElementTree as ET
+
+          cases = [
+              ("static-checks", int(os.environ.get("STATIC_STATUS", "0"))),
+              ("xcodebuild-wwiihexv0mac", int(os.environ.get("BUILD_STATUS", "0"))),
+          ]
+          testsuite = ET.Element("testsuite", name="WWIIHexV0 CI", tests=str(len(cases)))
+          failures = 0
+          for name, status in cases:
+              testcase = ET.SubElement(testsuite, "testcase", classname="ci", name=name)
+              if status != 0:
+                  failures += 1
+                  failure = ET.SubElement(testcase, "failure", message=f"{name} failed")
+                  failure.text = f"{name} exited with status {status}"
+          testsuite.set("failures", str(failures))
+          ET.ElementTree(testsuite).write("ci-results/junit.xml", encoding="utf-8", xml_declaration=True)
+          PY
+
+          STATIC_OUTCOME="${static_outcome}" BUILD_OUTCOME="${build_outcome}" python3 - <<'PY'
+          import json
+          import os
+          from datetime import datetime, timezone
+          from pathlib import Path
+
+          result_bundle = Path("ci-results/WWIIHexV0Mac.xcresult")
+          project_specific_reports = ["ci-results/static-checks.log"]
+          if result_bundle.exists():
+              project_specific_reports.append(str(result_bundle))
+          manifest = {
+              "version": "cloud-process",
+              "branch": os.environ["GITHUB_REF_NAME"],
+              "commitSha": os.environ["GITHUB_SHA"],
+              "shortSha": os.environ["GITHUB_SHA"][:7],
+              "runId": os.environ["GITHUB_RUN_ID"],
+              "runAttempt": os.environ["GITHUB_RUN_ATTEMPT"],
+              "workflowName": os.environ["GITHUB_WORKFLOW"],
+              "createdAt": datetime.now(timezone.utc).isoformat(),
+              "projectName": "WWIIHexV0",
+              "scheme": "WWIIHexV0Mac target build",
+              "destination": "macOS GitHub-hosted runner",
+              "resultBundlePath": str(result_bundle) if result_bundle.exists() else None,
+              "junitPath": "ci-results/junit.xml",
+              "buildLogPath": "ci-results/xcodebuild.log",
+              "staticChecksLogPath": "ci-results/static-checks.log",
+              "failureSummaryPath": "ci-results/ci-failure-summary.md",
+              "staticChecksOutcome": os.environ.get("STATIC_OUTCOME", "success"),
+              "buildOutcome": os.environ.get("BUILD_OUTCOME", "success"),
+              "testOutcome": "skipped",
+              "projectSpecificReports": project_specific_reports,
+          }
+          Path("ci-results/ci-artifact-manifest.json").write_text(
+              json.dumps(manifest, ensure_ascii=False, indent=2) + "\n",
+              encoding="utf-8",
+          )
+          PY
+
+          {
+            echo "STATIC_STATUS=${static_status}"
+            echo "BUILD_STATUS=${build_status}"
+            echo "STATIC_OUTCOME=${static_outcome}"
+            echo "BUILD_OUTCOME=${build_outcome}"
+          } >> "${GITHUB_ENV}"
+
+          echo "static_outcome=${static_outcome}" >> "${GITHUB_OUTPUT}"
+          echo "build_outcome=${build_outcome}" >> "${GITHUB_OUTPUT}"
+          echo "test_outcome=${test_outcome}" >> "${GITHUB_OUTPUT}"
+
+          if [ "${static_status}" -ne 0 ] || [ "${build_status}" -ne 0 ]; then
+            exit 1
+          fi
+
+      - name: Upload CI result package
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ steps.meta.outputs.artifact_name }}
+          path: ci-results
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Fail job on CI failure
+        if: steps.ci.outcome == 'failure'
+        shell: bash
+        run: exit 1
