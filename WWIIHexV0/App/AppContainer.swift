@@ -14,6 +14,7 @@ final class AppContainer: ObservableObject {
     @Published private(set) var lastWarDirectiveRecords: [WarDirectiveRecord]
     @Published private(set) var observerModeEnabled: Bool
     @Published private(set) var mapDisplayLayer: MapDisplayLayer
+    @Published private(set) var showsSupplyRoutes: Bool
 
     let commandHandler: GameCommandHandling
     let dataLoader: DataLoader
@@ -32,7 +33,8 @@ final class AppContainer: ObservableObject {
         turnManager: TurnManager? = nil,
         warPipelineMode: WarPipelineMode = .marshalDirective,
         observerModeEnabled: Bool = false,
-        mapDisplayLayer: MapDisplayLayer = .hex
+        mapDisplayLayer: MapDisplayLayer = .hex,
+        showsSupplyRoutes: Bool = true
     ) {
         let bootstrappedState = StrategicStateBootstrapper().bootstrapIfNeeded(gameState)
         self.gameState = Self.refreshGeneralAssignments(in: bootstrappedState, registry: generalRegistry)
@@ -53,6 +55,7 @@ final class AppContainer: ObservableObject {
         self.lastWarDirectiveRecords = []
         self.observerModeEnabled = observerModeEnabled
         self.mapDisplayLayer = mapDisplayLayer
+        self.showsSupplyRoutes = showsSupplyRoutes
     }
 
     static func bootstrap() -> AppContainer {
@@ -283,6 +286,10 @@ final class AppContainer: ObservableObject {
 
     func setMapDisplayLayer(_ layer: MapDisplayLayer) {
         mapDisplayLayer = layer
+    }
+
+    func setShowsSupplyRoutes(_ enabled: Bool) {
+        showsSupplyRoutes = enabled
     }
 
     func resetGame() {

@@ -25,29 +25,8 @@ struct RootGameView: View {
                     .padding(.top, 8)
                     .padding(.horizontal, 8)
 
-                    Picker("图层", selection: Binding(
-                        get: { container.mapDisplayLayer },
-                        set: { container.setMapDisplayLayer($0) }
-                    )) {
-                        ForEach(MapDisplayLayer.allCases) { layer in
-                            Text(layer.displayName).tag(layer)
-                        }
-                    }
-                    .pickerStyle(.segmented)
-                    .padding(MingDesignTokens.compactSpacing)
-                    .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: MingDesignTokens.cornerRadius))
-                    .padding(.horizontal, 8)
-
-                    Toggle("观战", isOn: Binding(
-                        get: { container.observerModeEnabled },
-                        set: { container.setObserverModeEnabled($0) }
-                    ))
-                    .toggleStyle(.button)
-                    .font(.caption.weight(.semibold))
-                    .frame(minHeight: MingDesignTokens.minimumTapSize)
-                    .padding(.horizontal, MingDesignTokens.compactSpacing)
-                    .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: MingDesignTokens.cornerRadius))
-                    .padding(.horizontal, 8)
+                    mapControls
+                        .padding(.horizontal, 8)
 
                     Spacer()
                 }
@@ -99,6 +78,51 @@ struct RootGameView: View {
             onHexTapped: container.handleBoardTap
         )
         .accessibilityLabel("明末战局六角地图")
+    }
+
+    private var mapControls: some View {
+        VStack(spacing: 6) {
+            Picker("图层", selection: Binding(
+                get: { container.mapDisplayLayer },
+                set: { container.setMapDisplayLayer($0) }
+            )) {
+                ForEach(MapDisplayLayer.allCases) { layer in
+                    Text(layer.displayName).tag(layer)
+                }
+            }
+            .pickerStyle(.segmented)
+
+            HStack(spacing: 8) {
+                Toggle(isOn: Binding(
+                    get: { container.observerModeEnabled },
+                    set: { container.setObserverModeEnabled($0) }
+                )) {
+                    Label("观战", systemImage: "eye")
+                        .lineLimit(1)
+                }
+                .toggleStyle(.button)
+                .frame(maxWidth: .infinity)
+
+                Toggle(isOn: Binding(
+                    get: { container.showsSupplyRoutes },
+                    set: { container.setShowsSupplyRoutes($0) }
+                )) {
+                    Label("粮道", systemImage: "shippingbox")
+                        .lineLimit(1)
+                }
+                .toggleStyle(.button)
+                .frame(maxWidth: .infinity)
+                .disabled(container.mapDisplayLayer != .hex)
+            }
+            .font(.caption.weight(.semibold))
+            .frame(minHeight: MingDesignTokens.minimumTapSize)
+
+            if container.mapDisplayLayer == .hex && container.showsSupplyRoutes {
+                SupplyRouteLegendView()
+            }
+        }
+        .padding(MingDesignTokens.compactSpacing)
+        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: MingDesignTokens.cornerRadius))
     }
 
     private func infoOverlay(isLandscape: Bool, size: CGSize) -> some View {
@@ -240,5 +264,42 @@ private enum CompactInfoPanel: String, CaseIterable, Identifiable {
 
     var id: String {
         rawValue
+    }
+}
+
+private struct SupplyRouteLegendView: View {
+    var body: some View {
+        HStack(spacing: 8) {
+            SupplyRouteSwatch()
+            VStack(alignment: .leading, spacing: 1) {
+                Text("粮道")
+                    .font(.caption.bold())
+                Text("可达粮台")
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+            }
+            Spacer(minLength: 0)
+        }
+        .padding(.horizontal, 8)
+        .padding(.vertical, 6)
+        .background(MingDesignTokens.sectionBackground.opacity(0.82), in: RoundedRectangle(cornerRadius: MingDesignTokens.cornerRadius))
+        .accessibilityElement(children: .combine)
+    }
+}
+
+private struct SupplyRouteSwatch: View {
+    var body: some View {
+        Canvas { context, size in
+            var path = Path()
+            path.move(to: CGPoint(x: 2, y: size.height / 2))
+            path.addLine(to: CGPoint(x: size.width - 2, y: size.height / 2))
+            context.stroke(
+                path,
+                with: .color(MingDesignTokens.imperialGold),
+                style: StrokeStyle(lineWidth: 2.5, lineCap: .round, dash: [8, 5])
+            )
+        }
+        .frame(width: 44, height: 14)
+        .accessibilityHidden(true)
     }
 }

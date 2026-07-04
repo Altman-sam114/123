@@ -10,6 +10,7 @@ struct BoardRenderState: Equatable {
     let attackHighlights: Set<HexCoord>
     let mapDisplayLayer: MapDisplayLayer
     let observerModeEnabled: Bool
+    let showsSupplyRoutes: Bool
 
     var displayAdapter: MapDisplayAdapter {
         MapDisplayAdapter(state: gameState, revealAll: observerModeEnabled)
@@ -27,7 +28,8 @@ enum BoardSceneAdapter {
             movementHighlights: container.movementHighlights,
             attackHighlights: container.attackHighlights,
             mapDisplayLayer: container.mapDisplayLayer,
-            observerModeEnabled: container.observerModeEnabled
+            observerModeEnabled: container.observerModeEnabled,
+            showsSupplyRoutes: container.showsSupplyRoutes
         )
     }
 

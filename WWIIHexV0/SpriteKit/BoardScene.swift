@@ -322,7 +322,8 @@ final class BoardScene: SKScene {
     }
 
     private func drawSupplyRoutes(renderState: BoardRenderState, layout: HexLayout) {
-        guard renderState.mapDisplayLayer == .hex else {
+        guard renderState.showsSupplyRoutes,
+              renderState.mapDisplayLayer == .hex else {
             return
         }
 
