@@ -107,7 +107,6 @@ jobs:
             -project WWIIHexV0.xcodeproj \
             -target WWIIHexV0Mac \
             -configuration Debug \
-            -derivedDataPath .derivedData-ci \
             -resultBundlePath "${result_bundle}" \
             CODE_SIGNING_ALLOWED=NO \
             build > "${build_log}" 2>&1

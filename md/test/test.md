@@ -131,7 +131,7 @@ swiftc -parse path/to/ChangedFile.swift
 - `jq empty` 检查项目 JSON 数据。
 - `xcodebuild -project WWIIHexV0.xcodeproj -target WWIIHexV0Mac -configuration Debug CODE_SIGNING_ALLOWED=NO build`。
 
-云端使用 GitHub-hosted macOS runner 的 Xcode 环境和 `.derivedData-ci`；这不同于本机 DerivedData，也不会启动模拟器。
+云端使用 GitHub-hosted macOS runner 的 Xcode 环境和 runner 默认 DerivedData；这不同于本机 DerivedData，也不会启动模拟器。
 
 ## 5. CI 结果包
 
