@@ -20,7 +20,8 @@ struct BoardSceneView: NSViewRepresentable {
         let view = BoardEventSKView()
         view.ignoresSiblingOrder = true
         view.allowsTransparency = false
-        view.backgroundColor = SKColor(red: 0.16, green: 0.20, blue: 0.18, alpha: 1)
+        view.wantsLayer = true
+        view.layer?.backgroundColor = NSColor(red: 0.16, green: 0.20, blue: 0.18, alpha: 1).cgColor
 
         let scene = BoardScene(size: CGSize(width: 1400, height: 900))
         context.coordinator.scene = scene
