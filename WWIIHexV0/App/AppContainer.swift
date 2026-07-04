@@ -256,6 +256,15 @@ final class AppContainer: ObservableObject {
         submit(.queueProduction(kind: kind))
     }
 
+    func enactCourtProject(_ kind: CourtProjectKind) {
+        guard !observerModeEnabled else {
+            appendInteractionEvent("Court project rejected: observer mode is read-only.")
+            return
+        }
+
+        submit(.enactCourtProject(kind: kind))
+    }
+
     func endTurn() {
         submit(.endTurn)
     }

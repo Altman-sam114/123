@@ -1,6 +1,6 @@
 # WWIIHexV0 — 明末迁移中的 iOS / macOS AI 战略战棋工程
 
-> **当前状态：代码仍以 WWIIHexV0 / 阿登 legacy 底座为兼容主线，文档大纲已切换到 v4.0-v4.8 明末迁移路线。当前工作树已推进到 v4.6 发布级明末 UI 首片：`Faction` 可表达明廷、后金/清、大顺、大西和地方中立，`DataLoader.loadInitialGameState()` 优先加载 `崇祯十五年：天下裂变` 明末 JSON，失败才回退阿登；默认明末初始单位已切到关宁铁骑、八旗骑营、红衣炮队、流民军老营、地方团练等明末 template；生产和经济 UI 已以民力、银两、粮草、募营兵、募精骑、造炮队、筹粮口径展示，地方治理会影响州府钱粮，天下局势面板展示诸方势力、战和关系和朝议/军议；朝廷面板和 AI 摘要开始显示政策、经济、科技、军事四线压力与议题建议。v4.6 首片新增明末设计 token、独立朝廷面板、军令/将领/战报/AI 面板中文 polish、军牌中文徽记和明末舆图空态。完整可执行政策/科技命令、灾荒、军饷士气链、胜利规则、真实美术资产和发布级截图验收仍未完成。历史测试基线曾达到 v0.37 Probe 18/0、Stage Regression 69/0、Full 226/0；当前工作流默认不跑 Xcode / XCTest / 模拟器测试，只按 `md/test/test.md` 做轻量检查。**
+> **当前状态：代码仍以 WWIIHexV0 / 阿登 legacy 底座为兼容主线，文档大纲已切换到 v4.0-v4.8 明末迁移路线。当前工作树已推进到 v4.6 发布级明末 UI 与朝廷项目首片：`Faction` 可表达明廷、后金/清、大顺、大西和地方中立，`DataLoader.loadInitialGameState()` 优先加载 `崇祯十五年：天下裂变` 明末 JSON，失败才回退阿登；默认明末初始单位已切到关宁铁骑、八旗骑营、红衣炮队、流民军老营、地方团练等明末 template；生产和经济 UI 已以民力、银两、粮草、募营兵、募精骑、造炮队、筹粮口径展示，地方治理会影响州府钱粮，天下局势面板展示诸方势力、战和关系和朝议/军议；朝廷面板和 AI 摘要开始显示政策、经济、科技、军事四线压力与议题建议，并新增征饷、赈济安民、修城固守、整训团练、火器整备、粮台转运六类可执行朝廷项目。项目按钮仍通过 `Command.enactCourtProject -> CommandValidator -> EconomyRules -> RuleEngine` 执行，不绕过规则系统。灾荒、军饷士气链、胜利规则、真实美术资产和发布级截图验收仍未完成。历史测试基线曾达到 v0.37 Probe 18/0、Stage Regression 69/0、Full 226/0；当前工作流默认不跑 Xcode / XCTest / 模拟器测试，只按 `md/test/test.md` 做轻量检查。**
 
 ---
 
@@ -103,8 +103,9 @@ WWIIHexV0/
 - v4.4 当前界面已把外交入口改为“天下”/“天下局势”，展示当前势力、名义主体、战事态势、主要对手、诸方势力、战和关系和朝议/军议。
 - v4.5 首片新增 `CourtStrategySummary`，从钱粮、治理、前线、补给和火器/炮队状态派生政策、经济、科技、军事四线压力；Root 信息面板新增“朝廷”tab，AI 摘要和元帅摘要 schemaVersion 8 已能看到朝议建议。
 - v4.6 首片开始发布级 UI 收口：`MingDesignTokens` 统一明末面板色彩/圆角/间距；`CourtPanelView` 从 `RootGameView` 拆出并改为奏疏/印玺风格；军令、将领档案、单位详情、单位浮窗、战报、AI 决策、信息按钮和新局按钮继续中文化；`UnitNode` 不再绘制 NATO APP-6 兵牌，改为“城/旗/火/骑/步”和“守/退”中文军牌；地图空态标题改为“明末棋策舆图”。
+- v4.6 第二片新增 `CourtProjectKind` 与 `Command.enactCourtProject(kind:)`，朝廷面板可按主议推荐执行征饷、赈济、修城、团练、火器和粮台项目；执行层统一走 `CommandValidator` 与 `EconomyRules`，轻量影响民力/银两/粮草、地方治理、城防/粮道、生产队列、火器/炮队补整和缺粮部队。
 - 明末生产完成后会生成明末组件单位；legacy Germany / Allies 生产仍使用旧 `.infantry/.panzer/.motorized/.artillery` 工厂方法。
-- 当前朝廷摘要是只读建议层，不执行政策；完整政策法令、科技/军械路线、灾荒、民心、拖欠军饷影响士气/忠诚和多回合围城链仍属于后续 v4.5+。
+- 当前朝廷摘要仍是派生建议层；朝廷项目是一次性轻量执行入口，不是完整政策法令、科技树或统治者 Agent。灾荒、民心扩展、拖欠军饷影响士气/忠诚和多回合围城链仍属于后续 v4.5+。
 
 ### 核心架构原则
 
@@ -154,7 +155,7 @@ WWIIHexV0/
 `MarshalBattlefieldSummarizer` 把 `GameState` 降维为元帅摘要，只包含 front zone、strength ratio、补给警告、目标和事件，不把全量 hex 网格喂给模型。`SimulatedMarshalLLMClient` 生成 fenced JSON 形式的 `TheaterDirectiveEnvelope`；`TheaterDirectiveDecoder` 提取并校验 JSON；`TheaterDirectiveCompiler` 把元帅意图编译成现有 `ZoneDirective`。v0.7 后 `TheaterDirective` 可携带 `convergenceRegionId` / `coordinatedZoneIds` 支持钳形会师意图；解码或编译失败时 fallback 到 `TheaterCommanderPool`，不执行半成品 LLM 输出。
 
 **后续 Ruler / Diplomacy 边界：**
-统治者层不在 v0.5 当前主链路中。多势力、外交关系和只读朝廷摘要已进入兼容层，后续如要扩展可执行政策、科技、招抚或统治者 agent，必须先设计独立 schema，并保持底层战争规则仍由当前 active faction、`DiplomacyState`、`ZoneDirective`、`WarCommandExecutor` 和 `RuleEngine` 收口。
+统治者层不在 v0.5 当前主链路中。多势力、外交关系、朝廷摘要和轻量朝廷项目已进入兼容层；后续如要扩展多回合政策、科技、招抚或统治者 agent，必须先设计独立 schema，并保持底层战争规则仍由当前 active faction、`DiplomacyState`、`Command` / `ZoneDirective`、`WarCommandExecutor` 和 `RuleEngine` 收口。
 
 ---
 

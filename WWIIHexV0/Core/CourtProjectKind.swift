@@ -1,0 +1,129 @@
+import Foundation
+
+enum CourtProjectKind: String, Codable, Equatable, CaseIterable, Identifiable {
+    case raiseTax
+    case relief
+    case fortify
+    case trainMilitia
+    case firearmReform
+    case grainTransport
+
+    var id: String {
+        rawValue
+    }
+
+    var displayName: String {
+        switch self {
+        case .raiseTax:
+            return "征饷"
+        case .relief:
+            return "赈济安民"
+        case .fortify:
+            return "修城固守"
+        case .trainMilitia:
+            return "整训团练"
+        case .firearmReform:
+            return "火器整备"
+        case .grainTransport:
+            return "粮台转运"
+        }
+    }
+
+    var domainDisplayName: String {
+        switch self {
+        case .raiseTax:
+            return "经济"
+        case .relief:
+            return "政策"
+        case .fortify,
+             .trainMilitia:
+            return "军事"
+        case .firearmReform:
+            return "科技"
+        case .grainTransport:
+            return "经济/军事"
+        }
+    }
+
+    var benefitSummary: String {
+        switch self {
+        case .raiseTax:
+            return "补充银两，承担民变和行政代价。"
+        case .relief:
+            return "压低民变，恢复地方行政。"
+        case .fortify:
+            return "加固重点州府，提升后续补给和防务。"
+        case .trainMilitia:
+            return "把地方守备排入募兵队列。"
+        case .firearmReform:
+            return "优先修整火器、炮队和攻城器械。"
+        case .grainTransport:
+            return "补粮并优先缓解缺粮部队。"
+        }
+    }
+
+    var riskSummary: String {
+        switch self {
+        case .raiseTax:
+            return "民变上升，行政掌控下降。"
+        case .relief:
+            return "消耗银两与粮草。"
+        case .fortify:
+            return "消耗民力、银两与粮草。"
+        case .trainMilitia:
+            return "成军较慢，野战上限有限。"
+        case .firearmReform:
+            return "军械维护挤占银两。"
+        case .grainTransport:
+            return "银两转为粮草，其他项目延后。"
+        }
+    }
+
+    var systemImageName: String {
+        switch self {
+        case .raiseTax:
+            return "banknote"
+        case .relief:
+            return "leaf"
+        case .fortify:
+            return "shield"
+        case .trainMilitia:
+            return "person.3"
+        case .firearmReform:
+            return "scope"
+        case .grainTransport:
+            return "shippingbox"
+        }
+    }
+
+    var cost: EconomyResources {
+        switch self {
+        case .raiseTax:
+            return EconomyResources(manpower: 8, industry: 0, supplies: 8)
+        case .relief:
+            return EconomyResources(manpower: 0, industry: 45, supplies: 35)
+        case .fortify:
+            return EconomyResources(manpower: 30, industry: 45, supplies: 15)
+        case .trainMilitia:
+            return EconomyResources(manpower: 45, industry: 25, supplies: 12)
+        case .firearmReform:
+            return EconomyResources(manpower: 25, industry: 60, supplies: 18)
+        case .grainTransport:
+            return EconomyResources(manpower: 0, industry: 35, supplies: 0)
+        }
+    }
+
+    var resourceGain: EconomyResources {
+        switch self {
+        case .raiseTax:
+            return EconomyResources(industry: 80)
+        case .grainTransport:
+            return EconomyResources(supplies: 90)
+        case .relief,
+             .fortify,
+             .trainMilitia,
+             .firearmReform:
+            return .zero
+        }
+    }
+}

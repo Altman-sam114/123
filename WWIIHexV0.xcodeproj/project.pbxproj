@@ -357,6 +357,7 @@
 		0D0000000000000000000102 /* RulerAgent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0D0000000000000000000002 /* RulerAgent.swift */; };
 		0D0000000000000000000103 /* DiplomacyState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0D0000000000000000000003 /* DiplomacyState.swift */; };
 		0D0000000000000000000104 /* EconomyState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0D0000000000000000000004 /* EconomyState.swift */; };
+		0D000000000000000000010E /* CourtProjectKind.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0D000000000000000000000E /* CourtProjectKind.swift */; };
 		0D0000000000000000000105 /* GeneralAssignment.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0D0000000000000000000005 /* GeneralAssignment.swift */; };
 		0D0000000000000000000106 /* PlayerCommandState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0D0000000000000000000006 /* PlayerCommandState.swift */; };
 		0D0000000000000000000107 /* EconomyRules.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0D0000000000000000000007 /* EconomyRules.swift */; };
@@ -366,6 +367,7 @@
 		0D0000000000000000000202 /* RulerAgent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0D0000000000000000000002 /* RulerAgent.swift */; };
 		0D0000000000000000000203 /* DiplomacyState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0D0000000000000000000003 /* DiplomacyState.swift */; };
 		0D0000000000000000000204 /* EconomyState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0D0000000000000000000004 /* EconomyState.swift */; };
+		0D000000000000000000020E /* CourtProjectKind.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0D000000000000000000000E /* CourtProjectKind.swift */; };
 		0D0000000000000000000205 /* GeneralAssignment.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0D0000000000000000000005 /* GeneralAssignment.swift */; };
 		0D0000000000000000000206 /* PlayerCommandState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0D0000000000000000000006 /* PlayerCommandState.swift */; };
 		0D0000000000000000000207 /* EconomyRules.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0D0000000000000000000007 /* EconomyRules.swift */; };
@@ -373,6 +375,7 @@
 		0D0000000000000000000302 /* RulerAgent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0D0000000000000000000002 /* RulerAgent.swift */; };
 		0D0000000000000000000303 /* DiplomacyState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0D0000000000000000000003 /* DiplomacyState.swift */; };
 		0D0000000000000000000304 /* EconomyState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0D0000000000000000000004 /* EconomyState.swift */; };
+		0D000000000000000000030E /* CourtProjectKind.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0D000000000000000000000E /* CourtProjectKind.swift */; };
 		0D0000000000000000000305 /* GeneralAssignment.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0D0000000000000000000005 /* GeneralAssignment.swift */; };
 		0D0000000000000000000306 /* PlayerCommandState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0D0000000000000000000006 /* PlayerCommandState.swift */; };
 		0D0000000000000000000307 /* EconomyRules.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0D0000000000000000000007 /* EconomyRules.swift */; };
@@ -584,6 +587,7 @@
 		0D000000000000000000000B /* GeneralCommandPanelView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GeneralCommandPanelView.swift; sourceTree = "<group>"; };
 		0D000000000000000000000C /* GeneralProfileView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GeneralProfileView.swift; sourceTree = "<group>"; };
 		0D000000000000000000000D /* CourtPanelView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CourtPanelView.swift; sourceTree = "<group>"; };
+		0D000000000000000000000E /* CourtProjectKind.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CourtProjectKind.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -674,6 +678,7 @@
 				020000000000000000000096 /* WarDirectiveRecord.swift */,
 				0D0000000000000000000003 /* DiplomacyState.swift */,
 				0D0000000000000000000004 /* EconomyState.swift */,
+				0D000000000000000000000E /* CourtProjectKind.swift */,
 				0D0000000000000000000005 /* GeneralAssignment.swift */,
 				0D0000000000000000000006 /* PlayerCommandState.swift */,
 				020000000000000000000097 /* StrategicStateBootstrapper.swift */,
@@ -1130,6 +1135,7 @@
 				010000000000000000000126 /* WarPipelineMode.swift in Sources */,
 				0D0000000000000000000103 /* DiplomacyState.swift in Sources */,
 				0D0000000000000000000104 /* EconomyState.swift in Sources */,
+				0D000000000000000000010E /* CourtProjectKind.swift in Sources */,
 				0D0000000000000000000105 /* GeneralAssignment.swift in Sources */,
 				0D0000000000000000000106 /* PlayerCommandState.swift in Sources */,
 				0D0000000000000000000107 /* EconomyRules.swift in Sources */,
@@ -1320,6 +1326,7 @@
 				01000000000000000000012E /* WarPipelineMode.swift in Sources */,
 				0D0000000000000000000203 /* DiplomacyState.swift in Sources */,
 				0D0000000000000000000204 /* EconomyState.swift in Sources */,
+				0D000000000000000000020E /* CourtProjectKind.swift in Sources */,
 				0D0000000000000000000205 /* GeneralAssignment.swift in Sources */,
 				0D0000000000000000000206 /* PlayerCommandState.swift in Sources */,
 				0D0000000000000000000207 /* EconomyRules.swift in Sources */,
@@ -1410,6 +1417,7 @@
 				0C0000000000000000000106 /* WarPipelineMode.swift in Sources */,
 				0D0000000000000000000303 /* DiplomacyState.swift in Sources */,
 				0D0000000000000000000304 /* EconomyState.swift in Sources */,
+				0D000000000000000000030E /* CourtProjectKind.swift in Sources */,
 				0D0000000000000000000305 /* GeneralAssignment.swift in Sources */,
 				0D0000000000000000000306 /* PlayerCommandState.swift in Sources */,
 				0D0000000000000000000307 /* EconomyRules.swift in Sources */,

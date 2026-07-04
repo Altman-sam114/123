@@ -1,4 +1,4 @@
-# WWIIHexV0 核心流程文档（明末迁移 v4.6 UI polish 首片）
+# WWIIHexV0 核心流程文档（明末迁移 v4.6 UI 与朝廷项目首片）
 
 > 本文是项目当前核心逻辑的接手文档。目标不是复述历史设计，而是按当前代码真实链路说明：数据如何进入游戏，hex / region / theater / front / deploy 如何派生，主游戏和地图编辑器如何共同维护同一套地图语义，AI / 玩家命令如何落到规则系统。
 
@@ -20,6 +20,7 @@ MapEditor / JSON 数据
   -> Region 聚合
   -> EconomyState 收入 / 生产 / 补员
   -> CourtStrategySummary 政策 / 经济 / 科技 / 军事摘要
+  -> CourtProjectKind / Command.enactCourtProject 朝廷项目
   -> Initial Theater snapshot + runtime hexToTheater
   -> FrontLine 动态 hex 接触
   -> WarDeployment hexToFrontZone + FRONT/DEPTH/GARRISON
@@ -49,12 +50,13 @@ MapEditor / JSON 数据
 - v4.4 天下局势首片中，玩家信息面板的外交入口改为“天下”，`DiplomacyPanelView` 显示当前势力、名义主体、战事态势、主要对手、诸方势力、战和关系和朝议/军议。
 - v4.5 朝廷首片中，`CourtStrategySummary` 从钱粮、治理、补给、前线和火器/炮队状态派生政策、经济、科技、军事四线压力；Root 信息面板新增“朝廷”tab，AI 与元帅摘要可读取同一朝议建议。
 - v4.6 UI 首片中，`MingDesignTokens` 提供明末面板色彩/圆角/间距常量；`CourtPanelView` 已从 `RootGameView` 拆出并改为奏疏/印玺风格；主 UI、军令、将领、单位、战报、AI 面板继续中文化；`UnitNode` 地图军牌从 NATO 图形改为中文徽记和守/退状态。
+- v4.6 朝廷项目首片中，`CourtProjectKind` 将征饷、赈济安民、修城固守、整训团练、火器整备、粮台转运收口为一次性项目；玩家从朝廷面板触发 `Command.enactCourtProject(kind:)`，再经 `CommandValidator` 与 `EconomyRules` 执行。
 - `GamePhase.allowsHumanCommands` 是玩家可操作阶段的当前 UI/App 判定入口，兼容 `.humanAction` 与 legacy `.alliedPlayer`。
 - `turnOrder`、`humanControlledFactions`、`aiControlledFactions` 是通用回合和控制方配置；旧阿登仍 fallback 为 Germany AI / Allies player。
 - `EconomyState` 是 faction 级经济总账；收入来自受控 region、城市、工厂、基础设施和补给值，但战术占领仍以 hex 为准。
 - 玩家、AI、后续聊天命令最终都必须经过 `Command` / `ZoneDirective -> WarCommandExecutor -> RuleEngine`，不能直接改 `GameState`。
 - v0.5 默认战争 AI 上游是 `MarshalAgent -> TheaterDirective JSON -> TheaterDirectiveDecoder -> TheaterDirectiveCompiler`，下游执行收口到 `ZoneDirective -> WarCommandExecutor -> RuleEngine`。
-- `CourtStrategySummary` 是只读派生摘要，不执行政策、不改 `GameState`；`RulerAgent` 仍不是默认主链路。
+- `CourtStrategySummary` 是只读派生摘要，不直接改 `GameState`；可执行朝廷项目必须走 `Command.enactCourtProject -> CommandValidator -> CommandExecutor -> EconomyRules`。`RulerAgent` 仍不是默认主链路。
 
 ---
 
@@ -95,7 +97,7 @@ playerCommandState
 - `frontLineState` 从动态战区相邻 hex 派生。
 - `warDeploymentState` 从动态战区/前线/单位位置派生，供 AI 调度单位。
 - `economyState` 保存民力、银两、粮草三项兼容资源、生产队列、上回合收入/维护费/补员消耗，不直接改变战术占领权；源码字段名仍是 `manpower/industry/supplies`。
-- `CourtStrategySummary` 不保存进 `GameState`，而是从钱粮、治理、前线、补给和单位组件即时派生，供朝廷面板、AgentContext 和 MarshalBattlefieldSummary 读取。
+- `CourtStrategySummary` 不保存进 `GameState`，而是从钱粮、治理、前线、补给和单位组件即时派生，供朝廷面板、AgentContext 和 MarshalBattlefieldSummary 读取；`CourtProjectKind` 也不新增持久政策状态，只描述玩家可施行的一次性项目及成本、收益和风险。
 - `diplomacyState` 保存国家/集团/关系；v4.1 起 `canAttack`、`isHostile`、`isFriendly`、`canEnterTerritory` 是新敌我判断入口。
 - `turnOrder` 决定多势力轮转；`humanControlledFactions` / `aiControlledFactions` 决定当前 active faction 由玩家还是 AI 控制。
 - `eventLog` 给 UI 和调试看。
@@ -487,7 +489,7 @@ AI 摘要：
 - `AgentContext.courtSummary` 从钱粮、治理、补给、前线和火器/炮队状态派生朝议摘要，让 legacy prompt builder 能看到政策、经济、科技、军事四线压力。
 - `MarshalBattlefieldSummary.economySummary` 给元帅层和模拟 LLM prompt 提供同一钱粮摘要；`MarshalBattlefieldSummary.courtSummary` 提供朝廷四线摘要；schemaVersion 已升到 8。
 - 钱粮摘要只读 `economyState`，不直接改变生产、占领或补给。
-- 朝廷摘要同样只读，不执行征饷、赈济、修城、整训团练、火器整备或粮台转运。
+- 朝廷摘要同样只读；玩家若要施行征饷、赈济、修城、整训团练、火器整备或粮台转运，必须从 `CourtPanelView` 提交 `Command.enactCourtProject(kind:)`，再由 `CommandValidator` 校验资源和 phase，最后由 `EconomyRules.enactCourtProject` 扣资源并施加轻量效果。
 
 ---
 
@@ -1153,7 +1155,7 @@ v4.3 明末军队首步：
 - `Division.isSiegeCapable` 识别炮队和攻城器械；攻击 city / fortress hex 时获得首步攻城加成。
 - `TacticName.displayName` 提供明末展示名：正攻、疾袭、突骑破阵、破围、合围、火器压制、佯攻、流动作战、固守、诱敌退守、层层设防、死守城关。
 
-注意：v4.4-v4.5 首片只迁移资源展示、生产单位组件、AI 钱粮摘要和只读朝议摘要，不新增独立 morale、payStatus、grainCarry、灾荒事件、可执行政策/科技命令或多回合 siege state；粮草仍沿用 `SupplyRules` / `SupplyState`，完整粮道、军饷、治安、政策科技和围城事件链后续继续推进。
+注意：v4.4-v4.5 首片只迁移资源展示、生产单位组件、AI 钱粮摘要和只读朝议摘要；v4.6 第二片新增一次性朝廷项目入口，但仍不新增独立 morale、payStatus、grainCarry、灾荒事件、多回合政策状态、完整科技树或多回合 siege state。粮草仍沿用 `SupplyRules` / `SupplyState`，完整粮道、军饷、治安、政策科技和围城事件链后续继续推进。
 
 结束回合：
 
@@ -1240,7 +1242,7 @@ TheaterDirective
 
 最终执行由 `TurnManager.executeDirectiveEnvelope` 统一完成。`.marshalDirective` 和显式 `.zoneDirective` 共享同一段 WarCommandExecutor 执行、WarDirectiveRecord 记录、endTurn 推进逻辑。
 
-`CourtStrategySummary` 已作为只读朝议摘要进入元帅摘要，但统治者层仍是后续预留方向；当前 v0.5 主路径不调用 `RulerAgent`，也不在 `DirectiveEnvelope` 与执行层之间插入可执行政策或姿态塑形。
+`CourtStrategySummary` 已作为只读朝议摘要进入元帅摘要，但统治者层仍是后续预留方向；当前 v0.5 主路径不调用 `RulerAgent`，也不在 `DirectiveEnvelope` 与执行层之间插入统治者姿态塑形。朝廷项目属于玩家显式提交的 `Command`，不是元帅/Ruler 自动下发的政策层。
 
 Legacy Agent D 仍存在，但只在显式 `.legacyAgentOrder` 分支运行：
 
@@ -1947,15 +1949,22 @@ Data/generals.json
 
 ---
 
-## 14. v4.6 明末 UI polish 首片
+## 14. v4.6 明末 UI 与朝廷项目首片
 
-v4.6 首片只做只读 UI 和 SpriteKit 展示收口，不新增规则入口，也不新增可执行政策/科技命令：
+v4.6 首片先做 UI 和 SpriteKit 展示收口；第二片把朝廷面板中的六类主议/备议推进为一次性可执行项目。二者仍共享一个边界：UI 不直接改 `GameState`，所有执行必须走统一命令/规则管线。
 
 ```text
 MingDesignTokens
   -> RootGameView / GeneralCommandPanelView / GeneralProfileView
   -> UnitInspectorView / UnitTooltipView / EventLogView / AgentPanelView
   -> CourtPanelView
+
+CourtProjectKind
+  -> CourtPanelView 可行项目按钮
+  -> Command.enactCourtProject
+  -> CommandValidator
+  -> CommandExecutor
+  -> EconomyRules.enactCourtProject
 
 BoardScene / UnitNode
   -> 明末舆图空态
@@ -1965,15 +1974,18 @@ BoardScene / UnitNode
 
 当前完成点：
 
-- `CourtPanelView` 独立成文件并加入 iOS/macOS source phase，仍从 `CourtStrategySummary.from(faction:state:)` 只读派生朝议摘要。
+- `CourtPanelView` 独立成文件并加入 iOS/macOS source phase，仍从 `CourtStrategySummary.from(faction:state:)` 只读派生朝议摘要，并按主议把推荐项目排在“可行项目”首位。
 - 信息按钮、图层 picker、观战 toggle、新局按钮、军令/将领/单位/战报/AI 面板做明末中文 polish。
 - `MingDesignTokens` 提供共享设计常量，避免每个面板继续散落不同圆角、padding 和背景色。
 - `UnitNode` 改用中文军牌徽记，移除默认主地图上的 NATO 风格兵牌。
+- `CourtProjectKind` 目前包含征饷、赈济安民、修城固守、整训团练、火器整备、粮台转运六项，覆盖政策、经济、科技、军事四线。
+- `Command.enactCourtProject(kind:)` 与生产命令同级，`actingDivisionId` 为 nil；校验只允许可行动 phase 且资源足够时执行。
+- `EconomyRules.enactCourtProject` 会扣除项目成本、追加即时资源收益，并按项目轻量调整地方治理、州府 infrastructure/supplyValue、生产队列、火器/炮队兵力或缺粮部队状态。
 
 仍未完成：
 
 - 未加入真实美术资产、地图纹理、势力旗帜、头像、截图检查清单或运行时视觉验收。
-- 未新增政策/科技 directive、城防项目、粮道可视化或灾荒/军饷事件。
+- 未新增多回合政策/科技 directive、完整科技树、粮道可视化或灾荒/军饷事件。
 - 未改变 `Command` / `ZoneDirective -> WarCommandExecutor -> RuleEngine` 执行权威。
 
 ---

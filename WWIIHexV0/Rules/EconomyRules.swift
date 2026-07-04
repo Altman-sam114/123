@@ -78,6 +78,32 @@ struct EconomyRules {
         return true
     }
 
+    func canEnactCourtProject(kind: CourtProjectKind, faction: Faction, in state: GameState) -> Bool {
+        state.economyState.ledger(for: faction).stockpile.canAfford(kind.cost)
+    }
+
+    func enactCourtProject(kind: CourtProjectKind, faction: Faction, in state: inout GameState) -> Bool {
+        var ledger = state.economyState.ledger(for: faction)
+        guard ledger.stockpile.canAfford(kind.cost) else {
+            state.appendEvent(
+                "\(faction.displayName) 民力/银两/粮草不足，无法施行\(kind.displayName)。",
+                category: .supply
+            )
+            return false
+        }
+
+        ledger.stockpile.subtract(kind.cost)
+        ledger.stockpile.add(kind.resourceGain)
+        let effectSummary = applyCourtProjectEffect(kind, faction: faction, ledger: &ledger, state: &state)
+        ledger.lastUpdatedTurn = state.turn
+        state.economyState.updateLedger(ledger)
+        state.appendEvent(
+            "\(faction.displayName) 施行\(kind.displayName)：耗费 \(resourceSummary(kind.cost))；\(effectSummary)；库存 \(resourceSummary(ledger.stockpile))。",
+            category: .supply
+        )
+        return true
+    }
+
     func resolveFactionTurn(for faction: Faction, in state: inout GameState) {
         ensureLedger(for: faction, in: &state)
 
@@ -188,6 +214,191 @@ struct EconomyRules {
                     lastUpdatedTurn: state.turn
                 )
             )
+        }
+    }
+
+    private func applyCourtProjectEffect(
+        _ kind: CourtProjectKind,
+        faction: Faction,
+        ledger: inout FactionEconomyLedger,
+        state: inout GameState
+    ) -> String {
+        switch kind {
+        case .raiseTax:
+            let affected = adjustGovernance(
+                faction: faction,
+                resistanceDelta: 8,
+                complianceDelta: -4,
+                limit: 3,
+                state: &state
+            )
+            let governanceText = affected.isEmpty ? "未找到可征州府" : "\(affected.joined(separator: "、")) 民变上升"
+            return "银两 +\(kind.resourceGain.industry)，\(governanceText)"
+        case .relief:
+            let affected = adjustGovernance(
+                faction: faction,
+                resistanceDelta: -14,
+                complianceDelta: 8,
+                limit: 3,
+                state: &state
+            )
+            return affected.isEmpty ? "未找到可赈州府" : "\(affected.joined(separator: "、")) 民变下降"
+        case .fortify:
+            let affected = fortifyControlledRegions(faction: faction, limit: 2, state: &state)
+            return affected.isEmpty ? "未找到可修城州府" : "\(affected.joined(separator: "、")) 城防和粮道提升"
+        case .trainMilitia:
+            let order = ProductionOrder(
+                id: productionOrderId(kind: .infantryDivision, faction: faction, turn: state.turn, index: ledger.productionQueue.count),
+                faction: faction,
+                kind: .infantryDivision,
+                remainingTurns: 1,
+                totalTurns: 1,
+                createdTurn: state.turn
+            )
+            ledger.productionQueue.append(order)
+            return "地方守备排入队列，1 回合后可部署"
+        case .firearmReform:
+            let restored = restoreFireSupportUnits(faction: faction, limit: 3, state: &state)
+            if restored > 0 {
+                return "\(restored) 支火器/炮队整备，兵力小幅恢复"
+            }
+            let order = ProductionOrder(
+                id: productionOrderId(kind: .artilleryDivision, faction: faction, turn: state.turn, index: ledger.productionQueue.count),
+                faction: faction,
+                kind: .artilleryDivision,
+                remainingTurns: 1,
+                totalTurns: 1,
+                createdTurn: state.turn
+            )
+            ledger.productionQueue.append(order)
+            return "军械工坊转入造炮队，1 回合后可部署"
+        case .grainTransport:
+            let supplied = restoreLowSupplyUnits(faction: faction, limit: 3, state: &state)
+            let supplyText = supplied > 0 ? "，\(supplied) 支缺粮部队恢复有粮" : ""
+            return "粮草 +\(kind.resourceGain.supplies)\(supplyText)"
+        }
+    }
+
+    private func adjustGovernance(
+        faction: Faction,
+        resistanceDelta: Int,
+        complianceDelta: Int,
+        limit: Int,
+        state: inout GameState
+    ) -> [String] {
+        let regions = controlledRegions(for: faction, in: state)
+            .sorted {
+                let lhs = $0.occupationState ?? .stable
+                let rhs = $1.occupationState ?? .stable
+                if resistanceDelta < 0, lhs.resistance != rhs.resistance {
+                    return lhs.resistance > rhs.resistance
+                }
+                if lhs.compliance != rhs.compliance {
+                    return lhs.compliance < rhs.compliance
+                }
+                return $0.id.rawValue < $1.id.rawValue
+            }
+            .prefix(limit)
+
+        var names: [String] = []
+        for region in regions {
+            guard var current = state.map.regions[region.id] else {
+                continue
+            }
+            let occupation = current.occupationState ?? .stable
+            current.occupationState = OccupationState(
+                resistance: occupation.resistance + resistanceDelta,
+                compliance: occupation.compliance + complianceDelta
+            )
+            state.map.regions[region.id] = current
+            names.append(current.name)
+        }
+        return names
+    }
+
+    private func fortifyControlledRegions(
+        faction: Faction,
+        limit: Int,
+        state: inout GameState
+    ) -> [String] {
+        let regions = controlledRegions(for: faction, in: state)
+            .sorted {
+                let lhsScore = deploymentRegionScore($0, map: state.map)
+                let rhsScore = deploymentRegionScore($1, map: state.map)
+                if lhsScore != rhsScore {
+                    return lhsScore > rhsScore
+                }
+                return $0.id.rawValue < $1.id.rawValue
+            }
+            .prefix(limit)
+
+        var names: [String] = []
+        for region in regions {
+            guard var current = state.map.regions[region.id] else {
+                continue
+            }
+            current.infrastructure += 1
+            current.supplyValue += 1
+            state.map.regions[region.id] = current
+            names.append(current.name)
+        }
+        return names
+    }
+
+    private func restoreFireSupportUnits(
+        faction: Faction,
+        limit: Int,
+        state: inout GameState
+    ) -> Int {
+        var restored = 0
+        let candidateIds = state.divisions
+            .filter {
+                $0.faction == faction &&
+                    ($0.hasFireSupport || $0.isSiegeCapable) &&
+                    $0.strength < $0.maxStrength &&
+                    !$0.isDestroyed
+            }
+            .sorted { $0.strength < $1.strength }
+            .prefix(limit)
+            .map(\.id)
+
+        for divisionId in candidateIds {
+            guard let index = state.divisionIndex(id: divisionId) else {
+                continue
+            }
+            state.divisions[index].reinforceStrength(1)
+            restored += 1
+        }
+        return restored
+    }
+
+    private func restoreLowSupplyUnits(
+        faction: Faction,
+        limit: Int,
+        state: inout GameState
+    ) -> Int {
+        var restored = 0
+        let candidateIds = state.divisions
+            .filter { $0.faction == faction && $0.supplyState == .lowSupply && !$0.isDestroyed }
+            .sorted { $0.id < $1.id }
+            .prefix(limit)
+            .map(\.id)
+
+        for divisionId in candidateIds {
+            guard let index = state.divisionIndex(id: divisionId) else {
+                continue
+            }
+            state.divisions[index].supplyState = .supplied
+            restored += 1
+        }
+        return restored
+    }
+
+    private func controlledRegions(for faction: Faction, in state: GameState) -> [RegionNode] {
+        state.map.regions.values.filter {
+            $0.controller == faction &&
+                $0.isPassable &&
+                hasControlledHex(in: $0, faction: faction, map: state.map)
         }
     }
 

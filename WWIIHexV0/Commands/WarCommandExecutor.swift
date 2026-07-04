@@ -1269,6 +1269,7 @@ struct WarCommandExecutor {
         case .attack(let attackerId, _):
             return attackerId
         case .queueProduction,
+             .enactCourtProject,
              .endTurn:
             return nil
         }

@@ -2,6 +2,9 @@ import SwiftUI
 
 struct CourtPanelView: View {
     let gameState: GameState
+    let playerFaction: Faction
+    let observerModeEnabled: Bool
+    let onEnactProject: (CourtProjectKind) -> Void
 
     var body: some View {
         let summary = CourtStrategySummary.from(faction: gameState.activeFaction, state: gameState)
@@ -10,6 +13,11 @@ struct CourtPanelView: View {
             CourtHeaderView(faction: gameState.activeFaction, focus: summary.recommendedFocus)
             CourtRationaleView(summary: summary)
             CourtPressureSection(summary: summary)
+            CourtProjectSection(
+                recommendedProject: CourtProjectKind(focus: summary.recommendedFocus),
+                canEnact: canEnact,
+                onEnactProject: onEnactProject
+            )
             CourtSecondaryFocusSection(focuses: summary.secondaryFocuses)
             CourtMetricsGrid(summary: summary)
         }
@@ -20,6 +28,13 @@ struct CourtPanelView: View {
                 .stroke(MingDesignTokens.courtStroke, lineWidth: 1)
         }
         .clipShape(RoundedRectangle(cornerRadius: MingDesignTokens.cornerRadius))
+    }
+
+    private func canEnact(_ kind: CourtProjectKind) -> Bool {
+        !observerModeEnabled &&
+            gameState.activeFaction == playerFaction &&
+            gameState.phase.allowsHumanCommands &&
+            gameState.economyState.ledger(for: gameState.activeFaction).stockpile.canAfford(kind.cost)
     }
 }
 
@@ -162,6 +177,70 @@ private struct CourtSecondaryFocusSection: View {
     }
 }
 
+private struct CourtProjectSection: View {
+    let recommendedProject: CourtProjectKind
+    let canEnact: (CourtProjectKind) -> Bool
+    let onEnactProject: (CourtProjectKind) -> Void
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: MingDesignTokens.compactSpacing) {
+            Text("可行项目")
+                .font(.subheadline.bold())
+
+            ForEach(projects) { project in
+                CourtProjectRow(
+                    project: project,
+                    isRecommended: project == recommendedProject,
+                    isEnabled: canEnact(project),
+                    onEnactProject: onEnactProject
+                )
+            }
+        }
+    }
+
+    private var projects: [CourtProjectKind] {
+        [recommendedProject] + CourtProjectKind.allCases.filter { $0 != recommendedProject }
+    }
+}
+
+private struct CourtProjectRow: View {
+    let project: CourtProjectKind
+    let isRecommended: Bool
+    let isEnabled: Bool
+    let onEnactProject: (CourtProjectKind) -> Void
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 5) {
+            Button(action: enactProject) {
+                Label(project.displayName, systemImage: project.systemImageName)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
+            .buttonStyle(.bordered)
+            .frame(minHeight: MingDesignTokens.minimumTapSize)
+            .disabled(!isEnabled)
+            .accessibilityHint(isRecommended ? "当前主议项目" : project.domainDisplayName)
+
+            Text(detailText)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .padding(MingDesignTokens.compactSpacing)
+        .background(isRecommended ? MingDesignTokens.subtleSeal : MingDesignTokens.sectionBackground)
+        .clipShape(RoundedRectangle(cornerRadius: MingDesignTokens.cornerRadius))
+    }
+
+    private func enactProject() {
+        onEnactProject(project)
+    }
+
+    private var detailText: String {
+        let gain = project.resourceGain.isEmpty ? "" : " / 得 \(project.resourceGain.compactDisplaySummary)"
+        let tag = isRecommended ? "主议 / " : ""
+        return "\(tag)\(project.domainDisplayName) / 耗 \(project.cost.compactDisplaySummary)\(gain)。\(project.benefitSummary) 风险：\(project.riskSummary)"
+    }
+}
+
 private struct CourtFocusRow: View {
     let focus: CourtPolicyFocus
 
@@ -214,5 +293,24 @@ private struct CourtMetricView: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(MingDesignTokens.sectionBackground)
         .clipShape(RoundedRectangle(cornerRadius: MingDesignTokens.cornerRadius))
+    }
+}
+
+private extension CourtProjectKind {
+    init(focus: CourtPolicyFocus) {
+        switch focus {
+        case .raiseTax:
+            self = .raiseTax
+        case .relief:
+            self = .relief
+        case .fortify:
+            self = .fortify
+        case .trainMilitia:
+            self = .trainMilitia
+        case .firearmReform:
+            self = .firearmReform
+        case .grainTransport:
+            self = .grainTransport
+        }
     }
 }

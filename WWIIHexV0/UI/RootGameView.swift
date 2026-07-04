@@ -203,7 +203,12 @@ struct RootGameView: View {
                         onQueueProduction: container.queueProduction
                     )
                 case .court:
-                    CourtPanelView(gameState: container.gameState)
+                    CourtPanelView(
+                        gameState: container.gameState,
+                        playerFaction: container.playerFaction,
+                        observerModeEnabled: container.observerModeEnabled,
+                        onEnactProject: container.enactCourtProject
+                    )
                 case .diplomacy:
                     DiplomacyPanelView(
                         diplomacyState: container.gameState.diplomacyState,
