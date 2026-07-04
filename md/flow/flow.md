@@ -1,4 +1,4 @@
-# WWIIHexV0 核心流程文档（明末迁移 v4.6 UI、朝廷项目、朝议争点、军情牌、州府牌、天下急势、地图标识、粮道线路/开关、舆图图例与四线项目分组首片）
+# WWIIHexV0 核心流程文档（明末迁移 v4.6 UI、朝廷项目、朝议争点、军情牌、州府牌、府库牌、天下急势、地图标识、粮道线路/开关、舆图图例与四线项目分组首片）
 
 > 本文是项目当前核心逻辑的接手文档。目标不是复述历史设计，而是按当前代码真实链路说明：数据如何进入游戏，hex / region / theater / front / deploy 如何派生，主游戏和地图编辑器如何共同维护同一套地图语义，AI / 玩家命令如何落到规则系统。
 
@@ -55,6 +55,7 @@ MapEditor / JSON 数据
 - v4.6 UI 首片中，`MingDesignTokens` 提供明末面板色彩/圆角/间距常量；`CourtPanelView` 已从 `RootGameView` 拆出并改为奏疏/印玺风格；主 UI、军令、将领、单位、战报、AI 面板继续中文化；`UnitNode` 地图军牌从 NATO 图形改为中文徽记和守/退状态。
 - v4.6 部队军情牌首片中，`UnitInspectorView` 从字段列表升级为只读军情牌，展示军牌字、兵力条、粮草/退守/行动、攻守行程察指标、兵种编成条和驻防归属；该片只读 `Division` 与 `UnitInspectorStrategicState`，不改变战斗、补给、部署或命令规则。
 - v4.6 州府牌首片中，`RegionInspectorView` 从字段列表升级为只读州府牌，展示城关粮坊、地方治理、钱粮城防、方面/防区/目标、友敌军和当前格；该片只读 `RegionInspectorState`、`RegionNode` 和 `OccupationState`，不改变 hex 控制、region 聚合、经济结算、前线/部署或命令规则。
+- v4.6 府库牌首片中，`EconomyPanelView` 从表格/按钮列表升级为只读府库牌加生产入口，展示民力、银两、粮草库存、本回合入账、军粮维护、补员消耗、募兵筹粮和营造队列；生产按钮仍只走 `Command.queueProduction -> CommandValidator -> EconomyRules`，不直接改经济账本。
 - v4.6 天下急势首片中，`DiplomacyPanelView` 从 `DiplomacyState` 和只读 `CourtStrategySummary` 派生顶部“天下急势”、势力战意条、主要对手和政策/经济/科技/军事四线压力；该片只影响 SwiftUI 展示，不改变外交关系、朝廷项目或规则执行。
 - v4.6 朝廷项目首片中，`CourtProjectKind` 将征饷、赈济安民、修城固守、整训团练、火器整备、粮台转运收口为一次性项目；玩家从朝廷面板触发 `Command.enactCourtProject(kind:)`，再经 `CommandValidator` 与 `EconomyRules` 执行。
 - v4.6 四线项目分组首片中，`CourtProjectDomain` 将朝廷项目归入政策、经济、科技、军事四线；`CourtPanelView` 按四线展示压力值、关注点、项目成本收益和风险，不新增持久政策/科技状态。
@@ -68,7 +69,7 @@ MapEditor / JSON 数据
 - `EconomyState` 是 faction 级经济总账；收入来自受控 region、城市、工厂、基础设施和补给值，但战术占领仍以 hex 为准。
 - 玩家、AI、后续聊天命令最终都必须经过 `Command` / `ZoneDirective -> WarCommandExecutor -> RuleEngine`，不能直接改 `GameState`。
 - v0.5 默认战争 AI 上游是 `MarshalAgent -> TheaterDirective JSON -> TheaterDirectiveDecoder -> TheaterDirectiveCompiler`，下游执行收口到 `ZoneDirective -> WarCommandExecutor -> RuleEngine`。
-- `CourtStrategySummary` 是只读派生摘要，不直接改 `GameState`；`CourtPanelView` 的朝议争点和 `CourtProjectDomain` 只服务四线展示、争点表达和项目分组，可执行朝廷项目必须走 `Command.enactCourtProject -> CommandValidator -> CommandExecutor -> EconomyRules`。`UnitInspectorView` 的军情牌、`RegionInspectorView` 的州府牌、`DiplomacyPanelView` 的天下急势、`AppContainer.showsSupplyRoutes` 和 `MapDisplayLayer` 图例元数据只控制 UI 展示。`RulerAgent` 仍不是默认主链路。
+- `CourtStrategySummary` 是只读派生摘要，不直接改 `GameState`；`CourtPanelView` 的朝议争点和 `CourtProjectDomain` 只服务四线展示、争点表达和项目分组，可执行朝廷项目必须走 `Command.enactCourtProject -> CommandValidator -> CommandExecutor -> EconomyRules`。`UnitInspectorView` 的军情牌、`RegionInspectorView` 的州府牌、`EconomyPanelView` 的府库牌、`DiplomacyPanelView` 的天下急势、`AppContainer.showsSupplyRoutes` 和 `MapDisplayLayer` 图例元数据只控制 UI 展示。`RulerAgent` 仍不是默认主链路。
 
 ---
 
@@ -415,6 +416,8 @@ supplies -> 粮草
 ```
 
 `EconomyResources.displaySummary` 用完整口径输出“民力 / 银两 / 粮草”，`compactDisplaySummary` 用于 HUD、州府面板和生产成本等紧凑 UI。
+
+`EconomyPanelView` 当前以府库牌展示 `FactionEconomyLedger`，把库存、入账、军粮维护、补员消耗、募兵筹粮和营造队列放在同一钱粮界面；它只读 ledger 并提交生产命令，不直接写 `EconomyState`。
 
 收入算法：
 
@@ -871,7 +874,7 @@ handleBoardTap(coord)
   - AI
 - `UnitTooltipView`。
 
-v4.4-v4.6 首片中，HUD、CommandPanel、EconomyPanel、RegionInspector、UnitInspector、UnitTooltip、DiplomacyPanel、CourtPanel、GeneralCommandPanel、GeneralProfile、AgentPanel 和 EventLog 分类已改为明末中文展示；`MingDesignTokens` 统一面板圆角、间距、触控高度和朱砂/金/青瓷等色彩；`RegionInspectorView` 已升级为州府牌，按城关粮坊、地方治理、钱粮城防、战局归属和当前格组织 `RegionInspectorState` 只读信息；底层图层枚举、源码类型名和部分 JSON schema 字段仍保留开发兼容名。
+v4.4-v4.6 首片中，HUD、CommandPanel、EconomyPanel、RegionInspector、UnitInspector、UnitTooltip、DiplomacyPanel、CourtPanel、GeneralCommandPanel、GeneralProfile、AgentPanel 和 EventLog 分类已改为明末中文展示；`MingDesignTokens` 统一面板圆角、间距、触控高度和朱砂/金/青瓷等色彩；`EconomyPanelView` 已升级为府库牌，把民力、银两、粮草、入账、维护、补员、募兵筹粮和营造队列组织成可扫读的钱粮界面；`RegionInspectorView` 已升级为州府牌，按城关粮坊、地方治理、钱粮城防、战局归属和当前格组织 `RegionInspectorState` 只读信息；底层图层枚举、源码类型名和部分 JSON schema 字段仍保留开发兼容名。
 
 当前开局不会在 `RootGameView` 自动 `.task { runAIIfNeeded() }`。AI 行动由 `advanceOrRunAI()` 或命令提交后的 `runAIIfNeeded()` 触发。
 
@@ -1975,6 +1978,12 @@ MingDesignTokens
   -> CourtPanelView
   -> UnitInspectorView 军情牌
   -> RegionInspectorView 州府牌
+  -> EconomyPanelView 府库牌
+
+FactionEconomyLedger
+  -> EconomyPanelView 府库牌
+  -> 库存 / 入账 / 维护 / 补员 / 募兵筹粮 / 营造队列
+  -> Command.queueProduction
 
 CourtProjectDomain + CourtProjectKind
   -> CourtPanelView 朝议争点
@@ -2019,6 +2028,7 @@ RegionInspectorState
 - `MingDesignTokens` 提供共享设计常量，避免每个面板继续散落不同圆角、padding 和背景色。
 - `UnitInspectorView` 以军情牌展示选中部队，读取 `Division` 的兵力、补给、退守、行动、`effectiveStats` 和兵种组件，以及 `UnitInspectorStrategicState` 的坐标、州府、动态方面、防区、部署和前线归属；它只负责 SwiftUI 展示，不写入任何战术或战略状态。
 - `RegionInspectorView` 以州府牌展示选中州府，读取 `RegionInspectorState` 的州府、治理、钱粮产出、目标、友敌军、方面/防区和当前 hex 归属；它只负责 SwiftUI 展示，不写入 hex、region、economy、front、deployment 或命令状态。
+- `EconomyPanelView` 以府库牌展示当前 active faction 的 `FactionEconomyLedger`，读取库存、入账、维护、补员、生产成本和 `ProductionOrder` 进度；生产入口仍只调用 `onQueueProduction -> AppContainer.queueProduction -> Command.queueProduction`，不直接写入 `EconomyState`。
 - `DiplomacyPanelView` 的“天下急势”读取当前势力外交关系、主要对手、战意和朝议四线压力；诸方势力列表用势力色和战意条增强中华世界局势可读性，不改变外交状态。
 - `UnitNode` 改用中文军牌徽记，移除默认主地图上的 NATO 风格兵牌。
 - `BaseTerrain.displayName` 改为平原、林地、山地、丘陵、城池、关隘/堡寨；`HexNode` 增加“城 / 关 / 粮”badge，并把粮台和关城标识中文化。

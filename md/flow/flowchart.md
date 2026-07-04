@@ -16,7 +16,7 @@
   -> v4.3 默认明末单位使用明末 template，战术展示名开始明末化
   -> v4.4 钱粮、治理与天下局势首片把 economy 展示为民力、银两、粮草，民变/行政掌控影响收入，天下面板展示战和关系，并进入 AI 摘要
   -> v4.5 朝廷首片把政策、经济、科技、军事四线压力派生为 CourtStrategySummary，并进入 UI / AI 摘要
-  -> v4.6 UI 首片用 MingDesignTokens、独立 CourtPanelView、朝议争点、部队军情牌、州府牌、天下急势、中文军牌、城/关/粮 badge、粮道虚线/开关、舆图图例和四线项目分组 polish 主界面、地图部队和朝廷/军令/AI 面板
+  -> v4.6 UI 首片用 MingDesignTokens、独立 CourtPanelView、朝议争点、部队军情牌、州府牌、府库牌、天下急势、中文军牌、城/关/粮 badge、粮道虚线/开关、舆图图例和四线项目分组 polish 主界面、地图部队和朝廷/军令/AI 面板
   -> v4.6 朝廷项目首片把六类主议/备议落到 Command.enactCourtProject 和 EconomyRules
   -> v0.5 元帅层是战略意图层，不替代战术权威
   -> 玩家和 AI 都必须把命令交给 RuleEngine
@@ -51,6 +51,7 @@ flowchart TD
     TURN["通用回合控制<br/>turnOrder + human/AI factions<br/>决定 active faction 和行动 phase"]:::state
     DIP["天下局势 / 外交关系<br/>DiplomacyState<br/>canAttack / isHostile / canEnterTerritory"]:::state
     ECO["钱粮总账<br/>EconomyState / EconomyRules<br/>民力、银两、粮草、治理修正、生产队列、自动补员"]:::economy
+    ECONINFO["府库牌<br/>EconomyPanelView<br/>库存、入账、维护、补员、募兵筹粮和营造队列"]:::ui
     COURT["朝廷摘要<br/>CourtStrategySummary<br/>政策、经济、科技、军事四线压力和议题建议"]:::economy
     COURTDEBATE["朝议争点<br/>CourtPanelView / CourtDebateSection<br/>安民与征饷、火器与团练、粮道与城防只读展示"]:::ui
     COURTPROJ["朝廷四线项目<br/>CourtProjectDomain + CourtProjectKind / Command.enactCourtProject<br/>政策、经济、科技、军事分组；征饷、赈济、修城、团练、火器、粮台"]:::command
@@ -68,7 +69,7 @@ flowchart TD
     SUPPLYTOGGLE["粮道显示状态<br/>AppContainer.showsSupplyRoutes / BoardRenderState<br/>只控制绘制和图例，不改补给判定"]:::ui
     UNITINFO["部队军情牌<br/>UnitInspectorView<br/>兵力、粮草、攻守行程察、兵种编成和驻防归属只读展示"]:::ui
     REGIONINFO["州府牌<br/>RegionInspectorView<br/>城关粮坊、治理、钱粮城防、战局归属和当前格只读展示"]:::ui
-    UI["地图和面板显示<br/>SpriteKit / SwiftUI Overlay<br/>v4.6 明末舆图、天下急势、朝议争点、部队军情牌、州府牌、中文图层名、城/关/粮/步图例、粮道虚线/开关、中文军牌、朝廷四线项目、军令/AI 面板 polish"]:::ui
+    UI["地图和面板显示<br/>SpriteKit / SwiftUI Overlay<br/>v4.6 明末舆图、天下急势、朝议争点、部队军情牌、州府牌、府库牌、中文图层名、城/关/粮/步图例、粮道虚线/开关、中文军牌、朝廷四线项目、军令/AI 面板 polish"]:::ui
     LOG["日志和复盘记录<br/>EventLog / WarDirectiveRecord / AgentDecisionRecord / RulerDecisionRecord<br/>用于 UI 展示和后续调试"]:::ui
 
     ME --> JSON --> DL --> GS
@@ -84,6 +85,7 @@ flowchart TD
     GS --> TURN
     GS --> DIP
     GS --> ECO
+    ECO --> ECONINFO
     ECO --> COURT
     DIP --> COURT
     FRONT --> COURT
@@ -113,6 +115,7 @@ flowchart TD
     SUPPLYVIEW --> SUPPLYTOGGLE --> UI
     UNITINFO --> UI
     REGIONINFO --> UI
+    ECONINFO --> UI
 
     GS --> UI
     HEX --> UI
@@ -246,7 +249,7 @@ flowchart TD
     INCOME["收入计算<br/>EconomyRules.income<br/>基础民力/银两/粮草 * 治理修正<br/>底层字段仍兼容 manpower / industry / supplies"]:::economy
     LEDGER["阵营总账<br/>FactionEconomyLedger<br/>库存、上回合收入、维护费、补员消耗、队列"]:::economy
 
-    UI["钱粮面板<br/>EconomyPanelView<br/>展示民力、银两、粮草和募兵/筹粮按钮"]:::ui
+    UI["府库牌<br/>EconomyPanelView<br/>展示库存、入账、维护、补员、募兵筹粮和营造队列"]:::ui
     QUEUE["生产命令<br/>Command.queueProduction<br/>玩家/未来 AI 共用底层命令"]:::command
     VALIDATE["生产校验<br/>CommandValidator.validateProduction<br/>检查 phase 与资源是否足够"]:::rules
     PAY["预付成本并入队<br/>EconomyRules.queueProduction<br/>扣民力/银两/粮草，追加 ProductionOrder"]:::economy
