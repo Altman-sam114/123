@@ -159,6 +159,261 @@ struct EconomyAISummary: Codable, Equatable {
     }
 }
 
+enum CourtPolicyFocus: String, Codable, Equatable, CaseIterable, Identifiable {
+    case raiseTax
+    case relief
+    case fortify
+    case trainMilitia
+    case firearmReform
+    case grainTransport
+
+    var id: String {
+        rawValue
+    }
+
+    var displayName: String {
+        switch self {
+        case .raiseTax:
+            return "征饷"
+        case .relief:
+            return "赈济安民"
+        case .fortify:
+            return "修城固守"
+        case .trainMilitia:
+            return "整训团练"
+        case .firearmReform:
+            return "火器整备"
+        case .grainTransport:
+            return "粮台转运"
+        }
+    }
+
+    var domainDisplayName: String {
+        switch self {
+        case .raiseTax:
+            return "经济"
+        case .relief:
+            return "政策"
+        case .fortify, .trainMilitia:
+            return "军事"
+        case .firearmReform:
+            return "科技"
+        case .grainTransport:
+            return "经济/军事"
+        }
+    }
+
+    var benefitSummary: String {
+        switch self {
+        case .raiseTax:
+            return "短期补银，支撑募兵与军饷。"
+        case .relief:
+            return "压低民变，恢复行政掌控。"
+        case .fortify:
+            return "提高城关承压能力，稳住要冲。"
+        case .trainMilitia:
+            return "补地方守备，减少野战主力牵制。"
+        case .firearmReform:
+            return "提升火器与炮队价值，改善攻守质量。"
+        case .grainTransport:
+            return "优先保障粮道，缓解缺粮和被围风险。"
+        }
+    }
+
+    var riskSummary: String {
+        switch self {
+        case .raiseTax:
+            return "民变和行政压力上升。"
+        case .relief:
+            return "消耗银两/粮草，短期军费更紧。"
+        case .fortify:
+            return "占用工坊与银两，进攻节奏放缓。"
+        case .trainMilitia:
+            return "守备提升有限，野战仍依赖主力。"
+        case .firearmReform:
+            return "维护成本上升，见效依赖军械供给。"
+        case .grainTransport:
+            return "后方资源向前线倾斜，其他方向可能缺口扩大。"
+        }
+    }
+
+    var systemImageName: String {
+        switch self {
+        case .raiseTax:
+            return "banknote"
+        case .relief:
+            return "leaf"
+        case .fortify:
+            return "shield"
+        case .trainMilitia:
+            return "person.3"
+        case .firearmReform:
+            return "scope"
+        case .grainTransport:
+            return "shippingbox"
+        }
+    }
+}
+
+struct CourtStrategySummary: Codable, Equatable {
+    let policyPressure: Int
+    let economyPressure: Int
+    let technologyPressure: Int
+    let militaryPressure: Int
+    let recommendedFocus: CourtPolicyFocus
+    let secondaryFocuses: [CourtPolicyFocus]
+    let controlledRegions: Int
+    let unstableRegions: Int
+    let fireSupportUnits: Int
+    let activeFronts: Int
+    let rationale: String
+
+    static var empty: CourtStrategySummary {
+        CourtStrategySummary(
+            policyPressure: 0,
+            economyPressure: 0,
+            technologyPressure: 0,
+            militaryPressure: 0,
+            recommendedFocus: .trainMilitia,
+            secondaryFocuses: [],
+            controlledRegions: 0,
+            unstableRegions: 0,
+            fireSupportUnits: 0,
+            activeFronts: 0,
+            rationale: "尚无足够朝议资料。"
+        )
+    }
+
+    static func from(faction: Faction, state: GameState) -> CourtStrategySummary {
+        let ledger = state.economyState.ledger(for: faction)
+        let economy = EconomyAISummary.from(ledger: ledger, faction: faction, map: state.map)
+        let governance = economy.governanceSummary
+        let friendlyDivisions = state.divisions.filter { $0.faction == faction && !$0.isDestroyed }
+        let lowSupplyCount = friendlyDivisions.filter { $0.supplyState == .lowSupply }.count
+        let encircledCount = friendlyDivisions.filter { $0.supplyState == .encircled }.count
+        let fireSupportCount = friendlyDivisions.filter { $0.hasFireSupport || $0.isSiegeCapable }.count
+        let activeFrontZones = state.warDeploymentState.frontZones.values
+            .filter { $0.faction == faction && !$0.frontSegments.isEmpty }
+        let averagePressure = activeFrontZones.isEmpty
+            ? 0
+            : activeFrontZones.reduce(0) { $0 + $1.pressure } / activeFrontZones.count
+
+        let policyPressure = clamp(governance.unstableRegions * 18 + governance.averageResistance)
+        let economyPressure = clamp(
+            economy.silverShortfall * 6 +
+                economy.manpowerShortfall * 4 +
+                economy.grainShortfall * 8 +
+                (ledger.stockpile.industry < 10 ? 25 : 0)
+        )
+        let technologyPressure = technologyNeed(
+            friendlyCount: friendlyDivisions.count,
+            fireSupportCount: fireSupportCount,
+            activeFrontCount: activeFrontZones.count
+        )
+        let militaryPressure = clamp(
+            averagePressure * 18 +
+                lowSupplyCount * 12 +
+                encircledCount * 22 +
+                activeFrontZones.count * 6
+        )
+        let grainTransportPressure = clamp(
+            economy.grainShortfall * 10 +
+                lowSupplyCount * 18 +
+                encircledCount * 25
+        )
+        let trainingPressure = clamp(max(25, 55 - min(policyPressure, militaryPressure)))
+
+        let ranked = [
+            (CourtPolicyFocus.grainTransport, grainTransportPressure),
+            (.relief, policyPressure),
+            (.fortify, militaryPressure),
+            (.raiseTax, economyPressure),
+            (.firearmReform, technologyPressure),
+            (.trainMilitia, trainingPressure)
+        ]
+        .sorted {
+            if $0.1 == $1.1 {
+                return $0.0.rawValue < $1.0.rawValue
+            }
+            return $0.1 > $1.1
+        }
+        let recommended = ranked.first?.0 ?? .trainMilitia
+        let secondary = ranked
+            .map(\.0)
+            .filter { $0 != recommended }
+            .prefix(2)
+            .map { $0 }
+
+        return CourtStrategySummary(
+            policyPressure: policyPressure,
+            economyPressure: economyPressure,
+            technologyPressure: technologyPressure,
+            militaryPressure: militaryPressure,
+            recommendedFocus: recommended,
+            secondaryFocuses: secondary,
+            controlledRegions: governance.controlledRegions,
+            unstableRegions: governance.unstableRegions,
+            fireSupportUnits: fireSupportCount,
+            activeFronts: activeFrontZones.count,
+            rationale: rationale(
+                focus: recommended,
+                economy: economy,
+                governance: governance,
+                lowSupplyCount: lowSupplyCount,
+                encircledCount: encircledCount,
+                averagePressure: averagePressure
+            )
+        )
+    }
+
+    var displaySummary: String {
+        let secondaryText = secondaryFocuses.map(\.displayName).joined(separator: "、")
+        let suffix = secondaryText.isEmpty ? "" : "；备议 \(secondaryText)"
+        return "主议 \(recommendedFocus.displayName)；政策 \(policyPressure)，经济 \(economyPressure)，科技 \(technologyPressure)，军事 \(militaryPressure)\(suffix)"
+    }
+
+    private static func technologyNeed(
+        friendlyCount: Int,
+        fireSupportCount: Int,
+        activeFrontCount: Int
+    ) -> Int {
+        guard friendlyCount > 0 else {
+            return 0
+        }
+        let expectedFireSupport = max(1, friendlyCount / 4)
+        let shortage = max(0, expectedFireSupport - fireSupportCount)
+        return clamp(25 + shortage * 25 + activeFrontCount * 5)
+    }
+
+    private static func rationale(
+        focus: CourtPolicyFocus,
+        economy: EconomyAISummary,
+        governance: GovernanceAISummary,
+        lowSupplyCount: Int,
+        encircledCount: Int,
+        averagePressure: Int
+    ) -> String {
+        switch focus {
+        case .raiseTax:
+            return "银两缺口 \(economy.silverShortfall)，民力缺口 \(economy.manpowerShortfall)，需先补军费。"
+        case .relief:
+            return "不稳州府 \(governance.unstableRegions)，平均民变 \(governance.averageResistance)，需安抚地方。"
+        case .fortify:
+            return "前线均压 \(averagePressure)，缺粮 \(lowSupplyCount)，被围 \(encircledCount)，需守住城关。"
+        case .trainMilitia:
+            return "局势暂可维持，适合补地方守备与预备力量。"
+        case .firearmReform:
+            return "火器/炮队支撑不足，需补军械质量。"
+        case .grainTransport:
+            return "粮草缺口 \(economy.grainShortfall)，缺粮 \(lowSupplyCount)，被围 \(encircledCount)，需优先保粮道。"
+        }
+    }
+
+    private static func clamp(_ value: Int) -> Int {
+        max(0, min(100, value))
+    }
+}
+
 struct EventSummary: Codable, Equatable {
     let turn: Int
     let faction: Faction?
@@ -220,6 +475,7 @@ struct AgentContext: Codable, Equatable {
     let objectives: [ObjectiveSummary]
     let supplySummary: SupplySummary
     let economySummary: EconomyAISummary
+    let courtSummary: CourtStrategySummary
     let recentEvents: [EventSummary]
     let frontZones: [AgentFrontZoneSnapshot]
     let playerDirective: String?
@@ -260,6 +516,7 @@ struct AgentContextBuilder {
             objectives: objectiveSummaries(state: state),
             supplySummary: supplySummary(for: agent.faction, state: state),
             economySummary: economySummary(for: agent.faction, state: state),
+            courtSummary: CourtStrategySummary.from(faction: agent.faction, state: state),
             recentEvents: recentEvents(state: state),
             frontZones: frontZoneSnapshots(for: agent.faction, state: state),
             playerDirective: playerDirective

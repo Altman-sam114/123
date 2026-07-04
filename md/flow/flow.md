@@ -1,4 +1,4 @@
-# WWIIHexV0 核心流程文档（明末迁移 v4.4 钱粮/治理/天下局势首片）
+# WWIIHexV0 核心流程文档（明末迁移 v4.5 朝廷/政策科技首片）
 
 > 本文是项目当前核心逻辑的接手文档。目标不是复述历史设计，而是按当前代码真实链路说明：数据如何进入游戏，hex / region / theater / front / deploy 如何派生，主游戏和地图编辑器如何共同维护同一套地图语义，AI / 玩家命令如何落到规则系统。
 
@@ -19,6 +19,7 @@ MapEditor / JSON 数据
   -> Hex controller / Division coord
   -> Region 聚合
   -> EconomyState 收入 / 生产 / 补员
+  -> CourtStrategySummary 政策 / 经济 / 科技 / 军事摘要
   -> Initial Theater snapshot + runtime hexToTheater
   -> FrontLine 动态 hex 接触
   -> WarDeployment hexToFrontZone + FRONT/DEPTH/GARRISON
@@ -46,12 +47,13 @@ MapEditor / JSON 数据
 - v4.4 钱粮首片中，`EconomyResources.manpower/industry/supplies` 暂保留为兼容字段名，但 UI、日志和 AI 摘要显示为民力、银两、粮草；生产项显示为募营兵、募精骑、募哨骑、造炮队和筹粮。
 - v4.4 治理首片中，`OccupationState.resistance/compliance` 已按民变/行政掌控解释，并对州府钱粮产出做轻量修正；该摘要进入州府面板和 AI 钱粮摘要。
 - v4.4 天下局势首片中，玩家信息面板的外交入口改为“天下”，`DiplomacyPanelView` 显示当前势力、名义主体、战事态势、主要对手、诸方势力、战和关系和朝议/军议。
+- v4.5 朝廷首片中，`CourtStrategySummary` 从钱粮、治理、补给、前线和火器/炮队状态派生政策、经济、科技、军事四线压力；Root 信息面板新增“朝廷”tab，AI 与元帅摘要可读取同一朝议建议。
 - `GamePhase.allowsHumanCommands` 是玩家可操作阶段的当前 UI/App 判定入口，兼容 `.humanAction` 与 legacy `.alliedPlayer`。
 - `turnOrder`、`humanControlledFactions`、`aiControlledFactions` 是通用回合和控制方配置；旧阿登仍 fallback 为 Germany AI / Allies player。
 - `EconomyState` 是 faction 级经济总账；收入来自受控 region、城市、工厂、基础设施和补给值，但战术占领仍以 hex 为准。
 - 玩家、AI、后续聊天命令最终都必须经过 `Command` / `ZoneDirective -> WarCommandExecutor -> RuleEngine`，不能直接改 `GameState`。
 - v0.5 默认战争 AI 上游是 `MarshalAgent -> TheaterDirective JSON -> TheaterDirectiveDecoder -> TheaterDirectiveCompiler`，下游执行收口到 `ZoneDirective -> WarCommandExecutor -> RuleEngine`。
-- 统治者层只作为后续方向预留；当前 v0.5 主链路不调用 `RulerAgent`，也不写统治者决策记录。
+- `CourtStrategySummary` 是只读派生摘要，不执行政策、不改 `GameState`；`RulerAgent` 仍不是默认主链路。
 
 ---
 
@@ -92,6 +94,7 @@ playerCommandState
 - `frontLineState` 从动态战区相邻 hex 派生。
 - `warDeploymentState` 从动态战区/前线/单位位置派生，供 AI 调度单位。
 - `economyState` 保存民力、银两、粮草三项兼容资源、生产队列、上回合收入/维护费/补员消耗，不直接改变战术占领权；源码字段名仍是 `manpower/industry/supplies`。
+- `CourtStrategySummary` 不保存进 `GameState`，而是从钱粮、治理、前线、补给和单位组件即时派生，供朝廷面板、AgentContext 和 MarshalBattlefieldSummary 读取。
 - `diplomacyState` 保存国家/集团/关系；v4.1 起 `canAttack`、`isHostile`、`isFriendly`、`canEnterTerritory` 是新敌我判断入口。
 - `turnOrder` 决定多势力轮转；`humanControlledFactions` / `aiControlledFactions` 决定当前 active faction 由玩家还是 AI 控制。
 - `eventLog` 给 UI 和调试看。
@@ -480,8 +483,10 @@ strength < maxStrength
 AI 摘要：
 
 - `AgentContext.economySummary` 给 legacy Agent D / prompt builder 提供库存、上回合收入、军粮维护、补员消耗、民力/银两/粮草缺口和治理压力。
-- `MarshalBattlefieldSummary.economySummary` 给元帅层和模拟 LLM prompt 提供同一钱粮摘要；schemaVersion 已升到 7。
+- `AgentContext.courtSummary` 从钱粮、治理、补给、前线和火器/炮队状态派生朝议摘要，让 legacy prompt builder 能看到政策、经济、科技、军事四线压力。
+- `MarshalBattlefieldSummary.economySummary` 给元帅层和模拟 LLM prompt 提供同一钱粮摘要；`MarshalBattlefieldSummary.courtSummary` 提供朝廷四线摘要；schemaVersion 已升到 8。
 - 钱粮摘要只读 `economyState`，不直接改变生产、占领或补给。
+- 朝廷摘要同样只读，不执行征饷、赈济、修城、整训团练、火器整备或粮台转运。
 
 ---
 
@@ -848,11 +853,12 @@ handleBoardTap(coord)
   - 将领
   - 战报
   - 钱粮
+  - 朝廷
   - 天下
   - AI
 - `UnitTooltipView`。
 
-v4.4 首片中，HUD、CommandPanel、EconomyPanel、RegionInspector、UnitInspector、UnitTooltip、DiplomacyPanel 和 EventLog 分类已改为明末中文展示；底层图层枚举和命令 displayName 仍保留部分开发兼容名。
+v4.4-v4.5 首片中，HUD、CommandPanel、EconomyPanel、RegionInspector、UnitInspector、UnitTooltip、DiplomacyPanel、CourtPanel 和 EventLog 分类已改为明末中文展示；底层图层枚举和命令 displayName 仍保留部分开发兼容名。
 
 当前开局不会在 `RootGameView` 自动 `.task { runAIIfNeeded() }`。AI 行动由 `advanceOrRunAI()` 或命令提交后的 `runAIIfNeeded()` 触发。
 
@@ -1151,7 +1157,7 @@ v4.3 明末军队首步：
 - `Division.isSiegeCapable` 识别炮队和攻城器械；攻击 city / fortress hex 时获得首步攻城加成。
 - `TacticName.displayName` 提供明末展示名：正攻、疾袭、突骑破阵、破围、合围、火器压制、佯攻、流动作战、固守、诱敌退守、层层设防、死守城关。
 
-注意：v4.4 首片只迁移资源展示、生产单位组件和 AI 钱粮摘要，不新增独立 morale、payStatus、grainCarry、灾荒事件或多回合 siege state；粮草仍沿用 `SupplyRules` / `SupplyState`，完整粮道、军饷、治安和围城事件链后续继续推进。
+注意：v4.4-v4.5 首片只迁移资源展示、生产单位组件、AI 钱粮摘要和只读朝议摘要，不新增独立 morale、payStatus、grainCarry、灾荒事件、可执行政策/科技命令或多回合 siege state；粮草仍沿用 `SupplyRules` / `SupplyState`，完整粮道、军饷、治安、政策科技和围城事件链后续继续推进。
 
 结束回合：
 
@@ -1238,7 +1244,7 @@ TheaterDirective
 
 最终执行由 `TurnManager.executeDirectiveEnvelope` 统一完成。`.marshalDirective` 和显式 `.zoneDirective` 共享同一段 WarCommandExecutor 执行、WarDirectiveRecord 记录、endTurn 推进逻辑。
 
-统治者层是后续预留方向，当前 v0.5 主路径不调用 `RulerAgent`，也不在 `DirectiveEnvelope` 与执行层之间插入姿态塑形。
+`CourtStrategySummary` 已作为只读朝议摘要进入元帅摘要，但统治者层仍是后续预留方向；当前 v0.5 主路径不调用 `RulerAgent`，也不在 `DirectiveEnvelope` 与执行层之间插入可执行政策或姿态塑形。
 
 Legacy Agent D 仍存在，但只在显式 `.legacyAgentOrder` 分支运行：
 

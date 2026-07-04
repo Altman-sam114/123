@@ -786,6 +786,7 @@ Region 经济字段建议：
 - Agent 之间可以协作、争执和 fallback，但最终都必须输出结构化 directive。
 - 让 AI 行为可审计、可回放、可调参。
 - 把政策、经济、科技、军事四条线纳入朝议/军议决策，而不是只让 Agent 选择进攻或防守。
+- 首片可先做只读 `CourtStrategySummary` 和朝廷 UI：从钱粮、治理、补给、前线、火器/炮队状态派生四线压力与议题建议；不直接执行政策，也不恢复旧 Cabinet/Minister 污染。
 
 推荐 Agent 配置：
 

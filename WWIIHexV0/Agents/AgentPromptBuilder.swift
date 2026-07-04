@@ -77,6 +77,9 @@ struct AgentPromptBuilder {
         Money, pay, and grain:
         \(context.economySummary.displaySummary)
 
+        Court policy, technology, and military debate:
+        \(context.courtSummary.displaySummary)
+
         Recent events:
         \(recentEvents)
 

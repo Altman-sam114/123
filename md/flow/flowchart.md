@@ -15,6 +15,7 @@
   -> v4.2 默认数据先加载崇祯十五年明末剧本，失败才回退阿登
   -> v4.3 默认明末单位使用明末 template，战术展示名开始明末化
   -> v4.4 钱粮、治理与天下局势首片把 economy 展示为民力、银两、粮草，民变/行政掌控影响收入，天下面板展示战和关系，并进入 AI 摘要
+  -> v4.5 朝廷首片把政策、经济、科技、军事四线压力派生为 CourtStrategySummary，并进入 UI / AI 摘要
   -> v0.5 元帅层是战略意图层，不替代战术权威
   -> 玩家和 AI 都必须把命令交给 RuleEngine
   -> 命令执行后再同步刷新战略层和 UI
@@ -48,8 +49,9 @@ flowchart TD
     TURN["通用回合控制<br/>turnOrder + human/AI factions<br/>决定 active faction 和行动 phase"]:::state
     DIP["天下局势 / 外交关系<br/>DiplomacyState<br/>canAttack / isHostile / canEnterTerritory"]:::state
     ECO["钱粮总账<br/>EconomyState / EconomyRules<br/>民力、银两、粮草、治理修正、生产队列、自动补员"]:::economy
+    COURT["朝廷摘要<br/>CourtStrategySummary<br/>政策、经济、科技、军事四线压力和议题建议"]:::economy
     PLAYER["玩家输入<br/>点击地图、移动、攻击、结束回合"]:::input
-    AI["AI 元帅系统<br/>MarshalAgent + TheaterDirective JSON<br/>读取前线、补给和钱粮摘要"]:::input
+    AI["AI 元帅系统<br/>MarshalAgent + TheaterDirective JSON<br/>读取前线、补给、钱粮和朝议摘要"]:::input
     DEC["元帅 JSON 解码<br/>TheaterDirectiveDecoder<br/>提取 fenced JSON、校验 id 与 schema"]:::command
     COMP["元帅意图编译<br/>TheaterDirectiveCompiler<br/>把 TheaterDirective 降级成 ZoneDirective"]:::command
     ZD["战争指令<br/>ZoneDirective<br/>战区级 attack/defend 意图"]:::command
@@ -74,10 +76,15 @@ flowchart TD
     GS --> TURN
     GS --> DIP
     GS --> ECO
+    ECO --> COURT
+    DIP --> COURT
+    FRONT --> COURT
+    DEPLOY --> COURT
 
     TURN --> PLAYER
     TURN --> AI
     ECO --> AI
+    COURT --> AI
     DIP --> RE
     PLAYER --> CMD
     AI --> DEC --> COMP --> ZD --> WCE --> CMD
@@ -98,6 +105,7 @@ flowchart TD
     DEPLOY --> UI
     ECO --> UI
     DIP --> UI
+    COURT --> UI
     RE --> LOG
     WCE --> LOG
 
@@ -270,7 +278,7 @@ flowchart TD
 
 这张图看 v0.5 分支默认 AI 主路径。AI 不直接控制单位，也不直接改地图；元帅先读取降维战场摘要，模拟 LLM 输出 `TheaterDirectiveEnvelope` JSON，经 decoder 校验和 compiler 降级后，形成战区级 `DirectiveEnvelope`。`WarCommandExecutor` 再把这些战术翻译成底层 `Command`，最后交给 `RuleEngine`。
 
-当前 v0.5 的默认 AI 主线是 `MarshalAgent -> TheaterDirective JSON -> TheaterDirectiveDecoder -> TheaterDirectiveCompiler -> ZoneDirective -> WarCommandExecutor -> RuleEngine`。旧 v0.37 `TheaterCommanderPool -> ZoneCommanderAgent` 作为 fallback 和显式 `.zoneDirective` 路径保留。统治者层只作为后续上游预留，当前不在主链路调用。旧 Agent D 管线仍保留，但默认不走。
+当前 v0.5 的默认 AI 主线是 `MarshalAgent -> TheaterDirective JSON -> TheaterDirectiveDecoder -> TheaterDirectiveCompiler -> ZoneDirective -> WarCommandExecutor -> RuleEngine`。旧 v0.37 `TheaterCommanderPool -> ZoneCommanderAgent` 作为 fallback 和显式 `.zoneDirective` 路径保留。`CourtStrategySummary` 已作为只读朝议摘要进入元帅输入；可执行统治者/政策层仍只是后续上游预留，当前不在主链路调用。旧 Agent D 管线仍保留，但默认不走。
 
 ```mermaid
 flowchart TD
@@ -279,7 +287,7 @@ flowchart TD
     STOP["不运行 AI<br/>等待玩家操作或阶段切换"]:::stop
     REFRESH["行动前刷新运行时战略层<br/>StrategicStateBootstrapper.refreshRuntimeState<br/>避免 AI 读到旧前线/旧部署"]:::rules
     TM["AI 回合编排器<br/>TurnManager.runAITurn<br/>默认 pipelineMode = marshalDirective"]:::rules
-    SUM["战场摘要<br/>MarshalBattlefieldSummarizer<br/>只给元帅 front/deploy/目标/补给/钱粮摘要，不给全量 hex"]:::ai
+    SUM["战场摘要<br/>MarshalBattlefieldSummarizer<br/>只给元帅 front/deploy/目标/补给/钱粮/朝议摘要，不给全量 hex"]:::ai
     LLM["模拟 LLM 客户端<br/>SimulatedMarshalLLMClient<br/>输出 fenced JSON，不接真实网络或模型"]:::ai
     DEC["元帅 JSON 解码器<br/>TheaterDirectiveDecoder<br/>提取 JSON、解码、校验 schema/zone/region/tactic"]:::command
     COMP["元帅意图编译器<br/>TheaterDirectiveCompiler<br/>TheaterDirective -> ZoneDirective<br/>传递 focus/convergence/coordinated 参数"]:::command

@@ -969,6 +969,7 @@ struct MarshalBattlefieldSummary: Codable, Equatable {
     let friendlyLowSupplyCount: Int
     let friendlyEncircledCount: Int
     let economySummary: EconomyAISummary
+    let courtSummary: CourtStrategySummary
     let objectivesHeld: [String]
     let objectivesLost: [String]
     let fronts: [MarshalFrontSummary]
@@ -1032,7 +1033,7 @@ struct MarshalBattlefieldSummarizer {
         let recentEvents = Array(state.eventLog.suffix(maxRecentEvents)).map(\.message)
 
         return MarshalBattlefieldSummary(
-            schemaVersion: 7,
+            schemaVersion: 8,
             turn: state.turn,
             faction: faction,
             marshalId: config.id,
@@ -1047,6 +1048,7 @@ struct MarshalBattlefieldSummarizer {
                 faction: faction,
                 map: state.map
             ),
+            courtSummary: CourtStrategySummary.from(faction: faction, state: state),
             objectivesHeld: heldObjectives,
             objectivesLost: lostObjectives,
             fronts: frontSummaries,
@@ -1321,7 +1323,7 @@ struct SimulatedMarshalLLMClient: MarshalLLMClient {
             faction: summary.faction,
             strategicIntent: strategicIntent(summary: summary, bias: config.strategicBias),
             directives: directives,
-            summary: "\(summary.marshalName): \(directives.count) theater directive(s) from summarized fronts; \(summary.economySummary.displaySummary)."
+            summary: "\(summary.marshalName): \(directives.count) theater directive(s) from summarized fronts; \(summary.economySummary.displaySummary); \(summary.courtSummary.displaySummary)."
         )
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
@@ -1404,13 +1406,14 @@ struct SimulatedMarshalLLMClient: MarshalLLMClient {
         bias: MarshalAgentConfig.StrategicBias
     ) -> String {
         let economy = "Money and grain: \(summary.economySummary.displaySummary)."
+        let court = "Court debate: \(summary.courtSummary.displaySummary)."
         switch bias {
         case .offensive:
-            return "Concentrate active fronts with favorable odds; hold strained fronts with minimal reserves. \(economy)"
+            return "Concentrate active fronts with favorable odds; hold strained fronts with minimal reserves. \(economy) \(court)"
         case .balanced:
-            return "Preserve front stability while attacking only where the summarized odds justify commitment. \(economy)"
+            return "Preserve front stability while attacking only where the summarized odds justify commitment. \(economy) \(court)"
         case .defensive:
-            return "Stabilize threatened fronts and keep reserves available for counterattacks. \(economy)"
+            return "Stabilize threatened fronts and keep reserves available for counterattacks. \(economy) \(court)"
         }
     }
 }
