@@ -101,6 +101,8 @@ enum TerrainStyle {
             return SKColor(red: 0.20, green: 0.85, blue: 0.45, alpha: 1)
         case (.allies, .garrisonUnit):
             return SKColor(red: 0.42, green: 0.38, blue: 0.95, alpha: 1)
+        default:
+            return unitFillColor(for: faction)
         }
     }
 
