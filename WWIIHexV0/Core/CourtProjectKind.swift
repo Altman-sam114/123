@@ -1,5 +1,55 @@
 import Foundation
 
+enum CourtProjectDomain: String, Codable, Equatable, CaseIterable, Identifiable {
+    case policy
+    case economy
+    case technology
+    case military
+
+    var id: String {
+        rawValue
+    }
+
+    var displayName: String {
+        switch self {
+        case .policy:
+            return "政策"
+        case .economy:
+            return "经济"
+        case .technology:
+            return "科技"
+        case .military:
+            return "军事"
+        }
+    }
+
+    var agendaDetail: String {
+        switch self {
+        case .policy:
+            return "民变、行政、招抚"
+        case .economy:
+            return "银两、民力、粮草"
+        case .technology:
+            return "火器、炮队、军械"
+        case .military:
+            return "城防、团练、粮道"
+        }
+    }
+
+    var systemImageName: String {
+        switch self {
+        case .policy:
+            return "scroll"
+        case .economy:
+            return "banknote"
+        case .technology:
+            return "scope"
+        case .military:
+            return "shield"
+        }
+    }
+}
+
 enum CourtProjectKind: String, Codable, Equatable, CaseIterable, Identifiable {
     case raiseTax
     case relief
@@ -30,18 +80,26 @@ enum CourtProjectKind: String, Codable, Equatable, CaseIterable, Identifiable {
     }
 
     var domainDisplayName: String {
+        domains.map(\.displayName).joined(separator: "/")
+    }
+
+    var primaryDomain: CourtProjectDomain {
+        domains.first ?? .policy
+    }
+
+    var domains: [CourtProjectDomain] {
         switch self {
         case .raiseTax:
-            return "经济"
+            return [.economy]
         case .relief:
-            return "政策"
+            return [.policy]
         case .fortify,
              .trainMilitia:
-            return "军事"
+            return [.military]
         case .firearmReform:
-            return "科技"
+            return [.technology]
         case .grainTransport:
-            return "经济/军事"
+            return [.economy, .military]
         }
     }
 

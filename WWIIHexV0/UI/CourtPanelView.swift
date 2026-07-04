@@ -14,6 +14,7 @@ struct CourtPanelView: View {
             CourtRationaleView(summary: summary)
             CourtPressureSection(summary: summary)
             CourtProjectSection(
+                summary: summary,
                 recommendedProject: CourtProjectKind(focus: summary.recommendedFocus),
                 canEnact: canEnact,
                 onEnactProject: onEnactProject
@@ -178,14 +179,74 @@ private struct CourtSecondaryFocusSection: View {
 }
 
 private struct CourtProjectSection: View {
+    let summary: CourtStrategySummary
     let recommendedProject: CourtProjectKind
     let canEnact: (CourtProjectKind) -> Bool
     let onEnactProject: (CourtProjectKind) -> Void
 
     var body: some View {
         VStack(alignment: .leading, spacing: MingDesignTokens.compactSpacing) {
-            Text("可行项目")
+            Text("四线项目")
                 .font(.subheadline.bold())
+
+            ForEach(CourtProjectDomain.allCases) { domain in
+                CourtProjectDomainGroup(
+                    domain: domain,
+                    pressure: pressure(for: domain),
+                    projects: projects(for: domain),
+                    recommendedProject: recommendedProject,
+                    canEnact: canEnact,
+                    onEnactProject: onEnactProject
+                )
+            }
+        }
+    }
+
+    private var orderedProjects: [CourtProjectKind] {
+        [recommendedProject] + CourtProjectKind.allCases.filter { $0 != recommendedProject }
+    }
+
+    private func projects(for domain: CourtProjectDomain) -> [CourtProjectKind] {
+        orderedProjects.filter { $0.primaryDomain == domain }
+    }
+
+    private func pressure(for domain: CourtProjectDomain) -> Int {
+        switch domain {
+        case .policy:
+            return summary.policyPressure
+        case .economy:
+            return summary.economyPressure
+        case .technology:
+            return summary.technologyPressure
+        case .military:
+            return summary.militaryPressure
+        }
+    }
+}
+
+private struct CourtProjectDomainGroup: View {
+    let domain: CourtProjectDomain
+    let pressure: Int
+    let projects: [CourtProjectKind]
+    let recommendedProject: CourtProjectKind
+    let canEnact: (CourtProjectKind) -> Bool
+    let onEnactProject: (CourtProjectKind) -> Void
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            HStack(alignment: .firstTextBaseline) {
+                Label(domain.displayName, systemImage: domain.systemImageName)
+                    .font(.caption.bold())
+                    .foregroundStyle(domain.tint)
+                Spacer()
+                Text("压力 \(pressure)")
+                    .font(.caption.monospacedDigit())
+                    .foregroundStyle(.secondary)
+            }
+
+            Text(domain.agendaDetail)
+                .font(.caption)
+                .foregroundStyle(.secondary)
 
             ForEach(projects) { project in
                 CourtProjectRow(
@@ -196,10 +257,9 @@ private struct CourtProjectSection: View {
                 )
             }
         }
-    }
-
-    private var projects: [CourtProjectKind] {
-        [recommendedProject] + CourtProjectKind.allCases.filter { $0 != recommendedProject }
+        .padding(MingDesignTokens.compactSpacing)
+        .background(MingDesignTokens.sectionBackground)
+        .clipShape(RoundedRectangle(cornerRadius: MingDesignTokens.cornerRadius))
     }
 }
 
@@ -225,7 +285,8 @@ private struct CourtProjectRow: View {
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
         }
-        .padding(MingDesignTokens.compactSpacing)
+        .padding(.vertical, 4)
+        .padding(.horizontal, MingDesignTokens.compactSpacing)
         .background(isRecommended ? MingDesignTokens.subtleSeal : MingDesignTokens.sectionBackground)
         .clipShape(RoundedRectangle(cornerRadius: MingDesignTokens.cornerRadius))
     }
@@ -311,6 +372,21 @@ private extension CourtProjectKind {
             self = .firearmReform
         case .grainTransport:
             self = .grainTransport
+        }
+    }
+}
+
+private extension CourtProjectDomain {
+    var tint: Color {
+        switch self {
+        case .policy:
+            return MingDesignTokens.jade
+        case .economy:
+            return MingDesignTokens.imperialGold
+        case .technology:
+            return MingDesignTokens.porcelainBlue
+        case .military:
+            return MingDesignTokens.cinnabar
         }
     }
 }
