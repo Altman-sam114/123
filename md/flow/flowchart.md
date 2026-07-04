@@ -16,7 +16,7 @@
   -> v4.3 默认明末单位使用明末 template，战术展示名开始明末化
   -> v4.4 钱粮、治理与天下局势首片把 economy 展示为民力、银两、粮草，民变/行政掌控影响收入，天下面板展示战和关系，并进入 AI 摘要
   -> v4.5 朝廷首片把政策、经济、科技、军事四线压力派生为 CourtStrategySummary，并进入 UI / AI 摘要
-  -> v4.6 UI 首片用 MingDesignTokens、独立 CourtPanelView 和中文军牌 polish 主界面、地图部队和朝廷/军令/AI 面板
+  -> v4.6 UI 首片用 MingDesignTokens、独立 CourtPanelView、中文军牌和城/关/粮地图 badge polish 主界面、地图部队和朝廷/军令/AI 面板
   -> v4.6 朝廷项目首片把六类主议/备议落到 Command.enactCourtProject 和 EconomyRules
   -> v0.5 元帅层是战略意图层，不替代战术权威
   -> 玩家和 AI 都必须把命令交给 RuleEngine
@@ -63,7 +63,7 @@ flowchart TD
     RE["规则引擎<br/>RuleEngine<br/>先校验，再真正修改 GameState"]:::rules
     SYNC["战略同步器<br/>StrategicStateSynchronizer<br/>占领后刷新省份、战区、前线、部署"]:::rules
 
-    UI["地图和面板显示<br/>SpriteKit / SwiftUI Overlay<br/>v4.6 明末舆图、中文军牌、朝廷项目、军令/AI 面板 polish"]:::ui
+    UI["地图和面板显示<br/>SpriteKit / SwiftUI Overlay<br/>v4.6 明末舆图、城/关/粮 badge、中文军牌、朝廷项目、军令/AI 面板 polish"]:::ui
     LOG["日志和复盘记录<br/>EventLog / WarDirectiveRecord / AgentDecisionRecord / RulerDecisionRecord<br/>用于 UI 展示和后续调试"]:::ui
 
     ME --> JSON --> DL --> GS

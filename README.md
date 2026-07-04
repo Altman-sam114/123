@@ -1,6 +1,6 @@
 # WWIIHexV0 — 明末迁移中的 iOS / macOS AI 战略战棋工程
 
-> **当前状态：代码仍以 WWIIHexV0 / 阿登 legacy 底座为兼容主线，文档大纲已切换到 v4.0-v4.8 明末迁移路线。当前工作树已推进到 v4.6 发布级明末 UI 与朝廷项目首片：`Faction` 可表达明廷、后金/清、大顺、大西和地方中立，`DataLoader.loadInitialGameState()` 优先加载 `崇祯十五年：天下裂变` 明末 JSON，失败才回退阿登；默认明末初始单位已切到关宁铁骑、八旗骑营、红衣炮队、流民军老营、地方团练等明末 template；生产和经济 UI 已以民力、银两、粮草、募营兵、募精骑、造炮队、筹粮口径展示，地方治理会影响州府钱粮，天下局势面板展示诸方势力、战和关系和朝议/军议；朝廷面板和 AI 摘要开始显示政策、经济、科技、军事四线压力与议题建议，并新增征饷、赈济安民、修城固守、整训团练、火器整备、粮台转运六类可执行朝廷项目。项目按钮仍通过 `Command.enactCourtProject -> CommandValidator -> EconomyRules -> RuleEngine` 执行，不绕过规则系统。灾荒、军饷士气链、胜利规则、真实美术资产和发布级截图验收仍未完成。历史测试基线曾达到 v0.37 Probe 18/0、Stage Regression 69/0、Full 226/0；当前工作流默认不跑 Xcode / XCTest / 模拟器测试，只按 `md/test/test.md` 做轻量检查。**
+> **当前状态：代码仍以 WWIIHexV0 / 阿登 legacy 底座为兼容主线，文档大纲已切换到 v4.0-v4.8 明末迁移路线。当前工作树已推进到 v4.6 发布级明末 UI、朝廷项目和地图标识首片：`Faction` 可表达明廷、后金/清、大顺、大西和地方中立，`DataLoader.loadInitialGameState()` 优先加载 `崇祯十五年：天下裂变` 明末 JSON，失败才回退阿登；默认明末初始单位已切到关宁铁骑、八旗骑营、红衣炮队、流民军老营、地方团练等明末 template；生产和经济 UI 已以民力、银两、粮草、募营兵、募精骑、造炮队、筹粮口径展示，地方治理会影响州府钱粮，天下局势面板展示诸方势力、战和关系和朝议/军议；朝廷面板和 AI 摘要开始显示政策、经济、科技、军事四线压力与议题建议，并新增征饷、赈济安民、修城固守、整训团练、火器整备、粮台转运六类可执行朝廷项目；默认主地图已把地形名切为平原、林地、山地、丘陵、城池、关隘/堡寨，并用“城 / 关 / 粮”标识城池、关隘和粮台。项目按钮仍通过 `Command.enactCourtProject -> CommandValidator -> EconomyRules -> RuleEngine` 执行，不绕过规则系统。灾荒、军饷士气链、胜利规则、真实美术资产和发布级截图验收仍未完成。历史测试基线曾达到 v0.37 Probe 18/0、Stage Regression 69/0、Full 226/0；当前工作流默认不跑 Xcode / XCTest / 模拟器测试，只按 `md/test/test.md` 做轻量检查。**
 
 ---
 
@@ -104,6 +104,7 @@ WWIIHexV0/
 - v4.5 首片新增 `CourtStrategySummary`，从钱粮、治理、前线、补给和火器/炮队状态派生政策、经济、科技、军事四线压力；Root 信息面板新增“朝廷”tab，AI 摘要和元帅摘要 schemaVersion 8 已能看到朝议建议。
 - v4.6 首片开始发布级 UI 收口：`MingDesignTokens` 统一明末面板色彩/圆角/间距；`CourtPanelView` 从 `RootGameView` 拆出并改为奏疏/印玺风格；军令、将领档案、单位详情、单位浮窗、战报、AI 决策、信息按钮和新局按钮继续中文化；`UnitNode` 不再绘制 NATO APP-6 兵牌，改为“城/旗/火/骑/步”和“守/退”中文军牌；地图空态标题改为“明末棋策舆图”。
 - v4.6 第二片新增 `CourtProjectKind` 与 `Command.enactCourtProject(kind:)`，朝廷面板可按主议推荐执行征饷、赈济、修城、团练、火器和粮台项目；执行层统一走 `CommandValidator` 与 `EconomyRules`，轻量影响民力/银两/粮草、地方治理、城防/粮道、生产队列、火器/炮队补整和缺粮部队。
+- v4.6 地图标识首片继续 polish 默认主地图：`BaseTerrain.displayName` 改为明末中文地形名，`HexNode` 为城池、关隘/堡寨和补给源增加“城 / 关 / 粮”舆图 badge，并把旧 `FORT` 与 `SUP A/G` 主地图标记改为“关隘”“粮台”；该变化只影响 SpriteKit 展示，不改补给、占领或战区规则。
 - 明末生产完成后会生成明末组件单位；legacy Germany / Allies 生产仍使用旧 `.infantry/.panzer/.motorized/.artillery` 工厂方法。
 - 当前朝廷摘要仍是派生建议层；朝廷项目是一次性轻量执行入口，不是完整政策法令、科技树或统治者 Agent。灾荒、民心扩展、拖欠军饷影响士气/忠诚和多回合围城链仍属于后续 v4.5+。
 

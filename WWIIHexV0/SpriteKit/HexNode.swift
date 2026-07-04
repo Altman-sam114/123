@@ -73,6 +73,12 @@ final class HexNode: SKNode {
 
     private func addObjectiveLabels(displayState: HexDisplayState, supplySourceFaction: Faction?, layout: HexLayout) {
         if let cityName = displayState.cityName {
+            addMapBadge(
+                text: "城",
+                position: CGPoint(x: layout.hexSize * 0.36, y: layout.hexSize * 0.32),
+                fillColor: TerrainStyle.cityBadgeFill,
+                layout: layout
+            )
             addLabel(
                 text: cityName,
                 y: layout.hexSize * 0.04,
@@ -83,16 +89,26 @@ final class HexNode: SKNode {
         }
 
         if let fortressName = displayState.fortressName {
+            let hasCityName = displayState.cityName != nil
+            addMapBadge(
+                text: "关",
+                position: CGPoint(
+                    x: layout.hexSize * 0.36,
+                    y: layout.hexSize * (hasCityName ? 0.06 : 0.32)
+                ),
+                fillColor: TerrainStyle.fortressBadgeFill,
+                layout: layout
+            )
             addLabel(
                 text: fortressName,
-                y: layout.hexSize * 0.03,
+                y: layout.hexSize * (hasCityName ? -0.08 : 0.03),
                 fontSize: max(7, layout.hexSize * 0.16),
                 color: TerrainStyle.textColor(for: displayState.terrain),
                 zPosition: 6
             )
             addLabel(
-                text: "FORT",
-                y: -layout.hexSize * 0.22,
+                text: "关隘",
+                y: -layout.hexSize * (hasCityName ? 0.30 : 0.22),
                 fontSize: max(7, layout.hexSize * 0.14),
                 color: TerrainStyle.textColor(for: displayState.terrain),
                 zPosition: 6
@@ -111,14 +127,41 @@ final class HexNode: SKNode {
         }
 
         if let supplySourceFaction {
+            addMapBadge(
+                text: "粮",
+                position: CGPoint(x: -layout.hexSize * 0.36, y: layout.hexSize * 0.32),
+                fillColor: TerrainStyle.controllerColor(for: supplySourceFaction).withAlphaComponent(0.94),
+                layout: layout
+            )
             addLabel(
-                text: supplySourceFaction == .allies ? "SUP A" : "SUP G",
+                text: "粮台",
                 y: layout.hexSize * 0.36,
                 fontSize: max(6, layout.hexSize * 0.13),
                 color: TerrainStyle.textColor(for: displayState.terrain),
                 zPosition: 7
             )
         }
+    }
+
+    private func addMapBadge(text: String, position: CGPoint, fillColor: SKColor, layout: HexLayout) {
+        let badgeSize = CGSize(width: layout.hexSize * 0.34, height: layout.hexSize * 0.26)
+        let badge = SKShapeNode(rectOf: badgeSize, cornerRadius: max(3, layout.hexSize * 0.06))
+        badge.position = position
+        badge.fillColor = fillColor
+        badge.strokeColor = TerrainStyle.mapBadgeStroke
+        badge.lineWidth = 1
+        badge.zPosition = 7
+        addChild(badge)
+
+        let label = SKLabelNode(text: text)
+        label.fontName = "PingFangSC-Semibold"
+        label.fontSize = max(7, layout.hexSize * 0.15)
+        label.fontColor = SKColor(white: 0.96, alpha: 1)
+        label.horizontalAlignmentMode = .center
+        label.verticalAlignmentMode = .center
+        label.position = position
+        label.zPosition = 8
+        addChild(label)
     }
 
     private func addFog(for visibility: VisibilityState, path: CGPath) {
