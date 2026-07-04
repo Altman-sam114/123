@@ -1,4 +1,4 @@
-# WWIIHexV0 核心流程文档（明末迁移 v4.6 UI、朝廷项目与地图标识首片）
+# WWIIHexV0 核心流程文档（明末迁移 v4.6 UI、朝廷项目、地图标识与粮道线路首片）
 
 > 本文是项目当前核心逻辑的接手文档。目标不是复述历史设计，而是按当前代码真实链路说明：数据如何进入游戏，hex / region / theater / front / deploy 如何派生，主游戏和地图编辑器如何共同维护同一套地图语义，AI / 玩家命令如何落到规则系统。
 
@@ -32,6 +32,7 @@ MapEditor / JSON 数据
   -> RuleEngine
   -> CommandExecutor
   -> StrategicStateSynchronizer
+  -> SupplyRules.supplyPath 粮道线路只读派生
   -> UI overlay / 日志 / WarDirectiveRecord
 ```
 
@@ -52,6 +53,7 @@ MapEditor / JSON 数据
 - v4.6 UI 首片中，`MingDesignTokens` 提供明末面板色彩/圆角/间距常量；`CourtPanelView` 已从 `RootGameView` 拆出并改为奏疏/印玺风格；主 UI、军令、将领、单位、战报、AI 面板继续中文化；`UnitNode` 地图军牌从 NATO 图形改为中文徽记和守/退状态。
 - v4.6 朝廷项目首片中，`CourtProjectKind` 将征饷、赈济安民、修城固守、整训团练、火器整备、粮台转运收口为一次性项目；玩家从朝廷面板触发 `Command.enactCourtProject(kind:)`，再经 `CommandValidator` 与 `EconomyRules` 执行。
 - v4.6 地图标识首片中，`BaseTerrain.displayName` 已切为明末中文地形名；`HexNode` 用“城 / 关 / 粮”badge 标识城池、关隘/堡寨和粮台，并把旧主地图 `FORT`、`SUP A/G` 标记改为“关隘”“粮台”。该变化只影响 SpriteKit 展示，不改补给、占领、战区或经济规则。
+- v4.6 粮道线路首片中，`SupplyRules.supplyPath` 在既有补给通行/成本规则上返回只读 hex 路线；`BoardScene` 仅在默认 hex 图层为玩家势力有有效补给线的军队绘制粮道虚线，路线位于战争迷雾下方，不新增粮道状态、不改变补给判定。
 - `GamePhase.allowsHumanCommands` 是玩家可操作阶段的当前 UI/App 判定入口，兼容 `.humanAction` 与 legacy `.alliedPlayer`。
 - `turnOrder`、`humanControlledFactions`、`aiControlledFactions` 是通用回合和控制方配置；旧阿登仍 fallback 为 Germany AI / Allies player。
 - `EconomyState` 是 faction 级经济总账；收入来自受控 region、城市、工厂、基础设施和补给值，但战术占领仍以 hex 为准。
@@ -1577,7 +1579,7 @@ touchesEnded
 - 触摸移动 camera。
 - `clampCamera` 限制在地图边界附近。
 
-v4.6 首片中，空地图/加载失败时的标题改为“明末棋策舆图”。`UnitNode` 不再绘制 NATO APP-6 椭圆/斜线/圆形兵牌，而是按单位组件显示中文军牌徽记：`城` 表示攻城/炮队，`旗` 表示旗骑/重骑，`火` 表示火器支援，`骑` 表示机动部队，`步` 表示步军；底部用兵力和 `守` / `退` 显示退守模式。`HexNode` 继续把城池、关隘/堡寨和补给源标成“城 / 关 / 粮”舆图 badge，旧 `FORT` 与 `SUP A/G` 主地图文案已改为“关隘”“粮台”。这些变化只影响 SpriteKit 展示，不改变 `Division` 组件、移动、攻击、补给、占领或战区规则。
+v4.6 首片中，空地图/加载失败时的标题改为“明末棋策舆图”。`UnitNode` 不再绘制 NATO APP-6 椭圆/斜线/圆形兵牌，而是按单位组件显示中文军牌徽记：`城` 表示攻城/炮队，`旗` 表示旗骑/重骑，`火` 表示火器支援，`骑` 表示机动部队，`步` 表示步军；底部用兵力和 `守` / `退` 显示退守模式。`HexNode` 继续把城池、关隘/堡寨和补给源标成“城 / 关 / 粮”舆图 badge，旧 `FORT` 与 `SUP A/G` 主地图文案已改为“关隘”“粮台”。`BoardScene.drawSupplyRoutes` 会在 hex 图层读取 `SupplyRules.supplyPath(for:in:)`，把玩家势力当前可达粮台的 hex 线路画成金色虚线；线路 zPosition 低于 fog，高于道路/河流，避免穿透未探索格。以上变化只影响 SpriteKit 展示，不改变 `Division` 组件、移动、攻击、补给、占领或战区规则。
 
 ### 7.2 MapDisplayAdapter
 
@@ -1967,6 +1969,10 @@ CourtProjectKind
   -> CommandExecutor
   -> EconomyRules.enactCourtProject
 
+SupplyRules.supplyPath
+  -> BoardScene.drawSupplyRoutes
+  -> 粮道虚线只读展示
+
 BoardScene / HexNode / UnitNode
   -> 明末舆图空态
   -> 城 / 关 / 粮地图 badge
@@ -1981,6 +1987,7 @@ BoardScene / HexNode / UnitNode
 - `MingDesignTokens` 提供共享设计常量，避免每个面板继续散落不同圆角、padding 和背景色。
 - `UnitNode` 改用中文军牌徽记，移除默认主地图上的 NATO 风格兵牌。
 - `BaseTerrain.displayName` 改为平原、林地、山地、丘陵、城池、关隘/堡寨；`HexNode` 增加“城 / 关 / 粮”badge，并把粮台和关城标识中文化。
+- `SupplyRules` 新增只读 `supplyPath` helper，复用既有补给成本和通行规则返回 hex 路径；`BoardScene` 在 hex 图层绘制粮道虚线，选中单位路线优先显示。
 - `CourtProjectKind` 目前包含征饷、赈济安民、修城固守、整训团练、火器整备、粮台转运六项，覆盖政策、经济、科技、军事四线。
 - `Command.enactCourtProject(kind:)` 与生产命令同级，`actingDivisionId` 为 nil；校验只允许可行动 phase 且资源足够时执行。
 - `EconomyRules.enactCourtProject` 会扣除项目成本、追加即时资源收益，并按项目轻量调整地方治理、州府 infrastructure/supplyValue、生产队列、火器/炮队兵力或缺粮部队状态。
@@ -1988,7 +1995,7 @@ BoardScene / HexNode / UnitNode
 仍未完成：
 
 - 未加入真实美术资产、地图纹理、势力旗帜、头像、截图检查清单或运行时视觉验收。
-- 未新增多回合政策/科技 directive、完整科技树、真实粮道线路规则或灾荒/军饷事件。
+- 未新增多回合政策/科技 directive、完整科技树、独立粮道状态/漕运资源规则或灾荒/军饷事件。
 - 未改变 `Command` / `ZoneDirective -> WarCommandExecutor -> RuleEngine` 执行权威。
 
 ---

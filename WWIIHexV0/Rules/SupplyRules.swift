@@ -98,9 +98,7 @@ struct SupplyRules {
     }
 
     func hasSupplyLine(for division: Division, in state: GameState) -> Bool {
-        state.map.supplySources(for: division.faction).contains { source in
-            supplyPathCost(from: division.coord, to: source.coord, for: division.faction, in: state) <= maxSupplyPathCost
-        }
+        supplyPath(for: division, in: state) != nil
     }
 
     func supplyState(for division: Division, in state: GameState) -> SupplyState {
@@ -159,11 +157,42 @@ struct SupplyRules {
     }
 
     func supplyPathCost(from start: HexCoord, to goal: HexCoord, for faction: Faction, in state: GameState) -> Int {
+        shortestSupplyPath(from: start, to: goal, for: faction, in: state)?.cost ?? Int.max
+    }
+
+    func supplyPath(from start: HexCoord, to goal: HexCoord, for faction: Faction, in state: GameState) -> [HexCoord]? {
+        shortestSupplyPath(from: start, to: goal, for: faction, in: state)?.coords
+    }
+
+    func supplyPath(for division: Division, in state: GameState) -> [HexCoord]? {
+        state.map.supplySources(for: division.faction)
+            .compactMap { source -> SupplyPathCandidate? in
+                guard let result = shortestSupplyPath(
+                    from: division.coord,
+                    to: source.coord,
+                    for: division.faction,
+                    in: state
+                ) else {
+                    return nil
+                }
+                return SupplyPathCandidate(
+                    coords: result.coords,
+                    cost: result.cost,
+                    distance: division.coord.distance(to: source.coord),
+                    sourceCoord: source.coord
+                )
+            }
+            .min()
+            .map(\.coords)
+    }
+
+    private func shortestSupplyPath(from start: HexCoord, to goal: HexCoord, for faction: Faction, in state: GameState) -> SupplyPathSearchResult? {
         guard state.map.contains(start), state.map.contains(goal) else {
-            return Int.max
+            return nil
         }
 
         var bestCost: [HexCoord: Int] = [start: 0]
+        var previous: [HexCoord: HexCoord] = [:]
         var frontier: [(coord: HexCoord, cost: Int)] = [(start, 0)]
 
         while !frontier.isEmpty {
@@ -175,7 +204,10 @@ struct SupplyRules {
             }
 
             if current.coord == goal {
-                return current.cost
+                return SupplyPathSearchResult(
+                    coords: reconstructSupplyPath(to: goal, previous: previous),
+                    cost: current.cost
+                )
             }
 
             guard let fromTile = state.map.tile(at: current.coord) else {
@@ -202,11 +234,12 @@ struct SupplyRules {
                 }
 
                 bestCost[next] = nextCost
+                previous[next] = current.coord
                 frontier.append((next, nextCost))
             }
         }
 
-        return Int.max
+        return nil
     }
 
     private func canSupplyPass(through coord: HexCoord, tile: HexTile, for faction: Faction, in state: GameState) -> Bool {
@@ -277,6 +310,46 @@ struct SupplyRules {
         default:
             return 2
         }
+    }
+
+    private func reconstructSupplyPath(to goal: HexCoord, previous: [HexCoord: HexCoord]) -> [HexCoord] {
+        var path: [HexCoord] = [goal]
+        var cursor = goal
+
+        while let next = previous[cursor] {
+            path.append(next)
+            cursor = next
+        }
+
+        return path.reversed()
+    }
+}
+
+private struct SupplyPathSearchResult {
+    let coords: [HexCoord]
+    let cost: Int
+}
+
+private struct SupplyPathCandidate: Comparable {
+    let coords: [HexCoord]
+    let cost: Int
+    let distance: Int
+    let sourceCoord: HexCoord
+
+    static func < (lhs: SupplyPathCandidate, rhs: SupplyPathCandidate) -> Bool {
+        if lhs.cost != rhs.cost {
+            return lhs.cost < rhs.cost
+        }
+
+        if lhs.distance != rhs.distance {
+            return lhs.distance < rhs.distance
+        }
+
+        if lhs.sourceCoord.q != rhs.sourceCoord.q {
+            return lhs.sourceCoord.q < rhs.sourceCoord.q
+        }
+
+        return lhs.sourceCoord.r < rhs.sourceCoord.r
     }
 }
 

@@ -222,6 +222,7 @@ final class BoardScene: SKScene {
         drawRegionOverlays(renderState: renderState, layout: layout)
         drawRoads(map: state.map, layout: layout)
         drawRivers(map: state.map, layout: layout)
+        drawSupplyRoutes(renderState: renderState, layout: layout)
         drawPlannedOperations(renderState: renderState, layout: layout)
         drawUnits(renderState: renderState, layout: layout)
     }
@@ -318,6 +319,119 @@ final class BoardScene: SKScene {
                 addChild(river)
             }
         }
+    }
+
+    private func drawSupplyRoutes(renderState: BoardRenderState, layout: HexLayout) {
+        guard renderState.mapDisplayLayer == .hex else {
+            return
+        }
+
+        let state = renderState.gameState
+        let selectedUnitId = renderState.selectedUnitId
+        let supplyRules = SupplyRules()
+        let divisions = state.divisions
+            .filter { $0.faction == renderState.viewerFaction && !$0.isDestroyed }
+            .sorted { lhs, rhs in
+                let lhsSelected = lhs.id == selectedUnitId
+                let rhsSelected = rhs.id == selectedUnitId
+                if lhsSelected != rhsSelected {
+                    return lhsSelected
+                }
+                if lhs.supplyState != rhs.supplyState {
+                    return lhs.supplyState.routePriority < rhs.supplyState.routePriority
+                }
+                if lhs.coord.r != rhs.coord.r {
+                    return lhs.coord.r < rhs.coord.r
+                }
+                if lhs.coord.q != rhs.coord.q {
+                    return lhs.coord.q < rhs.coord.q
+                }
+                return lhs.id < rhs.id
+            }
+
+        var drawnSegments: Set<String> = []
+        for division in divisions.prefix(18) {
+            guard let path = supplyRules.supplyPath(for: division, in: state),
+                  path.count >= 2 else {
+                continue
+            }
+
+            drawSupplyRoute(
+                path: path,
+                layout: layout,
+                emphasized: division.id == selectedUnitId,
+                drawnSegments: &drawnSegments
+            )
+        }
+    }
+
+    private func drawSupplyRoute(
+        path: [HexCoord],
+        layout: HexLayout,
+        emphasized: Bool,
+        drawnSegments: inout Set<String>
+    ) {
+        for pair in zip(path, path.dropFirst()) {
+            let key = supplyRouteSegmentKey(pair.0, pair.1)
+            guard emphasized || drawnSegments.insert(key).inserted else {
+                continue
+            }
+            drawSupplyRouteSegment(
+                from: layout.hexToPixel(pair.0),
+                to: layout.hexToPixel(pair.1),
+                emphasized: emphasized
+            )
+        }
+    }
+
+    private func drawSupplyRouteSegment(from start: CGPoint, to end: CGPoint, emphasized: Bool) {
+        let dx = end.x - start.x
+        let dy = end.y - start.y
+        let length = max(1, hypot(dx, dy))
+        let dash: CGFloat = emphasized ? 11 : 8
+        let gap: CGFloat = emphasized ? 5 : 7
+
+        let glowPath = CGMutablePath()
+        glowPath.move(to: start)
+        glowPath.addLine(to: end)
+        let glow = SKShapeNode(path: glowPath)
+        glow.strokeColor = TerrainStyle.supplyRouteGlow
+        glow.lineWidth = emphasized ? 6 : 4
+        glow.lineCap = .round
+        glow.zPosition = 18.6
+        addChild(glow)
+
+        var offset: CGFloat = 0
+        while offset < length {
+            let next = min(offset + dash, length)
+            let startRatio = offset / length
+            let endRatio = next / length
+            let dashPath = CGMutablePath()
+            dashPath.move(to: CGPoint(x: start.x + dx * startRatio, y: start.y + dy * startRatio))
+            dashPath.addLine(to: CGPoint(x: start.x + dx * endRatio, y: start.y + dy * endRatio))
+
+            let route = SKShapeNode(path: dashPath)
+            route.strokeColor = TerrainStyle.supplyRouteStroke
+            route.lineWidth = emphasized ? 3.2 : 2.2
+            route.lineCap = .round
+            route.zPosition = 19
+            addChild(route)
+
+            offset += dash + gap
+        }
+    }
+
+    private func supplyRouteSegmentKey(_ lhs: HexCoord, _ rhs: HexCoord) -> String {
+        let first: HexCoord
+        let second: HexCoord
+        if lhs.q == rhs.q {
+            first = lhs.r <= rhs.r ? lhs : rhs
+            second = lhs.r <= rhs.r ? rhs : lhs
+        } else {
+            first = lhs.q < rhs.q ? lhs : rhs
+            second = lhs.q < rhs.q ? rhs : lhs
+        }
+        return "\(first.q),\(first.r)-\(second.q),\(second.r)"
     }
 
     private func drawPlannedOperations(renderState: BoardRenderState, layout: HexLayout) {
@@ -521,5 +635,18 @@ final class BoardScene: SKScene {
             return lhs.coord.q < rhs.coord.q
         }
         return lhs.coord.r < rhs.coord.r
+    }
+}
+
+private extension SupplyState {
+    var routePriority: Int {
+        switch self {
+        case .supplied:
+            return 0
+        case .lowSupply:
+            return 1
+        case .encircled:
+            return 2
+        }
     }
 }
