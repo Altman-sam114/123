@@ -28,12 +28,12 @@ struct UnitInspectorView: View {
             Text(division.name)
                 .font(.subheadline.weight(.semibold))
 
-            LabeledContent("Faction") {
+            LabeledContent("势力") {
                 Text(division.faction.displayName)
             }
 
-            LabeledContent("Mode") {
-                Text(division.faction == playerFaction ? "Player" : "Read-only")
+            LabeledContent("控制") {
+                Text(division.faction == playerFaction ? "玩家" : "只读")
             }
 
             if let strategicState {
@@ -41,49 +41,49 @@ struct UnitInspectorView: View {
                     Text("\(strategicState.coord.q),\(strategicState.coord.r)")
                 }
 
-                LabeledContent("Region") {
-                    Text(strategicState.regionId?.rawValue ?? "None")
+                LabeledContent("州府") {
+                    Text(strategicState.regionId?.rawValue ?? "无")
                 }
 
-                LabeledContent("Dynamic Theater") {
-                    Text(strategicState.dynamicTheaterId?.rawValue ?? "None")
+                LabeledContent("动态方面") {
+                    Text(strategicState.dynamicTheaterId?.rawValue ?? "无")
                 }
 
-                LabeledContent("FrontZone") {
-                    Text(strategicState.frontZoneId?.rawValue ?? "None")
+                LabeledContent("前线防区") {
+                    Text(strategicState.frontZoneId?.rawValue ?? "无")
                 }
 
-                LabeledContent("Deploy") {
+                LabeledContent("部署") {
                     Text(strategicState.deploymentRole.displayName)
                 }
 
-                LabeledContent("FrontLine") {
+                LabeledContent("前线") {
                     Text(frontLineSummary(strategicState.frontLineIds))
                         .multilineTextAlignment(.trailing)
                 }
             }
 
-            LabeledContent("Strength") {
+            LabeledContent("兵力") {
                 Text(division.inspectorStrengthText)
             }
 
-            LabeledContent("Retreat Mode") {
+            LabeledContent("退守") {
                 Text(division.retreatMode.displayName)
             }
 
-            LabeledContent("Supply") {
+            LabeledContent("粮草") {
                 Text(division.supplyState.displayName)
             }
 
-            LabeledContent("Has Acted") {
-                Text(division.hasActed ? "Yes" : "No")
+            LabeledContent("已行动") {
+                Text(division.hasActed ? "是" : "否")
             }
 
-            LabeledContent("Status") {
+            LabeledContent("状态") {
                 Text(division.inspectorStatusText)
             }
 
-            LabeledContent("Components") {
+            LabeledContent("兵种") {
                 Text(componentSummary(for: division))
                     .multilineTextAlignment(.trailing)
             }
@@ -97,7 +97,7 @@ struct UnitInspectorView: View {
     }
 
     private func frontLineSummary(_ ids: [FrontLineId]) -> String {
-        ids.isEmpty ? "None" : ids.map(\.rawValue).joined(separator: ", ")
+        ids.isEmpty ? "无" : ids.map(\.rawValue).joined(separator: ", ")
     }
 }
 
@@ -110,14 +110,14 @@ private extension Division {
         var statuses: [String] = []
 
         if isRetreating {
-            statuses.append("Retreating")
+            statuses.append("退守中")
         }
 
         if isDestroyed {
-            statuses.append("Destroyed")
+            statuses.append("溃散")
         }
 
-        return statuses.isEmpty ? "Ready" : statuses.joined(separator: ", ")
+        return statuses.isEmpty ? "待命" : statuses.joined(separator: ", ")
     }
 }
 
@@ -125,9 +125,9 @@ private extension RetreatMode {
     var displayName: String {
         switch self {
         case .retreatable:
-            return "Retreatable"
+            return "可退守"
         case .hold:
-            return "Hold"
+            return "固守"
         }
     }
 }
@@ -161,11 +161,11 @@ private extension SupplyState {
     var displayName: String {
         switch self {
         case .supplied:
-            return "Supplied"
+            return "有粮"
         case .lowSupply:
-            return "Low Supply"
+            return "缺粮"
         case .encircled:
-            return "Encircled"
+            return "断粮/被围"
         }
     }
 }

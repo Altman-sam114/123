@@ -46,6 +46,52 @@ struct SupplySummary: Codable, Equatable {
     let enemyEncircled: Int
 }
 
+struct EconomyAISummary: Codable, Equatable {
+    let stockpile: EconomyResources
+    let lastIncome: EconomyResources
+    let lastUpkeep: EconomyResources
+    let lastReinforcementSpend: EconomyResources
+    let grainShortfall: Int
+    let silverShortfall: Int
+    let manpowerShortfall: Int
+
+    static func from(ledger: FactionEconomyLedger) -> EconomyAISummary {
+        let minimumActionCost = ProductionKind.allCases
+            .map(\.cost)
+            .reduce(EconomyResources(manpower: Int.max, industry: Int.max, supplies: Int.max)) { partial, cost in
+                EconomyResources(
+                    manpower: min(partial.manpower, cost.manpower),
+                    industry: min(partial.industry, cost.industry),
+                    supplies: min(partial.supplies, cost.supplies)
+                )
+            }
+        let minimumRecruitmentCost = ProductionKind.allCases
+            .filter { $0 != .supplyStockpile }
+            .map(\.cost)
+            .reduce(EconomyResources(manpower: Int.max, industry: Int.max, supplies: Int.max)) { partial, cost in
+                EconomyResources(
+                    manpower: min(partial.manpower, cost.manpower),
+                    industry: min(partial.industry, cost.industry),
+                    supplies: min(partial.supplies, cost.supplies)
+                )
+            }
+
+        return EconomyAISummary(
+            stockpile: ledger.stockpile,
+            lastIncome: ledger.lastIncome,
+            lastUpkeep: ledger.lastUpkeep,
+            lastReinforcementSpend: ledger.lastReinforcementSpend,
+            grainShortfall: max(0, ledger.lastUpkeep.supplies - ledger.stockpile.supplies),
+            silverShortfall: max(0, minimumActionCost.industry - ledger.stockpile.industry),
+            manpowerShortfall: max(0, minimumRecruitmentCost.manpower - ledger.stockpile.manpower)
+        )
+    }
+
+    var displaySummary: String {
+        "库存 \(stockpile.displaySummary)；收入 \(lastIncome.displaySummary)；军粮维护 \(lastUpkeep.displaySummary)；补员 \(lastReinforcementSpend.displaySummary)；缺口 民力 \(manpowerShortfall), 银两 \(silverShortfall), 粮草 \(grainShortfall)"
+    }
+}
+
 struct EventSummary: Codable, Equatable {
     let turn: Int
     let faction: Faction?
@@ -106,6 +152,7 @@ struct AgentContext: Codable, Equatable {
     let enemyDivisions: [DivisionSummary]
     let objectives: [ObjectiveSummary]
     let supplySummary: SupplySummary
+    let economySummary: EconomyAISummary
     let recentEvents: [EventSummary]
     let frontZones: [AgentFrontZoneSnapshot]
     let playerDirective: String?
@@ -145,6 +192,7 @@ struct AgentContextBuilder {
             enemyDivisions: enemyDivisions,
             objectives: objectiveSummaries(state: state),
             supplySummary: supplySummary(for: agent.faction, state: state),
+            economySummary: economySummary(for: agent.faction, state: state),
             recentEvents: recentEvents(state: state),
             frontZones: frontZoneSnapshots(for: agent.faction, state: state),
             playerDirective: playerDirective
@@ -234,6 +282,10 @@ struct AgentContextBuilder {
             enemyLowSupply: enemy.filter { $0.supplyState == .lowSupply }.count,
             enemyEncircled: enemy.filter { $0.supplyState == .encircled }.count
         )
+    }
+
+    private func economySummary(for faction: Faction, state: GameState) -> EconomyAISummary {
+        EconomyAISummary.from(ledger: state.economyState.ledger(for: faction))
     }
 
     private func recentEvents(state: GameState) -> [EventSummary] {

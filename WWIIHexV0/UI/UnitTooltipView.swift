@@ -12,24 +12,24 @@ struct UnitTooltipView: View {
 
                 Grid(alignment: .leading, horizontalSpacing: 10, verticalSpacing: 4) {
                     GridRow {
-                        label("Type")
+                        label("类型")
                         value(division.tooltipTypeCode)
                     }
                     GridRow {
-                        label("Strength")
+                        label("兵力")
                         value("\(division.strength)/\(division.maxStrength)")
                     }
                     GridRow {
-                        label("Supply")
+                        label("粮草")
                         value(division.supplyState.tooltipDisplayName)
                     }
                     GridRow {
-                        label("Retreat")
+                        label("退守")
                         value(division.retreatMode.tooltipDisplayName)
                     }
                     GridRow {
-                        label("Acted")
-                        value(division.hasActed ? "Yes" : "No")
+                        label("行动")
+                        value(division.hasActed ? "是" : "否")
                     }
                 }
             }
@@ -42,7 +42,7 @@ struct UnitTooltipView: View {
             }
             .padding(10)
             .accessibilityElement(children: .combine)
-            .accessibilityLabel("\(division.name), \(division.tooltipTypeCode), strength \(division.strength) of \(division.maxStrength)")
+            .accessibilityLabel("\(division.name)，\(division.tooltipTypeCode)，兵力 \(division.strength) / \(division.maxStrength)")
         }
     }
 
@@ -79,9 +79,9 @@ private extension RetreatMode {
     var tooltipDisplayName: String {
         switch self {
         case .retreatable:
-            return "Retreatable"
+            return "可退守"
         case .hold:
-            return "Hold"
+            return "固守"
         }
     }
 }
@@ -90,11 +90,11 @@ private extension SupplyState {
     var tooltipDisplayName: String {
         switch self {
         case .supplied:
-            return "Supplied"
+            return "有粮"
         case .lowSupply:
-            return "Low"
+            return "缺粮"
         case .encircled:
-            return "Encircled"
+            return "被围"
         }
     }
 }

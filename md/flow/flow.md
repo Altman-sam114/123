@@ -1,4 +1,4 @@
-# WWIIHexV0 核心流程文档（明末迁移 v4.3 军队首步）
+# WWIIHexV0 核心流程文档（明末迁移 v4.4 钱粮首片）
 
 > 本文是项目当前核心逻辑的接手文档。目标不是复述历史设计，而是按当前代码真实链路说明：数据如何进入游戏，hex / region / theater / front / deploy 如何派生，主游戏和地图编辑器如何共同维护同一套地图语义，AI / 玩家命令如何落到规则系统。
 
@@ -43,6 +43,8 @@ MapEditor / JSON 数据
 - v4.1 兼容层中，`Faction` 已扩展为 legacy Germany / Allies 加明廷、后金/清、大顺、大西、地方中立；新敌我判断应走 `DiplomacyState`，不再新增 `Faction.opponent` 调用。
 - v4.2 默认数据首片中，`DataLoader.loadInitialGameState()` 优先尝试 `chongzhen_1642_scenario` + `chongzhen_1642_regions`，失败才回退阿登 legacy 数据。
 - v4.3 军队首步中，`ComponentType` 已补明末骑兵、火器、旗骑、团练、攻城器械等兼容 case；默认明末初始单位已切到明末 template，legacy 阿登 template 继续保留。
+- v4.4 钱粮首片中，`EconomyResources.manpower/industry/supplies` 暂保留为兼容字段名，但 UI、日志和 AI 摘要显示为民力、银两、粮草；生产项显示为募营兵、募精骑、募哨骑、造炮队和筹粮。
+- `GamePhase.allowsHumanCommands` 是玩家可操作阶段的当前 UI/App 判定入口，兼容 `.humanAction` 与 legacy `.alliedPlayer`。
 - `turnOrder`、`humanControlledFactions`、`aiControlledFactions` 是通用回合和控制方配置；旧阿登仍 fallback 为 Germany AI / Allies player。
 - `EconomyState` 是 faction 级经济总账；收入来自受控 region、城市、工厂、基础设施和补给值，但战术占领仍以 hex 为准。
 - 玩家、AI、后续聊天命令最终都必须经过 `Command` / `ZoneDirective -> WarCommandExecutor -> RuleEngine`，不能直接改 `GameState`。
@@ -87,7 +89,7 @@ playerCommandState
 - `theaterState` 保存初始战区快照与运行时动态战区。
 - `frontLineState` 从动态战区相邻 hex 派生。
 - `warDeploymentState` 从动态战区/前线/单位位置派生，供 AI 调度单位。
-- `economyState` 保存 manpower、industry、supplies、生产队列、上回合收入/维护费/补员消耗，不直接改变战术占领权。
+- `economyState` 保存民力、银两、粮草三项兼容资源、生产队列、上回合收入/维护费/补员消耗，不直接改变战术占领权；源码字段名仍是 `manpower/industry/supplies`。
 - `diplomacyState` 保存国家/集团/关系；v4.1 起 `canAttack`、`isHostile`、`isFriendly`、`canEnterTerritory` 是新敌我判断入口。
 - `turnOrder` 决定多势力轮转；`humanControlledFactions` / `aiControlledFactions` 决定当前 active faction 由玩家还是 AI 控制。
 - `eventLog` 给 UI 和调试看。
@@ -363,7 +365,7 @@ v0.5 当前不接入统治者层。工作树中可能存在 `WWIIHexV0/Core/Dipl
 
 源码：`WWIIHexV0/Core/EconomyState.swift`、`WWIIHexV0/Rules/EconomyRules.swift`
 
-v0.8 新增初级回合经济层。它是 faction 级总账，不是第三套地图权威。
+经济层是 faction 级总账，不是第三套地图权威。v4.4 首片不新增复杂 grand strategy，只把既有 v0.8 经济闭环迁成明末钱粮口径，并把 AI 能看到的钱粮摘要接入上下文。
 
 `EconomyState`：
 
@@ -384,13 +386,15 @@ productionQueue: [ProductionOrder]
 lastUpdatedTurn
 ```
 
-`EconomyResources` 只包含三项：
+`EconomyResources` 仍只包含三项兼容字段，显示语义已经迁移：
 
 ```text
-manpower
-industry
-supplies
+manpower -> 民力 / 兵源
+industry -> 银两 / 军费
+supplies -> 粮草
 ```
+
+`EconomyResources.displaySummary` 用完整口径输出“民力 / 银两 / 粮草”，`compactDisplaySummary` 用于 HUD、州府面板和生产成本等紧凑 UI。
 
 收入算法：
 
@@ -399,9 +403,9 @@ supplies
   如果该 region 没有任何真实己方控制 hex，跳过
   cityLevel = EconomyRules.cityLevel(region, map)
   coreBonus = region.coreOf 为空或包含 faction ? 1 : 0
-  manpower = max(1, cityLevel.manpowerGrowth + coreBonus * 4 + infrastructure)
-  industry = max(0, factories + cityLevel.industryValue + infrastructure / 3)
-  supplies = max(1, supplyValue * 3 + factories + infrastructure / 2)
+  民力 = max(1, cityLevel.manpowerGrowth + coreBonus * 4 + infrastructure)
+  银两 = max(0, factories + cityLevel.industryValue + infrastructure / 3)
+  粮草 = max(1, supplyValue * 3 + factories + infrastructure / 2)
 ```
 
 城市等级不是单独 JSON schema，当前从既有字段推导：
@@ -423,7 +427,28 @@ EconomyPanelView
   -> EconomyRules.queueProduction
 ```
 
-排产时预付资源，完成时才部署单位或发放 supply stockpile。完成单位只能放到本方控制、passable、空置、非敌邻，且位于首都、城镇/大都会、工厂、高基建、高补给 region 或 supply source 的后方 hex。找不到安全部署点时订单保留到下回合继续尝试。
+生产项显示口径：
+
+```text
+infantryDivision -> 募营兵
+panzerDivision -> 募精骑
+motorizedDivision -> 募哨骑
+artilleryDivision -> 造炮队
+supplyStockpile -> 筹粮
+```
+
+排产时预付资源，完成时才部署新单位或发放粮草。完成单位只能放到本方控制、passable、空置、非敌邻，且位于首都、城镇/大都会、工坊、高基建、高粮草 region 或 supply source 的后方 hex。找不到安全部署点时订单保留到下回合继续尝试。
+
+明末势力生产完成后不再生成 legacy 装甲/摩托化组件：
+
+```text
+募营兵 -> 步军 + 火器 + 骑兵
+募精骑 -> 旗骑 + 骑兵 + 火器
+募哨骑 -> 骑兵 + 步军 + 团练
+造炮队 -> 炮队 + 攻城器械 + 步军
+```
+
+Germany / Allies legacy 生产仍使用 `.infantry/.panzer/.motorized/.artillery` 工厂方法，避免破坏旧阿登 fallback。
 
 自动补员在 active faction 结束回合时发生，只处理：
 
@@ -436,7 +461,13 @@ strength < maxStrength
 不与敌军相邻
 ```
 
-每个单位每回合最多恢复 2 strength，并按装甲、摩托化、火炮权重扣 manpower / industry / supplies。v0.8 不恢复 organization。
+每个单位每回合最多恢复 2 strength，并按机动、火力和单位组成扣民力、银两、粮草。当前仍不恢复 organization。
+
+AI 摘要：
+
+- `AgentContext.economySummary` 给 legacy Agent D / prompt builder 提供库存、上回合收入、军粮维护、补员消耗和民力/银两/粮草缺口。
+- `MarshalBattlefieldSummary.economySummary` 给元帅层和模拟 LLM prompt 提供同一钱粮摘要；schemaVersion 已升到 6。
+- 钱粮摘要只读 `economyState`，不直接改变生产、占领或补给。
 
 ---
 
@@ -778,7 +809,7 @@ handleBoardTap(coord)
 
 - 非 observer mode。
 - 单位属于 `activeFaction`。
-- 当前 active faction 在 `humanControlledFactions` 中，且 phase 为 `.humanAction` 或 legacy `.alliedPlayer`。
+- 当前 active faction 在 `humanControlledFactions` 中，且 `phase.allowsHumanCommands == true`；当前兼容 `.humanAction` 和 legacy `.alliedPlayer`。
 - 未行动。
 
 ### 4.2 RootGameView
@@ -798,11 +829,16 @@ handleBoardTap(coord)
   - `Deploy`
 - `Observer` toggle。
 - `[ INFO ]` 面板，内含：
-  - Unit + Region + Command
-  - Region
-  - Log
+  - 军队 + 州府 + 军令
+  - 州府
+  - 将领
+  - 战报
+  - 钱粮
+  - 外交
   - AI
 - `UnitTooltipView`。
+
+v4.4 首片中，HUD、CommandPanel、EconomyPanel、RegionInspector、UnitInspector、UnitTooltip 和 EventLog 分类已改为明末中文展示；底层图层枚举和命令 displayName 仍保留部分开发兼容名。
 
 当前开局不会在 `RootGameView` 自动 `.task { runAIIfNeeded() }`。AI 行动由 `advanceOrRunAI()` 或命令提交后的 `runAIIfNeeded()` 触发。
 
@@ -959,7 +995,7 @@ phaseAllowsCommands
 
 ```text
 phaseAllowsCommands
-active faction economy ledger 有足够 manpower / industry / supplies
+active faction economy ledger 有足够民力 / 银两 / 粮草
 ```
 
 ### 5.3 移动与占领
@@ -1101,7 +1137,7 @@ v4.3 明末军队首步：
 - `Division.isSiegeCapable` 识别炮队和攻城器械；攻击 city / fortress hex 时获得首步攻城加成。
 - `TacticName.displayName` 提供明末展示名：正攻、疾袭、突骑破阵、破围、合围、火器压制、佯攻、流动作战、固守、诱敌退守、层层设防、死守城关。
 
-注意：当前只是 v4.3 首步，不新增独立 morale、payStatus、grainCarry 或多回合 siege state；粮草仍沿用 `SupplyRules` / `SupplyState`，完整粮道、军饷和围城事件链后续继续推进。
+注意：v4.4 首片只迁移资源展示、生产单位组件和 AI 钱粮摘要，不新增独立 morale、payStatus、grainCarry、灾荒事件或多回合 siege state；粮草仍沿用 `SupplyRules` / `SupplyState`，完整粮道、军饷、治安和围城事件链后续继续推进。
 
 结束回合：
 
@@ -1110,7 +1146,7 @@ SupplyRules.updateSupplyStates
 EconomyRules.resolveFactionTurn(for: activeFaction)
   -> 收入入账
   -> 支付战略补给维护费
-  -> supplies 短缺时 supplied 单位降为 lowSupply
+  -> 粮草短缺时 supplied 单位降为 lowSupply
   -> 安全后方自动补员
   -> 推进生产队列并部署完成单位
 SupplyRules.advanceRetreats

@@ -36,6 +36,14 @@ struct EconomyResources: Codable, Equatable {
         industry = max(0, industry - resources.industry)
         supplies = max(0, supplies - resources.supplies)
     }
+
+    var displaySummary: String {
+        "民力 \(manpower), 银两 \(industry), 粮草 \(supplies)"
+    }
+
+    var compactDisplaySummary: String {
+        "民 \(manpower) / 银 \(industry) / 粮 \(supplies)"
+    }
 }
 
 enum CityLevel: String, Codable, Equatable, CaseIterable {
@@ -47,13 +55,13 @@ enum CityLevel: String, Codable, Equatable, CaseIterable {
     var displayName: String {
         switch self {
         case .none:
-            return "None"
+            return "无城镇"
         case .village:
-            return "Village"
+            return "县镇"
         case .town:
-            return "Town"
+            return "府州"
         case .metropolis:
-            return "Metropolis"
+            return "京师/重镇"
         }
     }
 
@@ -98,15 +106,30 @@ enum ProductionKind: String, Codable, Equatable, CaseIterable, Identifiable {
     var displayName: String {
         switch self {
         case .infantryDivision:
-            return "Infantry Division"
+            return "募营兵"
         case .panzerDivision:
-            return "Panzer Division"
+            return "募精骑"
         case .motorizedDivision:
-            return "Motorized Division"
+            return "募哨骑"
         case .artilleryDivision:
-            return "Artillery Group"
+            return "造炮队"
         case .supplyStockpile:
-            return "Supply Stockpile"
+            return "筹粮"
+        }
+    }
+
+    var producedUnitBaseName: String {
+        switch self {
+        case .infantryDivision:
+            return "营兵"
+        case .panzerDivision:
+            return "精骑"
+        case .motorizedDivision:
+            return "哨骑"
+        case .artilleryDivision:
+            return "炮队"
+        case .supplyStockpile:
+            return "粮草"
         }
     }
 

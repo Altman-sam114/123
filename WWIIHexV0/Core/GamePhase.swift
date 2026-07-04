@@ -10,15 +10,27 @@ enum GamePhase: String, Codable, Equatable, CaseIterable {
     var displayName: String {
         switch self {
         case .germanAI:
-            return "German AI"
+            return "Legacy AI 行动"
         case .alliedPlayer:
-            return "Allied Player"
+            return "Legacy 玩家行动"
         case .aiAction:
-            return "AI Action"
+            return "AI 行动"
         case .humanAction:
-            return "Human Action"
+            return "玩家行动"
         case .resolution:
-            return "Resolution"
+            return "结算"
+        }
+    }
+
+    var allowsHumanCommands: Bool {
+        switch self {
+        case .alliedPlayer,
+             .humanAction:
+            return true
+        case .germanAI,
+             .aiAction,
+             .resolution:
+            return false
         }
     }
 }

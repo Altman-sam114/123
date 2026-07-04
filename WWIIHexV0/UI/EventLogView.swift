@@ -139,25 +139,25 @@ private enum LogDisplayCategory {
     var displayName: String {
         switch self {
         case .combat:
-            return "Combat"
+            return "战斗"
         case .retreat:
-            return "Retreat"
+            return "退守"
         case .reinforcement:
-            return "Reinforce"
+            return "补员"
         case .encirclement:
-            return "Encircle"
+            return "合围"
         case .supply:
-            return "Supply"
+            return "粮草"
         case .frontChange:
-            return "Front"
+            return "前线"
         case .theaterChange:
-            return "Theater"
+            return "方面"
         case .regionOwnerChange:
-            return "Region"
+            return "州府"
         case .diplomacy:
-            return "Diplomacy"
+            return "外交"
         case .event:
-            return "Event"
+            return "事件"
         }
     }
 

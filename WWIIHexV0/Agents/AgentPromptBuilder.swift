@@ -71,14 +71,17 @@ struct AgentPromptBuilder {
         Visible regions:
         \(regions)
 
-        Supply:
+        Supply and grain state:
         friendly supplied \(context.supplySummary.friendlySupplied), low supply \(context.supplySummary.friendlyLowSupply), encircled \(context.supplySummary.friendlyEncircled)
+
+        Money, pay, and grain:
+        \(context.economySummary.displaySummary)
 
         Recent events:
         \(recentEvents)
 
         Player directive:
-        \(context.playerDirective ?? "None")
+        \(context.playerDirective ?? "无")
 
         JSON schema:
         {

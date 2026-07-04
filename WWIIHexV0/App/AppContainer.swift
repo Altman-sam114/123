@@ -78,6 +78,7 @@ final class AppContainer: ObservableObject {
             commandHandler: commandHandler,
             dataLoader: dataLoader,
             generalRegistry: generalRegistry,
+            playerFaction: bootstrappedState.humanControlledFactions.first ?? .allies,
             turnManager: turnManager,
             warPipelineMode: .marshalDirective
         )
@@ -388,7 +389,7 @@ final class AppContainer: ObservableObject {
         guard let division = selectedDivision,
               division.faction == playerFaction,
               gameState.activeFaction == playerFaction,
-              gameState.phase == .alliedPlayer,
+              gameState.phase.allowsHumanCommands,
               !division.hasActed else {
             return nil
         }
@@ -399,7 +400,7 @@ final class AppContainer: ObservableObject {
     private var canIssuePlayerDirective: Bool {
         !observerModeEnabled &&
             gameState.activeFaction == playerFaction &&
-            gameState.phase == .alliedPlayer
+            gameState.phase.allowsHumanCommands
     }
 
     private var selectedAttackTarget: (region: RegionNode, zone: FrontZone)? {
@@ -454,7 +455,7 @@ final class AppContainer: ObservableObject {
 
         guard let divisionId = command.actingDivisionId,
               previousState.activeFaction == playerFaction,
-              previousState.phase == .alliedPlayer,
+              previousState.phase.allowsHumanCommands,
               previousState.division(id: divisionId)?.faction == playerFaction else {
             return next
         }

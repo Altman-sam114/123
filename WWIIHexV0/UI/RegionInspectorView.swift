@@ -5,13 +5,13 @@ struct RegionInspectorView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text("Region")
+            Text("州府")
                 .font(.headline)
 
             if let inspectorState {
                 regionDetails(inspectorState)
             } else {
-                Text("No region selected.")
+                Text("未选择州府。")
                     .foregroundStyle(.secondary)
                     .frame(maxWidth: .infinity, alignment: .leading)
             }
@@ -31,83 +31,83 @@ struct RegionInspectorView: View {
                     Text("\(selectedHex.q),\(selectedHex.r)")
                 }
 
-                LabeledContent("Hex Controller") {
-                    Text(state.selectedHexController?.displayName ?? "None")
+                LabeledContent("地块控制") {
+                    Text(state.selectedHexController?.displayName ?? "无")
                 }
 
-                LabeledContent("Hex Dynamic Theater") {
-                    Text(state.selectedHexDynamicTheaterId?.rawValue ?? "None")
+                LabeledContent("动态方面") {
+                    Text(state.selectedHexDynamicTheaterId?.rawValue ?? "无")
                 }
 
-                LabeledContent("Hex FrontZone") {
-                    Text(state.selectedHexFrontZoneId?.rawValue ?? "None")
+                LabeledContent("前线防区") {
+                    Text(state.selectedHexFrontZoneId?.rawValue ?? "无")
                 }
             }
 
-            LabeledContent("Controller") {
+            LabeledContent("控制") {
                 Text(state.region.controller.displayName)
             }
 
-            LabeledContent("Terrain") {
+            LabeledContent("地形") {
                 Text(state.region.terrain.displayName)
             }
 
-            LabeledContent("City") {
-                Text(state.region.city?.name ?? "None")
+            LabeledContent("城池") {
+                Text(state.region.city?.name ?? "无")
             }
 
-            LabeledContent("City Level") {
+            LabeledContent("城级") {
                 Text(state.cityLevel.displayName)
             }
 
-            LabeledContent("Fortress") {
-                Text(state.region.terrain == .fortress ? "Yes" : "No")
+            LabeledContent("关隘/要塞") {
+                Text(state.region.terrain == .fortress ? "是" : "否")
             }
 
-            LabeledContent("Supply") {
+            LabeledContent("粮草") {
                 Text("\(state.region.supplyValue)")
             }
 
-            LabeledContent("Factories") {
+            LabeledContent("工坊") {
                 Text("\(state.region.factories)")
             }
 
-            LabeledContent("Output") {
-                Text("MP \(state.economicOutput.manpower), IC \(state.economicOutput.industry), SUP \(state.economicOutput.supplies)")
+            LabeledContent("产出") {
+                Text(state.economicOutput.compactDisplaySummary)
                     .multilineTextAlignment(.trailing)
             }
 
-            LabeledContent("Theater") {
-                Text(state.theaterId?.rawValue ?? "None")
+            LabeledContent("方面") {
+                Text(state.theaterId?.rawValue ?? "无")
             }
 
-            LabeledContent("FrontZone") {
-                Text(state.frontZoneId?.rawValue ?? "None")
+            LabeledContent("前线防区") {
+                Text(state.frontZoneId?.rawValue ?? "无")
             }
 
-            LabeledContent("Front Pressure") {
+            LabeledContent("前线压力") {
                 Text(state.frontPressure, format: .number.precision(.fractionLength(2)))
             }
 
-            LabeledContent("Infrastructure") {
+            LabeledContent("驿道/治理") {
                 Text("\(state.region.infrastructure)")
             }
 
-            LabeledContent("Objectives") {
-                Text(state.objectiveNames.isEmpty ? "None" : state.objectiveNames.joined(separator: ", "))
+            LabeledContent("目标") {
+                Text(state.objectiveNames.isEmpty ? "无" : state.objectiveNames.joined(separator: ", "))
                     .multilineTextAlignment(.trailing)
             }
 
-            LabeledContent("Objective Status") {
+            LabeledContent("目标状态") {
                 Text(state.objectiveStatus)
             }
 
-            LabeledContent("Friendly Units") {
+            LabeledContent("友军") {
                 Text(unitNames(state.friendlyDivisions))
                     .multilineTextAlignment(.trailing)
             }
 
-            LabeledContent("Visible Enemies") {
+            LabeledContent("可见敌军") {
                 Text(unitNames(state.visibleEnemyDivisions))
                     .multilineTextAlignment(.trailing)
             }
@@ -116,7 +116,7 @@ struct RegionInspectorView: View {
 
     private func unitNames(_ divisions: [Division]) -> String {
         guard !divisions.isEmpty else {
-            return "None"
+            return "无"
         }
         return divisions.map(\.name).joined(separator: ", ")
     }

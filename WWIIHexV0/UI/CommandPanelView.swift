@@ -14,7 +14,7 @@ struct CommandPanelView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text("Commands")
+            Text("军令")
                 .font(.headline)
 
             Text(statusText)
@@ -24,24 +24,24 @@ struct CommandPanelView: View {
 
             HStack(spacing: 8) {
                 Button(action: onHold) {
-                    Label("Hold", systemImage: "shield.fill")
+                    Label("固守", systemImage: "shield.fill")
                 }
                 .disabled(!canSetHold)
 
                 Button(action: onAllowRetreat) {
-                    Label("Retreat OK", systemImage: "arrow.uturn.backward.circle")
+                    Label("准许退守", systemImage: "arrow.uturn.backward.circle")
                 }
                 .disabled(!canSetRetreatable)
 
                 Button(action: onResupply) {
-                    Label("Reinforce", systemImage: "cross.circle")
+                    Label("补给", systemImage: "cross.circle")
                 }
                 .disabled(!canCommandSelectedUnit)
             }
             .buttonStyle(.bordered)
 
             Button(action: onEndTurn) {
-                Label("End Turn", systemImage: "forward.end")
+                Label("结束回合", systemImage: "forward.end")
                     .frame(maxWidth: .infinity)
             }
             .buttonStyle(.borderedProminent)
@@ -69,7 +69,7 @@ struct CommandPanelView: View {
 
         return selectedDivision.faction == playerFaction &&
             activeFaction == playerFaction &&
-            phase == .alliedPlayer &&
+            phase.allowsHumanCommands &&
             !selectedDivision.hasActed
     }
 
@@ -83,25 +83,25 @@ struct CommandPanelView: View {
 
     private var statusText: String {
         if observerModeEnabled {
-            return "Observer mode: commands disabled."
+            return "观察模式：军令不可用。"
         }
 
         guard let selectedDivision else {
-            return "No active unit selected."
+            return "未选择可行动军队。"
         }
 
         guard selectedDivision.faction == playerFaction else {
-            return "Enemy unit selected. Commands disabled."
+            return "已选中敌军，军令不可用。"
         }
 
-        guard activeFaction == playerFaction, phase == .alliedPlayer else {
-            return "Commands unavailable during \(phase.displayName)."
+        guard activeFaction == playerFaction, phase.allowsHumanCommands else {
+            return "\(phase.displayName)阶段不可下达军令。"
         }
 
         guard !selectedDivision.hasActed else {
-            return "Selected unit has acted."
+            return "该军队本回合已行动。"
         }
 
-        return "Move/Attack ready."
+        return "可移动或攻击。"
     }
 }

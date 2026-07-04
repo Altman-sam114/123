@@ -14,7 +14,7 @@
   -> v4.1 兼容层用 turnOrder 与 DiplomacyState 支持多势力回合和敌我判断
   -> v4.2 默认数据先加载崇祯十五年明末剧本，失败才回退阿登
   -> v4.3 默认明末单位使用明末 template，战术展示名开始明末化
-  -> economy 是 faction 级经济总账，收入仍从真实控制的 hex/region 聚合
+  -> v4.4 钱粮首片把 economy 展示为民力、银两、粮草，并进入 AI 摘要
   -> v0.5 元帅层是战略意图层，不替代战术权威
   -> 玩家和 AI 都必须把命令交给 RuleEngine
   -> 命令执行后再同步刷新战略层和 UI
@@ -47,9 +47,9 @@ flowchart TD
     DEPLOY["部署层<br/>WarDeploymentState<br/>用 hexToFrontZone 把单位分成前线/纵深/驻军"]:::derived
     TURN["通用回合控制<br/>turnOrder + human/AI factions<br/>决定 active faction 和行动 phase"]:::state
     DIP["外交关系<br/>DiplomacyState<br/>canAttack / isHostile / canEnterTerritory"]:::state
-    ECO["经济总账<br/>EconomyState / EconomyRules<br/>收入、维护费、生产队列、自动补员"]:::economy
+    ECO["钱粮总账<br/>EconomyState / EconomyRules<br/>民力、银两、粮草、生产队列、自动补员"]:::economy
     PLAYER["玩家输入<br/>点击地图、移动、攻击、结束回合"]:::input
-    AI["AI 元帅系统<br/>MarshalAgent + TheaterDirective JSON<br/>先做大战役级规划"]:::input
+    AI["AI 元帅系统<br/>MarshalAgent + TheaterDirective JSON<br/>读取前线、补给和钱粮摘要"]:::input
     DEC["元帅 JSON 解码<br/>TheaterDirectiveDecoder<br/>提取 fenced JSON、校验 id 与 schema"]:::command
     COMP["元帅意图编译<br/>TheaterDirectiveCompiler<br/>把 TheaterDirective 降级成 ZoneDirective"]:::command
     ZD["战争指令<br/>ZoneDirective<br/>战区级 attack/defend 意图"]:::command
@@ -77,6 +77,7 @@ flowchart TD
 
     TURN --> PLAYER
     TURN --> AI
+    ECO --> AI
     DIP --> RE
     PLAYER --> CMD
     AI --> DEC --> COMP --> ZD --> WCE --> CMD
@@ -206,32 +207,32 @@ flowchart TD
     classDef warn fill:#ffedd5,stroke:#f97316,color:#431407
 ```
 
-## 3. v0.8 经济、生产与补员链路
+## 3. v4.4 钱粮、生产与补员链路
 
-这张图看 v0.8 初级经济。经济总账是 faction 级资源池，但收入和部署资格仍回到真实 hex 控制和 region 聚合；生产命令仍走 `RuleEngine`，UI 不直接改 `GameState`。
+这张图看 v4.4 钱粮首片。经济总账仍是 faction 级资源池，但 UI、日志和 AI 摘要显示为民力、银两、粮草；收入和部署资格仍回到真实 hex 控制和 region 聚合；生产命令仍走 `RuleEngine`，UI 不直接改 `GameState`。
 
 ```mermaid
 flowchart TD
     BOOT["经济启动补账<br/>EconomyRules.bootstrapIfNeeded<br/>旧状态缺 economyState 时从地图推导账本"]:::economy
     HEX["真实控制权<br/>HexTile.controller<br/>经济收入必须有己方控制 hex 证据"]:::authority
     REGION["战略聚合<br/>RegionNode<br/>city / factories / infrastructure / supplyValue"]:::derived
-    INCOME["收入计算<br/>EconomyRules.income<br/>manpower / industry / supplies"]:::economy
+    INCOME["收入计算<br/>EconomyRules.income<br/>民力 / 银两 / 粮草<br/>底层字段仍兼容 manpower / industry / supplies"]:::economy
     LEDGER["阵营总账<br/>FactionEconomyLedger<br/>库存、上回合收入、维护费、补员消耗、队列"]:::economy
 
-    UI["经济面板<br/>EconomyPanelView<br/>展示资源和生产按钮"]:::ui
+    UI["钱粮面板<br/>EconomyPanelView<br/>展示民力、银两、粮草和募兵/筹粮按钮"]:::ui
     QUEUE["生产命令<br/>Command.queueProduction<br/>玩家/未来 AI 共用底层命令"]:::command
     VALIDATE["生产校验<br/>CommandValidator.validateProduction<br/>检查 phase 与资源是否足够"]:::rules
-    PAY["预付成本并入队<br/>EconomyRules.queueProduction<br/>扣 MP/IC/SUP，追加 ProductionOrder"]:::economy
+    PAY["预付成本并入队<br/>EconomyRules.queueProduction<br/>扣民力/银两/粮草，追加 ProductionOrder"]:::economy
 
     END["结束当前阵营回合<br/>Command.endTurn<br/>CommandExecutor.executeEndTurn"]:::command
     SUPPLY["补给状态刷新<br/>SupplyRules.updateSupplyStates"]:::rules
     RESOLVE["经济结算<br/>EconomyRules.resolveFactionTurn<br/>收入、维护费、短缺、补员、生产推进"]:::economy
-    SHORT{"补给库存够吗?"}:::decision
-    LOW["战略补给短缺<br/>supplied 单位降为 lowSupply"]:::rules
+    SHORT{"粮草库存够吗?"}:::decision
+    LOW["战略粮草短缺<br/>有粮单位降为 lowSupply"]:::rules
     REINF["自动补员<br/>安全后方 supplied 非敌邻单位<br/>每回合最多 +2 strength"]:::rules
-    PROD["推进生产队列<br/>remainingTurns - 1<br/>ready 后部署或发补给箱"]:::economy
+    PROD["推进生产队列<br/>remainingTurns - 1<br/>ready 后部署新军或发放粮草"]:::economy
     DEPLOY{"有合格后方部署点吗?"}:::decision
-    SPAWN["部署新单位<br/>首都/城镇/工厂/高基建/高补给或 supply source<br/>必须己控、空置、非敌邻"]:::rules
+    SPAWN["部署新单位<br/>首都/城镇/工坊/高基建/高粮草或 supply source<br/>必须己控、空置、非敌邻"]:::rules
     WAIT["保留订单<br/>本回合无安全 hex，等待后续回合"]:::economy
     NEXT["切换阵营并刷新运行时层<br/>StrategicStateBootstrapper.refreshRuntimeState"]:::rules
 
@@ -247,6 +248,8 @@ flowchart TD
     DEPLOY -->|有| SPAWN --> NEXT
     DEPLOY -->|没有| WAIT --> NEXT
     RESOLVE --> LEDGER
+
+    LEDGER --> AISUM["AI 钱粮摘要<br/>EconomyAISummary<br/>库存、收入、军粮维护、补员消耗、缺口"]:::economy
 
     WARN["边界<br/>经济系统不能直接占 hex<br/>也不能把中立/空控制 region 收入算给某阵营"]:::warn
     HEX -.守住.-> WARN
@@ -271,11 +274,11 @@ flowchart TD
 ```mermaid
 flowchart TD
     START["触发 AI 行动<br/>AppContainer.advanceOrRunAI / runAIIfNeeded<br/>玩家点下一回合，或命令后轮到 AI"]:::input
-    CHECK{"当前阵营该由 AI 控制吗?<br/>德军 AI 阶段一定可跑；盟军只有观察者模式才跑"}:::decision
+    CHECK{"当前阵营该由 AI 控制吗?<br/>读取 aiControlledFactions / humanControlledFactions<br/>观察模式可代跑玩家势力"}:::decision
     STOP["不运行 AI<br/>等待玩家操作或阶段切换"]:::stop
     REFRESH["行动前刷新运行时战略层<br/>StrategicStateBootstrapper.refreshRuntimeState<br/>避免 AI 读到旧前线/旧部署"]:::rules
     TM["AI 回合编排器<br/>TurnManager.runAITurn<br/>默认 pipelineMode = marshalDirective"]:::rules
-    SUM["战场摘要<br/>MarshalBattlefieldSummarizer<br/>只给元帅 front/deploy/目标/补给摘要，不给全量 hex"]:::ai
+    SUM["战场摘要<br/>MarshalBattlefieldSummarizer<br/>只给元帅 front/deploy/目标/补给/钱粮摘要，不给全量 hex"]:::ai
     LLM["模拟 LLM 客户端<br/>SimulatedMarshalLLMClient<br/>输出 fenced JSON，不接真实网络或模型"]:::ai
     DEC["元帅 JSON 解码器<br/>TheaterDirectiveDecoder<br/>提取 JSON、解码、校验 schema/zone/region/tactic"]:::command
     COMP["元帅意图编译器<br/>TheaterDirectiveCompiler<br/>TheaterDirective -> ZoneDirective<br/>传递 focus/convergence/coordinated 参数"]:::command

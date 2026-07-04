@@ -968,6 +968,7 @@ struct MarshalBattlefieldSummary: Codable, Equatable {
     let overallSupply: String
     let friendlyLowSupplyCount: Int
     let friendlyEncircledCount: Int
+    let economySummary: EconomyAISummary
     let objectivesHeld: [String]
     let objectivesLost: [String]
     let fronts: [MarshalFrontSummary]
@@ -1031,7 +1032,7 @@ struct MarshalBattlefieldSummarizer {
         let recentEvents = Array(state.eventLog.suffix(maxRecentEvents)).map(\.message)
 
         return MarshalBattlefieldSummary(
-            schemaVersion: 5,
+            schemaVersion: 6,
             turn: state.turn,
             faction: faction,
             marshalId: config.id,
@@ -1041,6 +1042,7 @@ struct MarshalBattlefieldSummarizer {
             overallSupply: overallSupply,
             friendlyLowSupplyCount: lowSupplyCount,
             friendlyEncircledCount: encircledCount,
+            economySummary: EconomyAISummary.from(ledger: state.economyState.ledger(for: faction)),
             objectivesHeld: heldObjectives,
             objectivesLost: lostObjectives,
             fronts: frontSummaries,
@@ -1315,7 +1317,7 @@ struct SimulatedMarshalLLMClient: MarshalLLMClient {
             faction: summary.faction,
             strategicIntent: strategicIntent(summary: summary, bias: config.strategicBias),
             directives: directives,
-            summary: "\(summary.marshalName): \(directives.count) theater directive(s) from summarized fronts."
+            summary: "\(summary.marshalName): \(directives.count) theater directive(s) from summarized fronts; \(summary.economySummary.displaySummary)."
         )
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
@@ -1397,13 +1399,14 @@ struct SimulatedMarshalLLMClient: MarshalLLMClient {
         summary: MarshalBattlefieldSummary,
         bias: MarshalAgentConfig.StrategicBias
     ) -> String {
+        let economy = "Money and grain: \(summary.economySummary.displaySummary)."
         switch bias {
         case .offensive:
-            return "Concentrate active fronts with favorable odds; hold strained fronts with minimal reserves."
+            return "Concentrate active fronts with favorable odds; hold strained fronts with minimal reserves. \(economy)"
         case .balanced:
-            return "Preserve front stability while attacking only where the summarized odds justify commitment."
+            return "Preserve front stability while attacking only where the summarized odds justify commitment. \(economy)"
         case .defensive:
-            return "Stabilize threatened fronts and keep reserves available for counterattacks."
+            return "Stabilize threatened fronts and keep reserves available for counterattacks. \(economy)"
         }
     }
 }

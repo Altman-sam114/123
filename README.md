@@ -1,6 +1,6 @@
 # WWIIHexV0 — 明末迁移中的 iOS / macOS AI 战略战棋工程
 
-> **当前状态：代码仍以 WWIIHexV0 / 阿登 legacy 底座为兼容主线，文档大纲已切换到 v4.0-v4.8 明末迁移路线。当前工作树已推进到 v4.3 明末军队首步：`Faction` 可表达明廷、后金/清、大顺、大西和地方中立，`DataLoader.loadInitialGameState()` 优先加载 `崇祯十五年：天下裂变` 明末 JSON，失败才回退阿登；默认明末初始单位已切到关宁铁骑、八旗骑营、红衣炮队、流民军老营、地方团练等明末 template，战术展示名开始明末化。经济资源命名、完整围城链、胜利规则和发布级 UI 仍未完成。历史测试基线曾达到 v0.37 Probe 18/0、Stage Regression 69/0、Full 226/0；当前工作流默认不跑 Xcode / XCTest / 模拟器测试，只按 `md/test/test.md` 做轻量检查。**
+> **当前状态：代码仍以 WWIIHexV0 / 阿登 legacy 底座为兼容主线，文档大纲已切换到 v4.0-v4.8 明末迁移路线。当前工作树已推进到 v4.4 钱粮首片：`Faction` 可表达明廷、后金/清、大顺、大西和地方中立，`DataLoader.loadInitialGameState()` 优先加载 `崇祯十五年：天下裂变` 明末 JSON，失败才回退阿登；默认明末初始单位已切到关宁铁骑、八旗骑营、红衣炮队、流民军老营、地方团练等明末 template；生产和经济 UI 已以民力、银两、粮草、募营兵、募精骑、造炮队、筹粮口径展示，AI 摘要开始纳入钱粮缺口。完整灾荒、治安、军饷士气链、胜利规则和发布级 UI 仍未完成。历史测试基线曾达到 v0.37 Probe 18/0、Stage Regression 69/0、Full 226/0；当前工作流默认不跑 Xcode / XCTest / 模拟器测试，只按 `md/test/test.md` 做轻量检查。**
 
 ---
 
@@ -97,7 +97,10 @@ WWIIHexV0/
 - 初始势力为明廷、后金/清、大顺、大西、地方中立；玩家默认明廷，清 / 大顺 / 大西为 AI。
 - 若明末 JSON 加载失败，仍保留阿登 legacy fallback，方便兼容旧数据和旧调试路径。
 - 当前明末初始单位使用 `ming_banner_cavalry`、`qing_banner_cavalry`、`qing_artillery_train`、`dashun_camp`、`daxi_raiders`、`local_tuanlian` 等明末 template；legacy 阿登 template 仍保留作 fallback。
-- v4.3 已加入明末兵种组件和攻城/火器首步修正；完整围城状态、粮草命名和经济资源迁移仍属于后续 v4.3/v4.4。
+- v4.3 已加入明末兵种组件和攻城/火器首步修正。
+- v4.4 首片已把经济资源展示迁为民力、银两、粮草，生产项展示为募营兵、募精骑、募哨骑、造炮队、筹粮；底层 `EconomyResources.manpower/industry/supplies` 字段暂作兼容存储名。
+- 明末生产完成后会生成明末组件单位；legacy Germany / Allies 生产仍使用旧 `.infantry/.panzer/.motorized/.artillery` 工厂方法。
+- 完整灾荒、治安、拖欠军饷影响士气/忠诚和多回合围城链仍属于后续 v4.4+。
 
 ### 核心架构原则
 
