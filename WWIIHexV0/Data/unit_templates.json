@@ -138,6 +138,219 @@
           "weight": 0.15
         }
       ]
+    },
+    {
+      "id": "ming_banner_cavalry",
+      "displayName": "关宁铁骑",
+      "maxHP": 10,
+      "components": [
+        {
+          "type": "bannerCavalry",
+          "weight": 0.65
+        },
+        {
+          "type": "cavalry",
+          "weight": 0.2
+        },
+        {
+          "type": "firearm",
+          "weight": 0.15
+        }
+      ]
+    },
+    {
+      "id": "ming_garrison",
+      "displayName": "明军守城营",
+      "maxHP": 10,
+      "components": [
+        {
+          "type": "militia",
+          "weight": 0.45
+        },
+        {
+          "type": "infantry",
+          "weight": 0.35
+        },
+        {
+          "type": "firearm",
+          "weight": 0.2
+        }
+      ]
+    },
+    {
+      "id": "ming_line_infantry",
+      "displayName": "明军营兵",
+      "maxHP": 10,
+      "components": [
+        {
+          "type": "infantry",
+          "weight": 0.55
+        },
+        {
+          "type": "firearm",
+          "weight": 0.25
+        },
+        {
+          "type": "artillery",
+          "weight": 0.1
+        },
+        {
+          "type": "cavalry",
+          "weight": 0.1
+        }
+      ]
+    },
+    {
+      "id": "qing_banner_cavalry",
+      "displayName": "八旗骑营",
+      "maxHP": 10,
+      "components": [
+        {
+          "type": "bannerCavalry",
+          "weight": 0.7
+        },
+        {
+          "type": "cavalry",
+          "weight": 0.2
+        },
+        {
+          "type": "firearm",
+          "weight": 0.1
+        }
+      ]
+    },
+    {
+      "id": "qing_artillery_train",
+      "displayName": "红衣炮队",
+      "maxHP": 8,
+      "components": [
+        {
+          "type": "artillery",
+          "weight": 0.45
+        },
+        {
+          "type": "siegeEngine",
+          "weight": 0.35
+        },
+        {
+          "type": "infantry",
+          "weight": 0.2
+        }
+      ]
+    },
+    {
+      "id": "qing_vanguard",
+      "displayName": "清军前锋营",
+      "maxHP": 10,
+      "components": [
+        {
+          "type": "infantry",
+          "weight": 0.45
+        },
+        {
+          "type": "cavalry",
+          "weight": 0.35
+        },
+        {
+          "type": "firearm",
+          "weight": 0.2
+        }
+      ]
+    },
+    {
+      "id": "dashun_camp",
+      "displayName": "大顺老营",
+      "maxHP": 10,
+      "components": [
+        {
+          "type": "infantry",
+          "weight": 0.55
+        },
+        {
+          "type": "militia",
+          "weight": 0.25
+        },
+        {
+          "type": "cavalry",
+          "weight": 0.2
+        }
+      ]
+    },
+    {
+      "id": "dashun_raiders",
+      "displayName": "大顺游兵",
+      "maxHP": 10,
+      "components": [
+        {
+          "type": "cavalry",
+          "weight": 0.5
+        },
+        {
+          "type": "infantry",
+          "weight": 0.3
+        },
+        {
+          "type": "militia",
+          "weight": 0.2
+        }
+      ]
+    },
+    {
+      "id": "daxi_camp",
+      "displayName": "大西行营",
+      "maxHP": 10,
+      "components": [
+        {
+          "type": "infantry",
+          "weight": 0.5
+        },
+        {
+          "type": "cavalry",
+          "weight": 0.3
+        },
+        {
+          "type": "militia",
+          "weight": 0.2
+        }
+      ]
+    },
+    {
+      "id": "daxi_raiders",
+      "displayName": "大西游兵",
+      "maxHP": 10,
+      "components": [
+        {
+          "type": "cavalry",
+          "weight": 0.55
+        },
+        {
+          "type": "infantry",
+          "weight": 0.3
+        },
+        {
+          "type": "militia",
+          "weight": 0.15
+        }
+      ]
+    },
+    {
+      "id": "local_tuanlian",
+      "displayName": "地方团练",
+      "maxHP": 9,
+      "components": [
+        {
+          "type": "militia",
+          "weight": 0.65
+        },
+        {
+          "type": "firearm",
+          "weight": 0.2
+        },
+        {
+          "type": "infantry",
+          "weight": 0.15
+        }
+      ]
     }
   ]
 }

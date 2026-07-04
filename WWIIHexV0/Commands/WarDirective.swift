@@ -42,6 +42,35 @@ enum TacticName: String, Codable, Equatable, CaseIterable {
             return .defense
         }
     }
+
+    var displayName: String {
+        switch self {
+        case .standardAttack:
+            return "正攻"
+        case .blitzkrieg:
+            return "疾袭"
+        case .spearhead:
+            return "突骑破阵"
+        case .breakthrough:
+            return "破围"
+        case .pincerMovement:
+            return "合围"
+        case .fireCoverage:
+            return "火器压制"
+        case .feint:
+            return "佯攻"
+        case .guerrillaWarfare:
+            return "流动作战"
+        case .holdPosition:
+            return "固守"
+        case .elasticDefense:
+            return "诱敌退守"
+        case .defenseInDepth:
+            return "层层设防"
+        case .lastStand:
+            return "死守城关"
+        }
+    }
 }
 
 struct TacticCondition: Codable, Equatable {

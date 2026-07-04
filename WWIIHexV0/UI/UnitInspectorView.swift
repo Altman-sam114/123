@@ -143,6 +143,16 @@ private extension ComponentType {
             return "INF"
         case .artillery:
             return "ART"
+        case .cavalry:
+            return "CAV"
+        case .firearm:
+            return "FIR"
+        case .bannerCavalry:
+            return "BAN"
+        case .militia:
+            return "MIL"
+        case .siegeEngine:
+            return "SGE"
         }
     }
 }

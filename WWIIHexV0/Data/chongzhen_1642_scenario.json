@@ -1999,7 +1999,7 @@
       "id": "unit_ming_guanning_cavalry_01",
       "name": "关宁铁骑前营",
       "faction": "ming",
-      "templateId": "motorized_division",
+      "templateId": "ming_banner_cavalry",
       "coord": {
         "q": 5,
         "r": 0
@@ -2014,7 +2014,7 @@
       "id": "unit_ming_shanhaiguan_garrison",
       "name": "山海关守军",
       "faction": "ming",
-      "templateId": "garrison_division",
+      "templateId": "ming_garrison",
       "coord": {
         "q": 6,
         "r": 0
@@ -2029,7 +2029,7 @@
       "id": "unit_ming_beijing_guard",
       "name": "京营守备",
       "faction": "ming",
-      "templateId": "infantry_division",
+      "templateId": "ming_line_infantry",
       "coord": {
         "q": 4,
         "r": 2
@@ -2044,7 +2044,7 @@
       "id": "unit_ming_xuanfu_garrison",
       "name": "宣府镇兵",
       "faction": "ming",
-      "templateId": "garrison_division",
+      "templateId": "ming_garrison",
       "coord": {
         "q": 8,
         "r": 0
@@ -2059,7 +2059,7 @@
       "id": "unit_ming_datong_garrison",
       "name": "大同镇兵",
       "faction": "ming",
-      "templateId": "garrison_division",
+      "templateId": "ming_garrison",
       "coord": {
         "q": 10,
         "r": 0
@@ -2074,7 +2074,7 @@
       "id": "unit_ming_shandong_army",
       "name": "山东巡抚标营",
       "faction": "ming",
-      "templateId": "infantry_division",
+      "templateId": "ming_line_infantry",
       "coord": {
         "q": 3,
         "r": 4
@@ -2089,7 +2089,7 @@
       "id": "unit_ming_xiangyang_garrison",
       "name": "襄阳守军",
       "faction": "ming",
-      "templateId": "garrison_division",
+      "templateId": "ming_garrison",
       "coord": {
         "q": 6,
         "r": 6
@@ -2104,7 +2104,7 @@
       "id": "unit_ming_huguang_army",
       "name": "湖广援剿营",
       "faction": "ming",
-      "templateId": "infantry_division",
+      "templateId": "ming_line_infantry",
       "coord": {
         "q": 5,
         "r": 8
@@ -2119,7 +2119,7 @@
       "id": "unit_qing_banner_left",
       "name": "清军左翼旗营",
       "faction": "qing",
-      "templateId": "motorized_division",
+      "templateId": "qing_banner_cavalry",
       "coord": {
         "q": 1,
         "r": 0
@@ -2134,7 +2134,7 @@
       "id": "unit_qing_banner_center",
       "name": "清军中路旗营",
       "faction": "qing",
-      "templateId": "motorized_division",
+      "templateId": "qing_banner_cavalry",
       "coord": {
         "q": 2,
         "r": 0
@@ -2149,7 +2149,7 @@
       "id": "unit_qing_artillery_train",
       "name": "清军红衣炮队",
       "faction": "qing",
-      "templateId": "artillery_division",
+      "templateId": "qing_artillery_train",
       "coord": {
         "q": 3,
         "r": 0
@@ -2164,7 +2164,7 @@
       "id": "unit_qing_vanguard",
       "name": "清军前锋营",
       "faction": "qing",
-      "templateId": "infantry_division",
+      "templateId": "qing_vanguard",
       "coord": {
         "q": 0,
         "r": 1
@@ -2179,7 +2179,7 @@
       "id": "unit_dashun_kaifeng_camp",
       "name": "大顺开封营",
       "faction": "dashun",
-      "templateId": "infantry_division",
+      "templateId": "dashun_camp",
       "coord": {
         "q": 4,
         "r": 4
@@ -2194,7 +2194,7 @@
       "id": "unit_dashun_luoyang_main",
       "name": "大顺洛阳老营",
       "faction": "dashun",
-      "templateId": "infantry_division",
+      "templateId": "dashun_camp",
       "coord": {
         "q": 6,
         "r": 4
@@ -2209,7 +2209,7 @@
       "id": "unit_dashun_tongguan_vanguard",
       "name": "大顺潼关前营",
       "faction": "dashun",
-      "templateId": "motorized_division",
+      "templateId": "dashun_raiders",
       "coord": {
         "q": 8,
         "r": 4
@@ -2224,7 +2224,7 @@
       "id": "unit_dashun_xian_camp",
       "name": "大顺秦陕营",
       "faction": "dashun",
-      "templateId": "infantry_division",
+      "templateId": "dashun_camp",
       "coord": {
         "q": 11,
         "r": 4
@@ -2239,7 +2239,7 @@
       "id": "unit_dashun_nanyang_raiders",
       "name": "大顺南阳游兵",
       "faction": "dashun",
-      "templateId": "motorized_division",
+      "templateId": "dashun_raiders",
       "coord": {
         "q": 5,
         "r": 6
@@ -2254,7 +2254,7 @@
       "id": "unit_daxi_jingzhou_camp",
       "name": "大西荆州营",
       "faction": "daxi",
-      "templateId": "infantry_division",
+      "templateId": "daxi_camp",
       "coord": {
         "q": 6,
         "r": 8
@@ -2269,7 +2269,7 @@
       "id": "unit_daxi_yunyang_raiders",
       "name": "大西郧阳游兵",
       "faction": "daxi",
-      "templateId": "motorized_division",
+      "templateId": "daxi_raiders",
       "coord": {
         "q": 8,
         "r": 8
@@ -2284,7 +2284,7 @@
       "id": "unit_daxi_sichuan_rear",
       "name": "大西川东后营",
       "faction": "daxi",
-      "templateId": "garrison_division",
+      "templateId": "daxi_camp",
       "coord": {
         "q": 11,
         "r": 8
@@ -2299,7 +2299,7 @@
       "id": "unit_local_xuzhou_tuanlian",
       "name": "徐州团练",
       "faction": "localNeutral",
-      "templateId": "garrison_division",
+      "templateId": "local_tuanlian",
       "coord": {
         "q": 0,
         "r": 6
@@ -2314,7 +2314,7 @@
       "id": "unit_local_hanzhong_tuanlian",
       "name": "汉中团练",
       "faction": "localNeutral",
-      "templateId": "garrison_division",
+      "templateId": "local_tuanlian",
       "coord": {
         "q": 8,
         "r": 6

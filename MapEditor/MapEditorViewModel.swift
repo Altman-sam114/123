@@ -10,12 +10,12 @@ final class MapEditorViewModel: ObservableObject {
     @Published var paintRoad: Bool = false
     @Published var paintController: Faction? = nil
     @Published var paintSupply: Bool = false
-    @Published var supplyFaction: Faction = .germany
+    @Published var supplyFaction: Faction = .ming
     @Published var selectedRegionId: RegionId?
     @Published var selectedTheaterId: TheaterId?
     @Published var eraseRegionMembership: Bool = false
-    @Published var selectedUnitTemplateId: String = "infantry_division"
-    @Published var selectedUnitFaction: Faction = .germany
+    @Published var selectedUnitTemplateId: String = "ming_line_infantry"
+    @Published var selectedUnitFaction: Faction = .ming
     @Published var selectedUnitHP: Int = 10
     @Published var selectedUnitFacing: HexDirection = .west
     @Published var eraseUnits: Bool = false
@@ -36,7 +36,7 @@ final class MapEditorViewModel: ObservableObject {
 
     @Published var newRegionText: String = "新省份"
     @Published var newTheaterText: String = "新战区"
-    @Published var newUnitNameText: String = "师"
+    @Published var newUnitNameText: String = "营兵"
 
     init(document: MapEditorDocument = .new(width: 8, height: 6)) {
         self.document = document
@@ -435,7 +435,7 @@ final class MapEditorViewModel: ObservableObject {
     private func stampUnit(at coord: HexCoord) {
         document.initialUnits.removeAll { $0.coord == coord }
         let nextIndex = document.initialUnits.count + 1
-        let factionPrefix = selectedUnitFaction == .germany ? "ger" : "all"
+        let factionPrefix = unitIdPrefix(for: selectedUnitFaction)
         let id = "\(factionPrefix)_editor_\(nextIndex)"
         document.initialUnits.append(
             MapEditorUnitDraft(
@@ -448,6 +448,25 @@ final class MapEditorViewModel: ObservableObject {
                 hp: selectedUnitHP
             )
         )
+    }
+
+    private func unitIdPrefix(for faction: Faction) -> String {
+        switch faction {
+        case .germany:
+            return "ger"
+        case .allies:
+            return "all"
+        case .ming:
+            return "ming"
+        case .qing:
+            return "qing"
+        case .dashun:
+            return "dashun"
+        case .daxi:
+            return "daxi"
+        case .localNeutral:
+            return "local"
+        }
     }
 
     private func ensureDraftExistsForCurrentMode() {

@@ -9,6 +9,7 @@
 - v4.0 审计与合同阶段文档：`md/prompt/v4.0-明末迁移/v4.0_audit_and_contract.md`。
 - v4.1 多势力实现提示词：`md/prompt/v4.0-明末迁移/v4.1_powers_turns_prompt.md`；当前工作树已开始按该提示词落地兼容层。
 - v4.2 明末默认数据记录：`md/prompt/v4.0-明末迁移/v4.2_ming_scenario_data_record.md`；当前默认新局优先读取 `崇祯十五年：天下裂变` 明末 JSON，失败才回退阿登，兵种模板、经济和发布级 UI 仍未完成。
+- v4.3 明末军队与战术首步记录：`md/prompt/v4.0-明末迁移/v4.3_ming_units_tactics_record.md`；首批明末 unit template、默认单位 templateId、战术展示名、攻城/火器首步修正和 MapEditor 默认单位口径已开始落地。
 - 当前真实运行链路仍以 `md/flow/flow.md` 和 `md/flow/flowchart.md` 为准；明末路线是迁移目标，不等于源码已完成迁移。
 - `v0.*（已完成）` 是 WWIIHexV0 历史实现资料；`v2.0`、`v3.0`、`v5.0`、`v6.0` 等其他题材迁移目录只作参考，不是当前明末主线。
 

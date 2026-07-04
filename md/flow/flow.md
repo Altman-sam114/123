@@ -1,4 +1,4 @@
-# WWIIHexV0 核心流程文档（明末迁移 v4.2 默认数据首片）
+# WWIIHexV0 核心流程文档（明末迁移 v4.3 军队首步）
 
 > 本文是项目当前核心逻辑的接手文档。目标不是复述历史设计，而是按当前代码真实链路说明：数据如何进入游戏，hex / region / theater / front / deploy 如何派生，主游戏和地图编辑器如何共同维护同一套地图语义，AI / 玩家命令如何落到规则系统。
 
@@ -42,6 +42,7 @@ MapEditor / JSON 数据
 - `hexToFrontZone` 是部署层动态归属权威。
 - v4.1 兼容层中，`Faction` 已扩展为 legacy Germany / Allies 加明廷、后金/清、大顺、大西、地方中立；新敌我判断应走 `DiplomacyState`，不再新增 `Faction.opponent` 调用。
 - v4.2 默认数据首片中，`DataLoader.loadInitialGameState()` 优先尝试 `chongzhen_1642_scenario` + `chongzhen_1642_regions`，失败才回退阿登 legacy 数据。
+- v4.3 军队首步中，`ComponentType` 已补明末骑兵、火器、旗骑、团练、攻城器械等兼容 case；默认明末初始单位已切到明末 template，legacy 阿登 template 继续保留。
 - `turnOrder`、`humanControlledFactions`、`aiControlledFactions` 是通用回合和控制方配置；旧阿登仍 fallback 为 Germany AI / Allies player。
 - `EconomyState` 是 faction 级经济总账；收入来自受控 region、城市、工厂、基础设施和补给值，但战术占领仍以 hex 为准。
 - 玩家、AI、后续聊天命令最终都必须经过 `Command` / `ZoneDirective -> WarCommandExecutor -> RuleEngine`，不能直接改 `GameState`。
@@ -473,7 +474,7 @@ loadGameState(
 - 9 个补给源，12 个 objective，14 个 key location。
 - 5 个规则势力：`ming`、`qing`、`dashun`、`daxi`、`localNeutral`。
 - 回合顺序为 `ming -> qing -> dashun -> daxi`，玩家默认明廷，清 / 大顺 / 大西由 AI 控制。
-- 初始单位 22 个，显示名已用明末中文，但 `templateId` 暂时复用 legacy `infantry_division` / `motorized_division` / `artillery_division` / `garrison_division`。完整明末兵种模板属于 v4.3。
+- 初始单位 22 个，显示名和 `templateId` 都已切到明末首批 template，例如 `ming_banner_cavalry`、`ming_garrison`、`qing_artillery_train`、`dashun_camp`、`daxi_raiders`、`local_tuanlian`。legacy `infantry_division` / `motorized_division` / `artillery_division` / `garrison_division` 仍保留给阿登 fallback。
 
 如果明末 JSON 失败，才 fallback 到：
 
@@ -1091,6 +1092,16 @@ resolveCombatResult
   defender counterattack
   attacker 也可能撤退/毁灭
 ```
+
+v4.3 明末军队首步：
+
+- `ComponentType` 保留 legacy `tank` / `motorizedInfantry` / `infantry` / `artillery`，并新增 `cavalry`、`firearm`、`bannerCavalry`、`militia`、`siegeEngine`。
+- `Division.isMobileUnit` 统一识别 legacy 机动单位、骑兵和旗骑；`ZoneCommanderAgent` 与 `WarCommandExecutor` 的机动战术选择读取这个 helper。
+- `Division.hasFireSupport` 识别火器、炮队和攻城器械。
+- `Division.isSiegeCapable` 识别炮队和攻城器械；攻击 city / fortress hex 时获得首步攻城加成。
+- `TacticName.displayName` 提供明末展示名：正攻、疾袭、突骑破阵、破围、合围、火器压制、佯攻、流动作战、固守、诱敌退守、层层设防、死守城关。
+
+注意：当前只是 v4.3 首步，不新增独立 morale、payStatus、grainCarry 或多回合 siege state；粮草仍沿用 `SupplyRules` / `SupplyState`，完整粮道、军饷和围城事件链后续继续推进。
 
 结束回合：
 

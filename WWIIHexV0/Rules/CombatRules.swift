@@ -66,6 +66,12 @@ struct CombatRules {
         if attacker.isArmor && defenderTile.baseTerrain.armorSlowdownCost > 0 {
             multiplier -= 0.1
         }
+        if attacker.isSiegeCapable && defenderTile.baseTerrain.isObjectiveTerrain {
+            multiplier += 0.25
+        }
+        if attacker.hasFireSupport && attacker.coord.distance(to: defender.coord) > 1 {
+            multiplier += 0.1
+        }
 
         return max(1, Int((Double(attacker.attack) * multiplier).rounded()))
     }

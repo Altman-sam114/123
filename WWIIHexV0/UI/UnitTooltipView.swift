@@ -68,7 +68,7 @@ private extension Division {
         if isArmor {
             return "ARM"
         }
-        if components.contains(where: { $0.type == .motorizedInfantry && $0.weight >= 0.40 }) {
+        if isMobileUnit {
             return "MOT"
         }
         return "INF"

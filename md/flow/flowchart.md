@@ -13,6 +13,7 @@
   -> region / theater / front / deploy 都是从 hex 和单位位置派生出来的战略层
   -> v4.1 兼容层用 turnOrder 与 DiplomacyState 支持多势力回合和敌我判断
   -> v4.2 默认数据先加载崇祯十五年明末剧本，失败才回退阿登
+  -> v4.3 默认明末单位使用明末 template，战术展示名开始明末化
   -> economy 是 faction 级经济总账，收入仍从真实控制的 hex/region 聚合
   -> v0.5 元帅层是战略意图层，不替代战术权威
   -> 玩家和 AI 都必须把命令交给 RuleEngine
@@ -33,7 +34,7 @@
 ```mermaid
 flowchart TD
     ME["地图编辑器<br/>MapEditor<br/>用来画格子、省份、战区、初始部队"]:::editor
-    JSON["游戏数据 JSON<br/>ScenarioDefinition + RegionDataSet<br/>优先崇祯十五年明末数据，失败回退阿登"]:::data
+    JSON["游戏数据 JSON<br/>ScenarioDefinition + RegionDataSet + unit_templates<br/>优先崇祯十五年明末数据，失败回退阿登"]:::data
     DL["数据加载器<br/>DataLoader.loadGameState<br/>把 JSON 变成可运行 GameState"]:::loader
     GS["运行时总状态<br/>GameState<br/>一局游戏所有状态都在这里"]:::state
 

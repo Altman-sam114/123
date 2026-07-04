@@ -83,7 +83,7 @@ final class UnitNode: SKNode {
             addChild(ellipse)
         } else {
             // 步兵系：斜线。motorized 单斜线（\），infantry 双斜线（X）
-            let isMotorized = division.components.contains { $0.type == .motorizedInfantry && $0.weight >= 0.40 }
+            let isMotorized = division.isMobileUnit
             let halfW = width / 2 - inset
             let halfH = height / 2 - inset
 
@@ -182,7 +182,7 @@ private extension Division {
         if isArmor {
             return "ARM"
         }
-        if components.contains(where: { $0.type == .motorizedInfantry && $0.weight >= 0.40 }) {
+        if isMobileUnit {
             return "MOT"
         }
         return "INF"

@@ -196,7 +196,7 @@ struct EconomyRules {
         let upkeep = state.divisions
             .filter { $0.faction == faction && !$0.isDestroyed }
             .reduce(0) { partial, division in
-                partial + 2 + (division.isArmor ? 2 : 0) + (division.isArtillery ? 1 : 0)
+                partial + 2 + (division.isMobileUnit ? 1 : 0) + (division.isArmor ? 1 : 0) + (division.isArtillery ? 1 : 0)
             }
         return EconomyResources(supplies: upkeep)
     }
@@ -269,18 +269,21 @@ struct EconomyRules {
 
     private func reinforcementCostPerStrength(for division: Division) -> EconomyResources {
         let armorWeight = division.components
-            .filter { $0.type == .tank }
+            .filter { $0.type == .tank || $0.type == .bannerCavalry }
             .reduce(0.0) { $0 + $1.weight }
         let motorizedWeight = division.components
-            .filter { $0.type == .motorizedInfantry }
+            .filter { $0.type == .motorizedInfantry || $0.type == .cavalry }
+            .reduce(0.0) { $0 + $1.weight }
+        let firearmWeight = division.components
+            .filter { $0.type == .firearm }
             .reduce(0.0) { $0 + $1.weight }
         let artilleryWeight = division.components
-            .filter { $0.type == .artillery }
+            .filter { $0.type == .artillery || $0.type == .siegeEngine }
             .reduce(0.0) { $0 + $1.weight }
 
         return EconomyResources(
             manpower: max(4, Int((8 + 6 * (1 - armorWeight)).rounded())),
-            industry: max(1, Int((1 + armorWeight * 5 + motorizedWeight * 2 + artilleryWeight * 3).rounded())),
+            industry: max(1, Int((1 + armorWeight * 5 + motorizedWeight * 2 + firearmWeight * 2 + artilleryWeight * 3).rounded())),
             supplies: 1
         )
     }

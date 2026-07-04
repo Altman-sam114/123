@@ -149,10 +149,18 @@ struct MapEditorView: View {
                 }
             }
             Picker("模板", selection: $viewModel.selectedUnitTemplateId) {
-                Text("步兵师").tag("infantry_division")
-                Text("装甲师").tag("panzer_division")
-                Text("摩托化师").tag("motorized_division")
-                Text("重炮主力").tag("artillery_division")
+                Text("明军营兵").tag("ming_line_infantry")
+                Text("明军守城营").tag("ming_garrison")
+                Text("关宁铁骑").tag("ming_banner_cavalry")
+                Text("八旗骑营").tag("qing_banner_cavalry")
+                Text("红衣炮队").tag("qing_artillery_train")
+                Text("流民军老营").tag("dashun_camp")
+                Text("流动作战游兵").tag("dashun_raiders")
+                Text("地方团练").tag("local_tuanlian")
+                Text("Legacy 步兵师").tag("infantry_division")
+                Text("Legacy 装甲师").tag("panzer_division")
+                Text("Legacy 摩托化师").tag("motorized_division")
+                Text("Legacy 重炮主力").tag("artillery_division")
             }
             Stepper("兵力 \(viewModel.selectedUnitHP)", value: $viewModel.selectedUnitHP, in: 1...20)
             Picker("朝向", selection: $viewModel.selectedUnitFacing) {

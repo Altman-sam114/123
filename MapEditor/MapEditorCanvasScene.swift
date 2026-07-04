@@ -433,11 +433,20 @@ private extension SKColor {
 
 private extension String {
     var mapEditorUnitAbbreviation: String {
+        if localizedStandardContains("banner") || localizedStandardContains("cavalry") {
+            return "CAV"
+        }
+        if localizedStandardContains("garrison") || localizedStandardContains("tuanlian") {
+            return "GAR"
+        }
+        if localizedStandardContains("raiders") {
+            return "RDR"
+        }
+        if localizedStandardContains("firearm") || localizedStandardContains("artillery") {
+            return "ART"
+        }
         if localizedStandardContains("panzer") || localizedStandardContains("tank") {
             return "ARM"
-        }
-        if localizedStandardContains("artillery") {
-            return "ART"
         }
         if localizedStandardContains("motorized") {
             return "MOT"

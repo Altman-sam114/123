@@ -5,6 +5,11 @@ enum ComponentType: String, Codable, Equatable, CaseIterable {
     case motorizedInfantry
     case infantry
     case artillery
+    case cavalry
+    case firearm
+    case bannerCavalry
+    case militia
+    case siegeEngine
 
     var baseStats: EffectiveStats {
         switch self {
@@ -16,6 +21,48 @@ enum ComponentType: String, Codable, Equatable, CaseIterable {
             return EffectiveStats(attack: 4, defense: 5, movement: 3, range: 1, vision: 2)
         case .artillery:
             return EffectiveStats(attack: 7, defense: 2, movement: 2, range: 2, vision: 2)
+        case .cavalry:
+            return EffectiveStats(attack: 6, defense: 3, movement: 5, range: 1, vision: 3)
+        case .firearm:
+            return EffectiveStats(attack: 6, defense: 3, movement: 3, range: 2, vision: 2)
+        case .bannerCavalry:
+            return EffectiveStats(attack: 8, defense: 4, movement: 5, range: 1, vision: 3)
+        case .militia:
+            return EffectiveStats(attack: 3, defense: 4, movement: 2, range: 1, vision: 2)
+        case .siegeEngine:
+            return EffectiveStats(attack: 8, defense: 1, movement: 1, range: 2, vision: 1)
+        }
+    }
+
+    var isMobileComponent: Bool {
+        switch self {
+        case .tank,
+             .motorizedInfantry,
+             .cavalry,
+             .bannerCavalry:
+            return true
+        case .infantry,
+             .artillery,
+             .firearm,
+             .militia,
+             .siegeEngine:
+            return false
+        }
+    }
+
+    var isFireSupportComponent: Bool {
+        switch self {
+        case .artillery,
+             .firearm,
+             .siegeEngine:
+            return true
+        case .tank,
+             .motorizedInfantry,
+             .infantry,
+             .cavalry,
+             .bannerCavalry,
+             .militia:
+            return false
         }
     }
 }
@@ -304,11 +351,29 @@ struct Division: Identifiable, Codable, Equatable {
     }
 
     var isArmor: Bool {
-        components.contains { $0.type == .tank && $0.weight >= 0.25 }
+        components.contains { component in
+            (component.type == .tank || component.type == .bannerCavalry) && component.weight >= 0.25
+        }
     }
 
     var isArtillery: Bool {
-        components.contains { $0.type == .artillery && $0.weight >= 0.50 }
+        components.contains { component in
+            (component.type == .artillery || component.type == .siegeEngine) && component.weight >= 0.45
+        }
+    }
+
+    var isMobileUnit: Bool {
+        components.contains { $0.type.isMobileComponent && $0.weight >= 0.25 } || movement >= 5
+    }
+
+    var hasFireSupport: Bool {
+        components.contains { $0.type.isFireSupportComponent && $0.weight >= 0.25 }
+    }
+
+    var isSiegeCapable: Bool {
+        components.contains { component in
+            (component.type == .siegeEngine || component.type == .artillery) && component.weight >= 0.25
+        }
     }
 
     private func weightedStat(_ keyPath: KeyPath<EffectiveStats, Int>) -> Int {

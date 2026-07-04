@@ -1,6 +1,6 @@
 # WWIIHexV0 — 明末迁移中的 iOS / macOS AI 战略战棋工程
 
-> **当前状态：代码仍以 WWIIHexV0 / 阿登 legacy 底座为兼容主线，文档大纲已切换到 v4.0-v4.8 明末迁移路线。当前工作树已推进到 v4.2 默认数据首片：`Faction` 可表达明廷、后金/清、大顺、大西和地方中立，`DiplomacyState` 提供敌我关系 helper，回合顺序增加 `turnOrder` / human / AI 控制数组；`DataLoader.loadInitialGameState()` 优先加载 `崇祯十五年：天下裂变` 明末 JSON，失败才回退阿登；MapEditor 默认桥接也改为读写明末默认数据。明末兵种模板、经济命名、胜利规则和发布级 UI 仍未完成。历史测试基线曾达到 v0.37 Probe 18/0、Stage Regression 69/0、Full 226/0；当前工作流默认不跑 Xcode / XCTest / 模拟器测试，只按 `md/test/test.md` 做轻量检查。**
+> **当前状态：代码仍以 WWIIHexV0 / 阿登 legacy 底座为兼容主线，文档大纲已切换到 v4.0-v4.8 明末迁移路线。当前工作树已推进到 v4.3 明末军队首步：`Faction` 可表达明廷、后金/清、大顺、大西和地方中立，`DataLoader.loadInitialGameState()` 优先加载 `崇祯十五年：天下裂变` 明末 JSON，失败才回退阿登；默认明末初始单位已切到关宁铁骑、八旗骑营、红衣炮队、流民军老营、地方团练等明末 template，战术展示名开始明末化。经济资源命名、完整围城链、胜利规则和发布级 UI 仍未完成。历史测试基线曾达到 v0.37 Probe 18/0、Stage Regression 69/0、Full 226/0；当前工作流默认不跑 Xcode / XCTest / 模拟器测试，只按 `md/test/test.md` 做轻量检查。**
 
 ---
 
@@ -96,7 +96,8 @@ WWIIHexV0/
 - 剧本名为 `崇祯十五年：天下裂变`，当前规模为 120 个 hex、30 个 region、69 条 region edge、9 个补给源、12 个 objective、22 个初始单位。
 - 初始势力为明廷、后金/清、大顺、大西、地方中立；玩家默认明廷，清 / 大顺 / 大西为 AI。
 - 若明末 JSON 加载失败，仍保留阿登 legacy fallback，方便兼容旧数据和旧调试路径。
-- 当前初始单位仍复用 legacy unit template id，明末兵种、围城、粮草和战术规则迁移属于 v4.3。
+- 当前明末初始单位使用 `ming_banner_cavalry`、`qing_banner_cavalry`、`qing_artillery_train`、`dashun_camp`、`daxi_raiders`、`local_tuanlian` 等明末 template；legacy 阿登 template 仍保留作 fallback。
+- v4.3 已加入明末兵种组件和攻城/火器首步修正；完整围城状态、粮草命名和经济资源迁移仍属于后续 v4.3/v4.4。
 
 ### 核心架构原则
 
@@ -325,8 +326,11 @@ md/
     │   Agent A/B/C 提示词工作流和路线索引。
     ├── v4.0-明末迁移/
     │   ├── codex-v4.0-明末aiagent迁移总提示词.md
-    │   └── v4.0_audit_and_contract.md
-    │       明末迁移总合同与 v4.0 审计阶段文档。
+    │   ├── v4.0_audit_and_contract.md
+    │   ├── v4.1_powers_turns_prompt.md
+    │   ├── v4.2_ming_scenario_data_record.md
+    │   └── v4.3_ming_units_tactics_record.md
+    │       明末迁移总合同、阶段提示词和阶段实现记录。
     ├── v0.*（已完成）/
     │   WWIIHexV0 历史实现资料。
     ├── v2.0-三国迁移/、v3.0-拿战迁移/、v5.0-唐宋迁移/、v6.0-现代战争迁移/

@@ -315,6 +315,14 @@ struct DataLoader {
                     )
                 )
             }
+
+            for component in template.components where ComponentType(rawValue: component.type) == nil {
+                errors.append(
+                    DataValidationError(
+                        message: "Unit template \(template.id) references unknown component type \(component.type)."
+                    )
+                )
+            }
         }
 
         let germanSupplySources = scenario.map.tiles.filter {
@@ -521,13 +529,20 @@ struct DataLoader {
             }
 
             let components: [DivisionComponent]
+            let maxHP: Int
             if let template = templates.first(where: { $0.id == definition.templateId }) {
                 components = template.components.compactMap { component in
                     guard let type = ComponentType(rawValue: component.type) else { return nil }
                     return DivisionComponent(type: type, weight: component.weight)
                 }
+                maxHP = template.maxHP
+                if components.count != template.components.count {
+                    errors.append(DataValidationError(message: "Unit \(definition.id) references template \(template.id) with unknown component type."))
+                    return nil
+                }
             } else {
                 components = fallbackComponents(for: definition.templateId)
+                maxHP = 10
             }
 
             guard !components.isEmpty else {
@@ -542,7 +557,7 @@ struct DataLoader {
                 coord: HexCoord(q: definition.coord.q, r: definition.coord.r),
                 facing: HexDirection(rawValue: definition.facing) ?? .west,
                 hp: definition.hp,
-                maxHP: 10,
+                maxHP: maxHP,
                 components: components,
                 supplyState: SupplyState(rawValue: definition.supplyState) ?? .supplied,
                 retreatMode: definition.retreatMode.flatMap(RetreatMode.init(rawValue:)) ?? .retreatable
@@ -563,6 +578,18 @@ struct DataLoader {
             return [DivisionComponent(type: .motorizedInfantry, weight: 1.0)]
         case "artillery_division":
             return [DivisionComponent(type: .artillery, weight: 1.0)]
+        case "ming_banner_cavalry", "qing_banner_cavalry":
+            return [DivisionComponent(type: .bannerCavalry, weight: 0.7), DivisionComponent(type: .firearm, weight: 0.3)]
+        case "ming_garrison", "local_tuanlian":
+            return [DivisionComponent(type: .militia, weight: 0.6), DivisionComponent(type: .firearm, weight: 0.4)]
+        case "ming_line_infantry", "dashun_camp", "daxi_camp":
+            return [DivisionComponent(type: .infantry, weight: 0.6), DivisionComponent(type: .firearm, weight: 0.2), DivisionComponent(type: .cavalry, weight: 0.2)]
+        case "qing_artillery_train":
+            return [DivisionComponent(type: .artillery, weight: 0.5), DivisionComponent(type: .siegeEngine, weight: 0.3), DivisionComponent(type: .infantry, weight: 0.2)]
+        case "qing_vanguard":
+            return [DivisionComponent(type: .infantry, weight: 0.5), DivisionComponent(type: .cavalry, weight: 0.3), DivisionComponent(type: .firearm, weight: 0.2)]
+        case "dashun_raiders", "daxi_raiders":
+            return [DivisionComponent(type: .cavalry, weight: 0.5), DivisionComponent(type: .infantry, weight: 0.35), DivisionComponent(type: .militia, weight: 0.15)]
         default:
             return [DivisionComponent(type: .infantry, weight: 1.0)]
         }
