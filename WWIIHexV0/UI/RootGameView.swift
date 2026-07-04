@@ -248,7 +248,11 @@ struct RootGameView: View {
                 case .diplomacy:
                     DiplomacyPanelView(
                         diplomacyState: container.gameState.diplomacyState,
-                        activeFaction: container.gameState.activeFaction
+                        activeFaction: container.gameState.activeFaction,
+                        courtSummary: CourtStrategySummary.from(
+                            faction: container.gameState.activeFaction,
+                            state: container.gameState
+                        )
                     )
                 case .agent:
                     AgentPanelView(

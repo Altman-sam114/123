@@ -12,7 +12,7 @@
 - v4.3 明末军队与战术首步记录：`md/prompt/v4.0-明末迁移/v4.3_ming_units_tactics_record.md`；首批明末 unit template、默认单位 templateId、战术展示名、攻城/火器首步修正和 MapEditor 默认单位口径已开始落地。
 - v4.4 明末钱粮、地方治理与天下局势记录：`md/prompt/v4.0-明末迁移/v4.4_ming_economy_governance_record.md`；当前已落地民力/银两/粮草显示、募兵/筹粮生产口径、明末生产单位组件、民变/行政掌控收入修正、天下局势面板和 AI 钱粮/治理摘要，政策/科技、灾荒、完整军饷士气链仍后置。
 - v4.5 明末朝廷、政策科技与四线摘要记录：`md/prompt/v4.0-明末迁移/v4.5_ming_court_policy_record.md`；当前已落地只读 `CourtStrategySummary`、朝廷 tab、AgentContext 和 MarshalBattlefieldSummary 朝议摘要，政策/科技 directive 和执行器仍后置。
-- v4.6 明末 UI polish 与朝廷项目记录：`md/prompt/v4.0-明末迁移/v4.6_ming_ui_polish_record.md`；当前已落地明末设计 token、独立朝廷面板、军令/将领/战报/AI 中文 polish、单位中文军牌、明末舆图空态、城/关/粮地图 badge、粮道虚线可视化，以及征饷、赈济、修城、团练、火器、粮台六类 `Command.enactCourtProject` 轻量执行入口；粮道可通过顶部“粮道”按钮和图例控制显示，图层名已中文化为舆图、州府、初划、战局、前线、布防，顶部舆图图例解释城/关/粮/步和粮道符号；朝廷项目已按政策、经济、科技、军事四线分组展示压力、关注点、成本收益和风险；真实美术资产、截图验收、完整响应式交互、多回合政策和科技树仍后置。
+- v4.6 明末 UI polish 与朝廷项目记录：`md/prompt/v4.0-明末迁移/v4.6_ming_ui_polish_record.md`；当前已落地明末设计 token、独立朝廷面板、军令/将领/战报/AI 中文 polish、单位中文军牌、明末舆图空态、城/关/粮地图 badge、粮道虚线可视化，以及征饷、赈济、修城、团练、火器、粮台六类 `Command.enactCourtProject` 轻量执行入口；粮道可通过顶部“粮道”按钮和图例控制显示，图层名已中文化为舆图、州府、初划、战局、前线、布防，顶部舆图图例解释城/关/粮/步和粮道符号；朝廷项目已按政策、经济、科技、军事四线分组展示压力、关注点、成本收益和风险；天下面板已新增“天下急势”、势力战意条和朝议四线压力摘要；真实美术资产、截图验收、完整响应式交互、多回合政策和科技树仍后置。
 - 当前真实运行链路仍以 `md/flow/flow.md` 和 `md/flow/flowchart.md` 为准；明末路线是迁移目标，不等于源码已完成迁移。
 - `v0.*（已完成）` 是 WWIIHexV0 历史实现资料；`v2.0`、`v3.0`、`v5.0`、`v6.0` 等其他题材迁移目录只作参考，不是当前明末主线。
 
