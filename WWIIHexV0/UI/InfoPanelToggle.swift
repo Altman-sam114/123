@@ -11,11 +11,12 @@ struct InfoPanelToggle<Summary: View, Content: View>: View {
                 Button {
                     isExpanded.toggle()
                 } label: {
-                    Text("[ INFO ]")
+                    Label("信息", systemImage: isExpanded ? "sidebar.left" : "sidebar.leading")
                         .font(.caption.weight(.semibold))
                         .lineLimit(1)
                 }
                 .buttonStyle(.bordered)
+                .frame(minHeight: MingDesignTokens.minimumTapSize)
 
                 Spacer(minLength: 8)
             }

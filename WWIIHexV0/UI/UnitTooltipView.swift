@@ -62,16 +62,19 @@ struct UnitTooltipView: View {
 
 private extension Division {
     var tooltipTypeCode: String {
-        if isArtillery {
-            return "ART"
+        if isSiegeCapable {
+            return "攻城"
         }
         if isArmor {
-            return "ARM"
+            return "旗骑"
+        }
+        if hasFireSupport {
+            return "火器"
         }
         if isMobileUnit {
-            return "MOT"
+            return "骑兵"
         }
-        return "INF"
+        return "步军"
     }
 }
 

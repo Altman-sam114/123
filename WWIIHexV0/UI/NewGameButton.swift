@@ -5,11 +5,12 @@ struct NewGameButton: View {
 
     var body: some View {
         Button(action: action) {
-            Label("NEW GAME", systemImage: "arrow.counterclockwise")
+            Label("新局", systemImage: "arrow.counterclockwise")
                 .font(.caption.weight(.semibold))
                 .lineLimit(1)
                 .minimumScaleFactor(0.65)
         }
         .buttonStyle(.bordered)
+        .frame(minHeight: MingDesignTokens.minimumTapSize)
     }
 }

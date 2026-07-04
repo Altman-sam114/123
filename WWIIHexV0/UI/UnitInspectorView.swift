@@ -7,20 +7,20 @@ struct UnitInspectorView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text("Unit Details")
+            Text("军队详情")
                 .font(.headline)
 
             if let division {
                 unitDetails(division)
             } else {
-                Text("No unit selected.")
+                Text("未选中部队。")
                     .foregroundStyle(.secondary)
                     .frame(maxWidth: .infinity, alignment: .leading)
             }
         }
-        .padding(12)
-        .background(PlatformStyles.systemBackground)
-        .clipShape(RoundedRectangle(cornerRadius: 8))
+        .padding(MingDesignTokens.panelPadding)
+        .background(MingDesignTokens.panelBackground)
+        .clipShape(RoundedRectangle(cornerRadius: MingDesignTokens.cornerRadius))
     }
 
     private func unitDetails(_ division: Division) -> some View {
@@ -37,7 +37,7 @@ struct UnitInspectorView: View {
             }
 
             if let strategicState {
-                LabeledContent("Hex") {
+                LabeledContent("坐标") {
                     Text("\(strategicState.coord.q),\(strategicState.coord.r)")
                 }
 
@@ -136,23 +136,23 @@ private extension ComponentType {
     var displayCode: String {
         switch self {
         case .tank:
-            return "ARM"
+            return "装甲"
         case .motorizedInfantry:
-            return "MOT"
+            return "摩托"
         case .infantry:
-            return "INF"
+            return "步军"
         case .artillery:
-            return "ART"
+            return "炮队"
         case .cavalry:
-            return "CAV"
+            return "骑兵"
         case .firearm:
-            return "FIR"
+            return "火器"
         case .bannerCavalry:
-            return "BAN"
+            return "旗骑"
         case .militia:
-            return "MIL"
+            return "团练"
         case .siegeEngine:
-            return "SGE"
+            return "攻城"
         }
     }
 }
@@ -174,11 +174,11 @@ private extension UnitDeploymentRole {
     var displayName: String {
         switch self {
         case .frontUnit:
-            return "FRONT"
+            return "前线"
         case .depthUnit:
-            return "DEPTH"
+            return "纵深"
         case .garrisonUnit:
-            return "GARRISON"
+            return "驻防"
         }
     }
 }
@@ -196,17 +196,17 @@ private extension HexDirection {
     var displayCode: String {
         switch self {
         case .east:
-            return "E"
+            return "东"
         case .northEast:
-            return "NE"
+            return "东北"
         case .northWest:
-            return "NW"
+            return "西北"
         case .west:
-            return "W"
+            return "西"
         case .southWest:
-            return "SW"
+            return "西南"
         case .southEast:
-            return "SE"
+            return "东南"
         }
     }
 }

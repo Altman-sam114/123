@@ -384,6 +384,8 @@
 		0D000000000000000000030B /* GeneralCommandPanelView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0D000000000000000000000B /* GeneralCommandPanelView.swift */; };
 		0D000000000000000000010C /* GeneralProfileView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0D000000000000000000000C /* GeneralProfileView.swift */; };
 		0D000000000000000000030C /* GeneralProfileView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0D000000000000000000000C /* GeneralProfileView.swift */; };
+		0D000000000000000000010D /* CourtPanelView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0D000000000000000000000D /* CourtPanelView.swift */; };
+		0D000000000000000000030D /* CourtPanelView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0D000000000000000000000D /* CourtPanelView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -581,6 +583,7 @@
 		0D000000000000000000000A /* generals.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = generals.json; sourceTree = "<group>"; };
 		0D000000000000000000000B /* GeneralCommandPanelView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GeneralCommandPanelView.swift; sourceTree = "<group>"; };
 		0D000000000000000000000C /* GeneralProfileView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GeneralProfileView.swift; sourceTree = "<group>"; };
+		0D000000000000000000000D /* CourtPanelView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CourtPanelView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -715,6 +718,7 @@
 				020000000000000000000030 /* CommandPanelView.swift */,
 				0D000000000000000000000B /* GeneralCommandPanelView.swift */,
 				0D000000000000000000000C /* GeneralProfileView.swift */,
+				0D000000000000000000000D /* CourtPanelView.swift */,
 				020000000000000000000031 /* AgentPanelView.swift */,
 			);
 			path = UI;
@@ -1135,6 +1139,7 @@
 				0D0000000000000000000109 /* DiplomacyPanelView.swift in Sources */,
 				0D000000000000000000010B /* GeneralCommandPanelView.swift in Sources */,
 				0D000000000000000000010C /* GeneralProfileView.swift in Sources */,
+				0D000000000000000000010D /* CourtPanelView.swift in Sources */,
 				010000000000000000000127 /* MapDisplayLayer.swift in Sources */,
 				010000000000000000000128 /* WarDirectiveRecord.swift in Sources */,
 				010000000000000000000129 /* StrategicStateBootstrapper.swift in Sources */,
@@ -1414,6 +1419,7 @@
 				0D0000000000000000000309 /* DiplomacyPanelView.swift in Sources */,
 				0D000000000000000000030B /* GeneralCommandPanelView.swift in Sources */,
 				0D000000000000000000030C /* GeneralProfileView.swift in Sources */,
+				0D000000000000000000030D /* CourtPanelView.swift in Sources */,
 				0C0000000000000000000107 /* MapDisplayLayer.swift in Sources */,
 				0C0000000000000000000108 /* WarDirectiveRecord.swift in Sources */,
 				0C0000000000000000000109 /* StrategicStateBootstrapper.swift in Sources */,

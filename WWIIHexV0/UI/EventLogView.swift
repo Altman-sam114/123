@@ -5,13 +5,13 @@ struct EventLogView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("Event Log")
+            Text("战报")
                 .font(.headline)
 
             ScrollView {
                 LazyVStack(alignment: .leading, spacing: 8) {
                     if recentEntries.isEmpty {
-                        Text("No events yet.")
+                        Text("暂无战报。")
                             .foregroundStyle(.secondary)
                     } else {
                         ForEach(recentEntries) { item in
@@ -42,9 +42,9 @@ struct EventLogView: View {
             }
             .frame(minHeight: 120)
         }
-        .padding(12)
-        .background(PlatformStyles.systemBackground)
-        .clipShape(RoundedRectangle(cornerRadius: 8))
+        .padding(MingDesignTokens.panelPadding)
+        .background(MingDesignTokens.panelBackground)
+        .clipShape(RoundedRectangle(cornerRadius: MingDesignTokens.cornerRadius))
     }
 
     private var recentEntries: [LogDisplayEntry] {
@@ -55,12 +55,12 @@ struct EventLogView: View {
     }
 
     private func metadata(for entry: GameLogEntry) -> String {
-        let faction = entry.faction?.displayName ?? "System"
-        let phase = entry.phase?.displayName ?? "Setup"
+        let faction = entry.faction?.displayName ?? "系统"
+        let phase = entry.phase?.displayName ?? "整备"
         if let relatedRecordId = entry.relatedRecordId {
-            return "Turn \(entry.turn) - \(faction) - \(phase) - \(relatedRecordId)"
+            return "第 \(entry.turn) 回合 - \(faction) - \(phase) - \(relatedRecordId)"
         }
-        return "Turn \(entry.turn) - \(faction) - \(phase)"
+        return "第 \(entry.turn) 回合 - \(faction) - \(phase)"
     }
 }
 

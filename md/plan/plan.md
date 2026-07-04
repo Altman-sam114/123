@@ -126,8 +126,10 @@ md/
     │   │   v4.3 明末兵种 template、战术显示名和规则首步记录。
     │   ├── v4.4_ming_economy_governance_record.md
     │       v4.4 钱粮、治理、天下局势 UI 和 AI 摘要首片记录。
-    │   └── v4.5_ming_court_policy_record.md
-    │       v4.5 朝廷、政策科技摘要和 UI 首片记录。
+    │   ├── v4.5_ming_court_policy_record.md
+    │   │   v4.5 朝廷、政策科技摘要和 UI 首片记录。
+    │   └── v4.6_ming_ui_polish_record.md
+    │       v4.6 发布级明末 UI、美术和交互收口首片记录。
     ├── v0.*（已完成）/
     │   历史 WWIIHexV0 阶段记录。
     ├── v2.0-三国迁移/、v3.0-拿战迁移/、v5.0-唐宋迁移/、v6.0-现代战争迁移/
@@ -148,7 +150,7 @@ md/
 | v4.3 | 明末军队、围城、粮草和战术规则 | 首批明末 unit template、默认单位 templateId、ComponentType 兼容 case、攻城/火器首步修正和战术展示名已开始落地；完整围城状态、粮草命名和经济资源仍后置 | `v4.3_ming_units_tactics_record.md`、`flow.md`、战术规则记录 |
 | v4.4 | 经济、灾荒、军饷和地方治理 | 已开始落地：民力/银两/粮草展示、募兵/筹粮生产口径、明末生产单位组件、民变/行政掌控收入修正、AI 钱粮与治理摘要、天下局势入口；灾荒、完整政策/军饷士气链后续继续 | `v4.4_ming_economy_governance_record.md`、`flow.md`、经济规则记录 |
 | v4.5 | 皇帝、朝议、政策科技、督师和将领 Agent | 首片已开始落地：`CourtStrategySummary` 只读派生政策/经济/科技/军事四线压力，朝廷 tab 和 AI/元帅摘要可见；可执行政策/科技 directive、Codable schema、fallback、复盘面板后续继续 | `v4.5_ming_court_policy_record.md`、`flowchart.md`、Agent schema 记录 |
-| v4.6 | 发布级明末 UI、美术和交互收口 | 舆图地图、军令牌部队、朝廷/天下/钱粮面板、战报、粮道、势力旗色、移动端/macOS 布局 | UI 设计记录、截图检查清单 |
+| v4.6 | 发布级明末 UI、美术和交互收口 | 首片已开始落地：明末设计 token、独立朝廷面板、军令/将领/战报/AI 面板中文 polish、单位军牌中文徽记和明末舆图空态；真实资产、地图纹理、截图验收和完整移动端/macOS 交互收口仍后续继续 | `v4.6_ming_ui_polish_record.md`、UI 设计记录、截图检查清单 |
 | v4.7 | 历史事件、教程、战役内容和可玩性 | 松锦、催饷、饥荒、开封围城、10-20 回合目标链 | 内容记录、事件 schema |
 | v4.8 | 发布候选、存档、设置和验收 | 新局/继续/重置、存档、设置、版本说明、发布前授权重验证清单 | `README.md`、`update_log.md`、发布候选记录 |
 

@@ -17,16 +17,16 @@ struct GeneralCommandPanelView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text("General Command")
+            Text("将领军令")
                 .font(.headline)
 
             if let zone {
-                LabeledContent("Front Zone") {
+                LabeledContent("战区") {
                     Text(zone.name)
                         .multilineTextAlignment(.trailing)
                 }
             } else {
-                Text("No allied front zone selected.")
+                Text("未选中己方战区。")
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
             }
@@ -37,7 +37,7 @@ struct GeneralCommandPanelView: View {
                         Button(action: onShowProfile) {
                             portraitBadge(for: general)
                         }
-                            .accessibilityLabel("Open profile for \(general.localizedName)")
+                            .accessibilityLabel("查看\(general.localizedName)档案")
                             .buttonStyle(.plain)
                         VStack(alignment: .leading, spacing: 2) {
                             Text(general.localizedName)
@@ -60,30 +60,31 @@ struct GeneralCommandPanelView: View {
                     }
 
                     if let assignment {
-                        metricBar(title: "Loyalty", value: assignment.loyalty)
-                        metricBar(title: "Satisfaction", value: assignment.satisfaction)
-                        LabeledContent("Interventions") {
+                        metricBar(title: "忠诚", value: assignment.loyalty)
+                        metricBar(title: "军心", value: assignment.satisfaction)
+                        LabeledContent("干预") {
                             Text("\(assignment.interventionCount)")
                         }
                     }
 
-                    Button("View Profile", systemImage: "person.text.rectangle", action: onShowProfile)
+                    Button("将领档案", systemImage: "person.text.rectangle", action: onShowProfile)
                         .buttonStyle(.bordered)
+                        .frame(minHeight: MingDesignTokens.minimumTapSize)
                 }
             } else if zone != nil {
-                Text("No general assigned to this zone.")
+                Text("该战区暂无主将。")
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
             }
 
             if hqUnderAttack {
-                Label("HQ region contested", systemImage: "exclamationmark.triangle.fill")
+                Label("本营受压", systemImage: "exclamationmark.triangle.fill")
                     .font(.caption.weight(.semibold))
                     .foregroundStyle(.orange)
             }
 
             if !assignedDivisions.isEmpty {
-                Text("Assigned Units")
+                Text("麾下部队")
                     .font(.caption.weight(.semibold))
                     .foregroundStyle(.secondary)
                 VStack(alignment: .leading, spacing: 4) {
@@ -96,21 +97,22 @@ struct GeneralCommandPanelView: View {
             }
 
             if let targetRegion, targetZone?.faction != zone?.faction {
-                LabeledContent("Target") {
+                LabeledContent("目标") {
                     Text(targetRegion.name)
                 }
             }
 
             HStack(spacing: 8) {
-                Button("Hold Line", systemImage: "shield.fill", action: onHoldLine)
+                Button("固守", systemImage: "shield.fill", action: onHoldLine)
                     .disabled(!canHoldLine)
-                Button("Attack Region", systemImage: "arrow.up.right.circle", action: onAttackRegion)
+                Button("进取", systemImage: "arrow.up.right.circle", action: onAttackRegion)
                     .disabled(!canAttackRegion)
             }
             .buttonStyle(.bordered)
+            .frame(minHeight: MingDesignTokens.minimumTapSize)
 
             if !plannedOperations.isEmpty {
-                Text("Planned Operations")
+                Text("军令计划")
                     .font(.caption.weight(.semibold))
                     .foregroundStyle(.secondary)
                 VStack(alignment: .leading, spacing: 4) {
@@ -122,18 +124,19 @@ struct GeneralCommandPanelView: View {
                 }
             }
         }
-        .padding(12)
-        .background(PlatformStyles.systemBackground)
-        .clipShape(RoundedRectangle(cornerRadius: 8))
+        .padding(MingDesignTokens.panelPadding)
+        .background(MingDesignTokens.panelBackground)
+        .clipShape(RoundedRectangle(cornerRadius: MingDesignTokens.cornerRadius))
     }
 
     private func portraitBadge(for general: GeneralData) -> some View {
         Text(initials(for: general))
             .font(.caption.weight(.bold))
             .frame(width: 40, height: 40)
-            .background(PlatformStyles.selectionTint)
-            .clipShape(RoundedRectangle(cornerRadius: 8))
-            .accessibilityLabel("\(general.localizedName) portrait placeholder")
+            .foregroundStyle(MingDesignTokens.cinnabar)
+            .background(MingDesignTokens.subtleSeal)
+            .clipShape(RoundedRectangle(cornerRadius: MingDesignTokens.cornerRadius))
+            .accessibilityLabel("\(general.localizedName)印信")
     }
 
     private func metricBar(title: String, value: Int) -> some View {
@@ -158,20 +161,23 @@ struct GeneralCommandPanelView: View {
     private func styleLabel(_ style: ZoneCommanderAgentConfig.CommandStyle) -> String {
         switch style {
         case .aggressive:
-            return "Aggressive"
+            return "锐进"
         case .balanced:
-            return "Balanced"
+            return "持重"
         case .cautious:
-            return "Cautious"
+            return "谨守"
         }
     }
 
     private func unitIcon(for division: Division) -> String {
-        if division.isArmor {
-            return "shield.lefthalf.filled"
+        if division.isSiegeCapable {
+            return "target"
         }
-        if division.isArtillery {
+        if division.hasFireSupport {
             return "scope"
+        }
+        if division.isMobileUnit {
+            return "hare"
         }
         return "person.3.fill"
     }
@@ -182,6 +188,7 @@ struct GeneralCommandPanelView: View {
 
     private func operationSummary(_ operation: PlayerPlannedOperation) -> String {
         let target = operation.targetRegionId?.rawValue ?? operation.sourceRegionId?.rawValue ?? operation.zoneId.rawValue
-        return "\(operation.directiveType.rawValue) / \(target)"
+        let directive = operation.directiveType == .attack ? "进取" : "固守"
+        return "\(directive) / \(target)"
     }
 }

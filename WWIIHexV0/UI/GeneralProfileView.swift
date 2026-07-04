@@ -27,14 +27,15 @@ struct GeneralProfileView: View {
         .background(.ultraThinMaterial)
         .safeAreaInset(edge: .top) {
             HStack {
-                Text("General Profile")
+                Text("将领档案")
                     .font(.headline)
                 Spacer()
-                Button("Close", systemImage: "xmark", action: onClose)
+                Button("关闭", systemImage: "xmark", action: onClose)
                     .buttonStyle(.bordered)
+                    .frame(minHeight: MingDesignTokens.minimumTapSize)
             }
-            .padding(12)
-            .background(PlatformStyles.systemBackground)
+            .padding(MingDesignTokens.panelPadding)
+            .background(MingDesignTokens.panelBackground)
         }
     }
 
@@ -43,9 +44,10 @@ struct GeneralProfileView: View {
             Text(initials)
                 .font(.title.weight(.bold))
                 .frame(width: 112, height: 144)
-                .background(PlatformStyles.selectionTint)
-                .clipShape(RoundedRectangle(cornerRadius: 8))
-                .accessibilityLabel("\(general.localizedName) portrait placeholder")
+                .foregroundStyle(MingDesignTokens.cinnabar)
+                .background(MingDesignTokens.subtleSeal)
+                .clipShape(RoundedRectangle(cornerRadius: MingDesignTokens.cornerRadius))
+                .accessibilityLabel("\(general.localizedName)印信")
 
             Text(general.localizedName)
                 .font(.title3.weight(.semibold))
@@ -56,32 +58,32 @@ struct GeneralProfileView: View {
                 .font(.caption.weight(.semibold))
                 .padding(.horizontal, 8)
                 .padding(.vertical, 4)
-                .background(PlatformStyles.tertiarySystemBackground)
-                .clipShape(RoundedRectangle(cornerRadius: 6))
+                .background(MingDesignTokens.sectionBackground)
+                .clipShape(RoundedRectangle(cornerRadius: MingDesignTokens.cornerRadius))
         }
         .frame(minWidth: 132, alignment: .leading)
     }
 
     private var biographyBlock: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("Biography")
+            Text("履历")
                 .font(.headline)
             Text(general.biography)
                 .font(.body)
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
 
-            LabeledContent("Command Style") {
+            LabeledContent("统兵风格") {
                 Text(styleLabel(general.commandStyle))
             }
             if let zone {
-                LabeledContent("Assigned Zone") {
+                LabeledContent("所属战区") {
                     Text(zone.name)
                         .multilineTextAlignment(.trailing)
                 }
             }
             if hqUnderAttack {
-                Label("HQ region contested", systemImage: "exclamationmark.triangle.fill")
+                Label("本营受压", systemImage: "exclamationmark.triangle.fill")
                     .font(.caption.weight(.semibold))
                     .foregroundStyle(.orange)
             }
@@ -90,11 +92,11 @@ struct GeneralProfileView: View {
 
     private var statusBlock: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("Relationship")
+            Text("君臣关系")
                 .font(.headline)
-            metricBar(title: "Loyalty", value: assignment?.loyalty ?? general.baseLoyalty)
-            metricBar(title: "Satisfaction", value: assignment?.satisfaction ?? general.baseSatisfaction)
-            LabeledContent("Player Interventions") {
+            metricBar(title: "忠诚", value: assignment?.loyalty ?? general.baseLoyalty)
+            metricBar(title: "军心", value: assignment?.satisfaction ?? general.baseSatisfaction)
+            LabeledContent("玩家干预") {
                 Text("\(assignment?.interventionCount ?? 0)")
             }
         }
@@ -102,10 +104,10 @@ struct GeneralProfileView: View {
 
     private var skillsBlock: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("Skills")
+            Text("技能")
                 .font(.headline)
             if general.skills.isEmpty {
-                Text("No explicit skills configured.")
+                Text("暂无明确技能。")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             } else {
@@ -116,8 +118,8 @@ struct GeneralProfileView: View {
                             .lineLimit(2)
                             .padding(8)
                             .frame(maxWidth: .infinity, alignment: .leading)
-                            .background(PlatformStyles.tertiarySystemBackground)
-                            .clipShape(RoundedRectangle(cornerRadius: 8))
+                            .background(MingDesignTokens.sectionBackground)
+                            .clipShape(RoundedRectangle(cornerRadius: MingDesignTokens.cornerRadius))
                     }
                 }
             }
@@ -126,10 +128,10 @@ struct GeneralProfileView: View {
 
     private var assignedUnitsBlock: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("Assigned Units")
+            Text("麾下部队")
                 .font(.headline)
             if assignedDivisions.isEmpty {
-                Text("No active divisions assigned.")
+                Text("暂无可用部队。")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             } else {
@@ -165,11 +167,11 @@ struct GeneralProfileView: View {
     private func styleLabel(_ style: ZoneCommanderAgentConfig.CommandStyle) -> String {
         switch style {
         case .aggressive:
-            return "Aggressive"
+            return "锐进"
         case .balanced:
-            return "Balanced"
+            return "持重"
         case .cautious:
-            return "Cautious"
+            return "谨守"
         }
     }
 }

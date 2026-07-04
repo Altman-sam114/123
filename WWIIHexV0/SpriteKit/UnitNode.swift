@@ -38,10 +38,8 @@ final class UnitNode: SKNode {
         body.zPosition = 0
         addChild(body)
 
-        // v0.21: NATO APP-6 兵牌内部图形（替代纯文字 markerCode）
-        addNATOSymbol(for: division, width: width, height: height)
+        addMingUnitEmblem(for: division, width: width, height: height)
 
-        // 兵力数字（移至底部，NATO symbol 占中央）
         addLabel(
             text: division.markerReadinessText,
             y: -height * 0.28,
@@ -57,59 +55,21 @@ final class UnitNode: SKNode {
         fatalError("init(coder:) has not been implemented")
     }
 
-    /// v0.21: NATO APP-6 兵牌内部图形。
-    /// armor=椭圆、motorized=单斜线、infantry=X、artillery=圆。
-    private func addNATOSymbol(for division: Division, width: CGFloat, height: CGFloat) {
-        let lineColor = SKColor(white: 0.97, alpha: 0.95)
-        let lineWidth = max(1.5, min(width, height) * 0.08)
-        let inset = min(width, height) * 0.18
+    private func addMingUnitEmblem(for division: Division, width: CGFloat, height: CGFloat) {
+        let bandHeight = max(3, height * 0.12)
+        let topBand = SKShapeNode(rectOf: CGSize(width: width * 0.88, height: bandHeight), cornerRadius: min(2, bandHeight / 2))
+        topBand.fillColor = SKColor(red: 0.96, green: 0.76, blue: 0.28, alpha: 0.72)
+        topBand.strokeColor = .clear
+        topBand.position = CGPoint(x: 0, y: height * 0.27)
+        topBand.zPosition = 1
+        addChild(topBand)
 
-        if division.isArtillery {
-            // 炮兵：圆
-            let radius = min(width, height) * 0.22
-            let circle = SKShapeNode(circleOfRadius: radius)
-            circle.strokeColor = lineColor
-            circle.lineWidth = lineWidth
-            circle.fillColor = .clear
-            circle.zPosition = 1
-            addChild(circle)
-        } else if division.isArmor {
-            // 装甲：椭圆
-            let ellipse = SKShapeNode(ellipseOf: CGSize(width: width - inset * 1.4, height: height - inset * 1.4))
-            ellipse.strokeColor = lineColor
-            ellipse.lineWidth = lineWidth
-            ellipse.fillColor = .clear
-            ellipse.zPosition = 1
-            addChild(ellipse)
-        } else {
-            // 步兵系：斜线。motorized 单斜线（\），infantry 双斜线（X）
-            let isMotorized = division.isMobileUnit
-            let halfW = width / 2 - inset
-            let halfH = height / 2 - inset
-
-            let slash1 = SKShapeNode()
-            let path1 = CGMutablePath()
-            path1.move(to: CGPoint(x: -halfW, y: halfH))
-            path1.addLine(to: CGPoint(x: halfW, y: -halfH))
-            slash1.path = path1
-            slash1.strokeColor = lineColor
-            slash1.lineWidth = lineWidth
-            slash1.zPosition = 1
-            addChild(slash1)
-
-            if !isMotorized {
-                // 步兵：第二条斜线（/）成 X
-                let slash2 = SKShapeNode()
-                let path2 = CGMutablePath()
-                path2.move(to: CGPoint(x: -halfW, y: -halfH))
-                path2.addLine(to: CGPoint(x: halfW, y: halfH))
-                slash2.path = path2
-                slash2.strokeColor = lineColor
-                slash2.lineWidth = lineWidth
-                slash2.zPosition = 1
-                addChild(slash2)
-            }
-        }
+        addLabel(
+            text: division.markerEmblemText,
+            y: height * 0.02,
+            fontSize: max(12, height * 0.38),
+            weight: "PingFangSC-Semibold"
+        )
     }
 
     private func addLabel(text: String, y: CGFloat, fontSize: CGFloat, weight: String) {
@@ -175,17 +135,20 @@ final class UnitNode: SKNode {
 }
 
 private extension Division {
-    var markerCode: String {
-        if isArtillery {
-            return "ART"
+    var markerEmblemText: String {
+        if isSiegeCapable {
+            return "城"
         }
         if isArmor {
-            return "ARM"
+            return "旗"
+        }
+        if hasFireSupport {
+            return "火"
         }
         if isMobileUnit {
-            return "MOT"
+            return "骑"
         }
-        return "INF"
+        return "步"
     }
 
     var markerReadinessText: String {
@@ -197,9 +160,9 @@ private extension RetreatMode {
     var markerCode: String {
         switch self {
         case .retreatable:
-            return "R"
+            return "退"
         case .hold:
-            return "H"
+            return "守"
         }
     }
 }

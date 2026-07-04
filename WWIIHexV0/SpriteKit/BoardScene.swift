@@ -508,8 +508,8 @@ final class BoardScene: SKScene {
         field.position = CGPoint(x: size.width / 2, y: size.height / 2)
         addChild(field)
 
-        let title = SKLabelNode(text: "Ardennes V0 Board")
-        title.fontName = "AvenirNext-DemiBold"
+        let title = SKLabelNode(text: "明末棋策舆图")
+        title.fontName = "PingFangSC-Semibold"
         title.fontSize = 24
         title.fontColor = .white
         title.position = CGPoint(x: size.width / 2, y: size.height / 2 + 10)

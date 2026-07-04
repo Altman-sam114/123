@@ -1,4 +1,4 @@
-# WWIIHexV0 核心流程文档（明末迁移 v4.5 朝廷/政策科技首片）
+# WWIIHexV0 核心流程文档（明末迁移 v4.6 UI polish 首片）
 
 > 本文是项目当前核心逻辑的接手文档。目标不是复述历史设计，而是按当前代码真实链路说明：数据如何进入游戏，hex / region / theater / front / deploy 如何派生，主游戏和地图编辑器如何共同维护同一套地图语义，AI / 玩家命令如何落到规则系统。
 
@@ -48,6 +48,7 @@ MapEditor / JSON 数据
 - v4.4 治理首片中，`OccupationState.resistance/compliance` 已按民变/行政掌控解释，并对州府钱粮产出做轻量修正；该摘要进入州府面板和 AI 钱粮摘要。
 - v4.4 天下局势首片中，玩家信息面板的外交入口改为“天下”，`DiplomacyPanelView` 显示当前势力、名义主体、战事态势、主要对手、诸方势力、战和关系和朝议/军议。
 - v4.5 朝廷首片中，`CourtStrategySummary` 从钱粮、治理、补给、前线和火器/炮队状态派生政策、经济、科技、军事四线压力；Root 信息面板新增“朝廷”tab，AI 与元帅摘要可读取同一朝议建议。
+- v4.6 UI 首片中，`MingDesignTokens` 提供明末面板色彩/圆角/间距常量；`CourtPanelView` 已从 `RootGameView` 拆出并改为奏疏/印玺风格；主 UI、军令、将领、单位、战报、AI 面板继续中文化；`UnitNode` 地图军牌从 NATO 图形改为中文徽记和守/退状态。
 - `GamePhase.allowsHumanCommands` 是玩家可操作阶段的当前 UI/App 判定入口，兼容 `.humanAction` 与 legacy `.alliedPlayer`。
 - `turnOrder`、`humanControlledFactions`、`aiControlledFactions` 是通用回合和控制方配置；旧阿登仍 fallback 为 Germany AI / Allies player。
 - `EconomyState` 是 faction 级经济总账；收入来自受控 region、城市、工厂、基础设施和补给值，但战术占领仍以 hex 为准。
@@ -840,14 +841,9 @@ handleBoardTap(coord)
 - `BoardSceneView`：SpriteKit 地图。
 - `HUDView`：回合、下一步、新游戏。
 - `MapDisplayLayer` segmented picker：
-  - `Hex`
-  - `Province`
-  - `Initial`
-  - `Dynamic`
-  - `Front`
-  - `Deploy`
-- `Observer` toggle。
-- `[ INFO ]` 面板，内含：
+  - Hex / Province / Initial / Dynamic / Front / Deploy 的底层 layer，玩家可见标签由 `MapDisplayLayer.displayName` 控制。
+- “观战” toggle。
+- “信息”按钮展开/收起信息面板，内含：
   - 军队 + 州府 + 军令
   - 州府
   - 将领
@@ -858,7 +854,7 @@ handleBoardTap(coord)
   - AI
 - `UnitTooltipView`。
 
-v4.4-v4.5 首片中，HUD、CommandPanel、EconomyPanel、RegionInspector、UnitInspector、UnitTooltip、DiplomacyPanel、CourtPanel 和 EventLog 分类已改为明末中文展示；底层图层枚举和命令 displayName 仍保留部分开发兼容名。
+v4.4-v4.6 首片中，HUD、CommandPanel、EconomyPanel、RegionInspector、UnitInspector、UnitTooltip、DiplomacyPanel、CourtPanel、GeneralCommandPanel、GeneralProfile、AgentPanel 和 EventLog 分类已改为明末中文展示；`MingDesignTokens` 统一面板圆角、间距、触控高度和朱砂/金/青瓷等色彩；底层图层枚举、源码类型名和部分 JSON schema 字段仍保留开发兼容名。
 
 当前开局不会在 `RootGameView` 自动 `.task { runAIIfNeeded() }`。AI 行动由 `advanceOrRunAI()` 或命令提交后的 `runAIIfNeeded()` 触发。
 
@@ -1578,6 +1574,8 @@ touchesEnded
 - 触摸移动 camera。
 - `clampCamera` 限制在地图边界附近。
 
+v4.6 首片中，空地图/加载失败时的标题改为“明末棋策舆图”。`UnitNode` 不再绘制 NATO APP-6 椭圆/斜线/圆形兵牌，而是按单位组件显示中文军牌徽记：`城` 表示攻城/炮队，`旗` 表示旗骑/重骑，`火` 表示火器支援，`骑` 表示机动部队，`步` 表示步军；底部用兵力和 `守` / `退` 显示退守模式。该变化只影响 SpriteKit 展示，不改变 `Division` 组件、移动、攻击或补给规则。
+
 ### 7.2 MapDisplayAdapter
 
 源码：`WWIIHexV0/SpriteKit/MapDisplayAdapter.swift`
@@ -1949,7 +1947,38 @@ Data/generals.json
 
 ---
 
-## 14. 云端协作与 main 直推验证链路
+## 14. v4.6 明末 UI polish 首片
+
+v4.6 首片只做只读 UI 和 SpriteKit 展示收口，不新增规则入口，也不新增可执行政策/科技命令：
+
+```text
+MingDesignTokens
+  -> RootGameView / GeneralCommandPanelView / GeneralProfileView
+  -> UnitInspectorView / UnitTooltipView / EventLogView / AgentPanelView
+  -> CourtPanelView
+
+BoardScene / UnitNode
+  -> 明末舆图空态
+  -> 中文军牌徽记
+  -> 守/退状态
+```
+
+当前完成点：
+
+- `CourtPanelView` 独立成文件并加入 iOS/macOS source phase，仍从 `CourtStrategySummary.from(faction:state:)` 只读派生朝议摘要。
+- 信息按钮、图层 picker、观战 toggle、新局按钮、军令/将领/单位/战报/AI 面板做明末中文 polish。
+- `MingDesignTokens` 提供共享设计常量，避免每个面板继续散落不同圆角、padding 和背景色。
+- `UnitNode` 改用中文军牌徽记，移除默认主地图上的 NATO 风格兵牌。
+
+仍未完成：
+
+- 未加入真实美术资产、地图纹理、势力旗帜、头像、截图检查清单或运行时视觉验收。
+- 未新增政策/科技 directive、城防项目、粮道可视化或灾荒/军饷事件。
+- 未改变 `Command` / `ZoneDirective -> WarCommandExecutor -> RuleEngine` 执行权威。
+
+---
+
+## 15. 云端协作与 main 直推验证链路
 
 本节记录协作制度，不改变 WWIIHexV0 的业务规则、AI 管线或地图权威边界。当前默认开发闭环是：
 

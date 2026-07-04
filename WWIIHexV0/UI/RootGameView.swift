@@ -21,11 +21,11 @@ struct RootGameView: View {
                         onNewGame: container.resetGame
                     )
                     .padding(8)
-                    .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 8))
+                    .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: MingDesignTokens.cornerRadius))
                     .padding(.top, 8)
                     .padding(.horizontal, 8)
 
-                    Picker("Map Layer", selection: Binding(
+                    Picker("图层", selection: Binding(
                         get: { container.mapDisplayLayer },
                         set: { container.setMapDisplayLayer($0) }
                     )) {
@@ -34,18 +34,19 @@ struct RootGameView: View {
                         }
                     }
                     .pickerStyle(.segmented)
-                    .padding(8)
-                    .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 8))
+                    .padding(MingDesignTokens.compactSpacing)
+                    .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: MingDesignTokens.cornerRadius))
                     .padding(.horizontal, 8)
 
-                    Toggle("Observer", isOn: Binding(
+                    Toggle("观战", isOn: Binding(
                         get: { container.observerModeEnabled },
                         set: { container.setObserverModeEnabled($0) }
                     ))
                     .toggleStyle(.button)
                     .font(.caption.weight(.semibold))
-                    .padding(8)
-                    .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 8))
+                    .frame(minHeight: MingDesignTokens.minimumTapSize)
+                    .padding(.horizontal, MingDesignTokens.compactSpacing)
+                    .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: MingDesignTokens.cornerRadius))
                     .padding(.horizontal, 8)
 
                     Spacer()
@@ -59,11 +60,13 @@ struct RootGameView: View {
                 Button {
                     isInfoExpanded.toggle()
                 } label: {
-                    Text("[ INFO ]")
+                    Label("信息", systemImage: isInfoExpanded ? "sidebar.left" : "sidebar.leading")
                         .font(.caption.weight(.semibold))
                         .lineLimit(1)
                 }
                 .buttonStyle(.bordered)
+                .frame(minHeight: MingDesignTokens.minimumTapSize)
+                .accessibilityLabel(isInfoExpanded ? "收起信息面板" : "展开信息面板")
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomLeading)
                 .padding(10)
 
@@ -83,7 +86,7 @@ struct RootGameView: View {
                     onClose: { isGeneralProfilePresented = false }
                 )
             } else {
-                Text("No general selected.")
+                Text("未选中将领。")
                     .font(.headline)
                     .padding()
             }
@@ -106,9 +109,9 @@ struct RootGameView: View {
             compactPanelWithTabs
         }
         .frame(width: width, height: height)
-        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 8))
+        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: MingDesignTokens.cornerRadius))
         .overlay {
-            RoundedRectangle(cornerRadius: 8)
+            RoundedRectangle(cornerRadius: MingDesignTokens.cornerRadius)
                 .stroke(.secondary.opacity(0.35), lineWidth: 1)
         }
         .padding(isLandscape ? 10 : 0)
@@ -121,7 +124,7 @@ struct RootGameView: View {
 
     private var compactPanelWithTabs: some View {
         VStack(spacing: 0) {
-            Picker("Panel", selection: $selectedCompactPanel) {
+            Picker("面板", selection: $selectedCompactPanel) {
                 ForEach(CompactInfoPanel.allCases) { panel in
                     Text(panel.rawValue).tag(panel)
                 }
@@ -232,120 +235,5 @@ private enum CompactInfoPanel: String, CaseIterable, Identifiable {
 
     var id: String {
         rawValue
-    }
-}
-
-private struct CourtPanelView: View {
-    let gameState: GameState
-
-    var body: some View {
-        let summary = CourtStrategySummary.from(faction: gameState.activeFaction, state: gameState)
-
-        VStack(alignment: .leading, spacing: 12) {
-            Label("朝廷", systemImage: "scroll")
-                .font(.headline)
-
-            LabeledContent("当前议题") {
-                Label(summary.recommendedFocus.displayName, systemImage: summary.recommendedFocus.systemImageName)
-                    .labelStyle(.titleAndIcon)
-            }
-            .font(.caption)
-
-            Text(summary.rationale)
-                .font(.caption)
-                .foregroundStyle(.secondary)
-
-            Divider()
-
-            VStack(alignment: .leading, spacing: 8) {
-                Text("四线压力")
-                    .font(.subheadline.weight(.semibold))
-
-                CourtPressureRow(title: "政策", value: summary.policyPressure, detail: "民变/行政", tint: .green)
-                CourtPressureRow(title: "经济", value: summary.economyPressure, detail: "银两/民力/粮草", tint: .yellow)
-                CourtPressureRow(title: "科技", value: summary.technologyPressure, detail: "火器/炮队", tint: .blue)
-                CourtPressureRow(title: "军事", value: summary.militaryPressure, detail: "前线/缺粮/被围", tint: .red)
-            }
-
-            Divider()
-
-            VStack(alignment: .leading, spacing: 8) {
-                Text("备议")
-                    .font(.subheadline.weight(.semibold))
-
-                if summary.secondaryFocuses.isEmpty {
-                    Text("暂无备议。")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                } else {
-                    ForEach(summary.secondaryFocuses) { focus in
-                        Label(focus.displayName, systemImage: focus.systemImageName)
-                            .font(.caption.weight(.semibold))
-                        Text("\(focus.domainDisplayName)：\(focus.benefitSummary) 风险：\(focus.riskSummary)")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                    }
-                }
-            }
-
-            Divider()
-
-            Grid(alignment: .leading, horizontalSpacing: 10, verticalSpacing: 6) {
-                GridRow {
-                    CourtMetricView(label: "州府", value: summary.controlledRegions)
-                    CourtMetricView(label: "不稳", value: summary.unstableRegions)
-                }
-                GridRow {
-                    CourtMetricView(label: "火器/炮队", value: summary.fireSupportUnits)
-                    CourtMetricView(label: "前线", value: summary.activeFronts)
-                }
-            }
-        }
-        .padding(12)
-        .background(PlatformStyles.systemBackground)
-        .clipShape(RoundedRectangle(cornerRadius: 8))
-    }
-}
-
-private struct CourtMetricView: View {
-    let label: String
-    let value: Int
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 2) {
-            Text(label)
-                .font(.caption)
-                .foregroundStyle(.secondary)
-            Text("\(value)")
-                .font(.subheadline.weight(.semibold))
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-    }
-}
-
-private struct CourtPressureRow: View {
-    let title: String
-    let value: Int
-    let detail: String
-    let tint: Color
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            HStack {
-                Text(title)
-                    .font(.caption.weight(.semibold))
-                Spacer()
-                Text("\(value)")
-                    .font(.caption.monospacedDigit())
-                    .foregroundStyle(.secondary)
-            }
-
-            ProgressView(value: Double(value), total: 100)
-                .tint(tint)
-
-            Text(detail)
-                .font(.caption)
-                .foregroundStyle(.secondary)
-        }
     }
 }
