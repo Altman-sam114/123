@@ -51,6 +51,7 @@ jobs:
           failure_summary="ci-results/ci-failure-summary.md"
           junit_path="ci-results/junit.xml"
           build_log="ci-results/xcodebuild.log"
+          build_errors_log="ci-results/xcodebuild-errors.log"
           result_bundle="ci-results/WWIIHexV0Mac.xcresult"
 
           annotation_tail() {
@@ -67,6 +68,7 @@ jobs:
             echo "- Attempt: ${GITHUB_RUN_ATTEMPT}"
             echo
           } > "${failure_summary}"
+          : > "${build_errors_log}"
 
           {
             echo "== git diff --check =="
@@ -113,13 +115,17 @@ jobs:
           build_status=$?
           if [ "${build_status}" -ne 0 ]; then
             build_outcome="failure"
+            grep -n -i "error:" "${build_log}" | tail -n 80 > "${build_errors_log}" || true
+            if [ ! -s "${build_errors_log}" ]; then
+              tail -n 80 "${build_log}" > "${build_errors_log}"
+            fi
             {
               echo "## Xcode build failed"
               echo
-              echo "See ci-results/xcodebuild.log and the result bundle if present."
+              echo "See ci-results/xcodebuild-errors.log, ci-results/xcodebuild.log, and the result bundle if present."
               echo
             } >> "${failure_summary}"
-            echo "::error title=Xcode build failed::$(annotation_tail "${build_log}")"
+            echo "::error title=Xcode build failed::$(annotation_tail "${build_errors_log}")"
           fi
 
           if [ "${static_status}" -eq 0 ] && [ "${build_status}" -eq 0 ]; then
@@ -158,7 +164,7 @@ jobs:
           from pathlib import Path
 
           result_bundle = Path("ci-results/WWIIHexV0Mac.xcresult")
-          project_specific_reports = ["ci-results/static-checks.log"]
+          project_specific_reports = ["ci-results/static-checks.log", "ci-results/xcodebuild-errors.log"]
           if result_bundle.exists():
               project_specific_reports.append(str(result_bundle))
           manifest = {
@@ -176,6 +182,7 @@ jobs:
               "resultBundlePath": str(result_bundle) if result_bundle.exists() else None,
               "junitPath": "ci-results/junit.xml",
               "buildLogPath": "ci-results/xcodebuild.log",
+              "buildErrorsLogPath": "ci-results/xcodebuild-errors.log",
               "staticChecksLogPath": "ci-results/static-checks.log",
               "failureSummaryPath": "ci-results/ci-failure-summary.md",
               "staticChecksOutcome": os.environ.get("STATIC_OUTCOME", "success"),
