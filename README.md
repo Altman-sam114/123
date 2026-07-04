@@ -1,12 +1,12 @@
-# WWIIHexV0 — iOS / macOS 二战 AI 战略战棋游戏
+# WWIIHexV0 — 明末迁移中的 iOS / macOS AI 战略战棋工程
 
-> **当前状态：v0.5 元帅决策链分支 `v0.5-marshal-decision-chain`。默认战争 AI 已加入“元帅 -> 模拟 LLM JSON -> decoder -> compiler -> ZoneDirective”决策链；下游仍收口到 `WarCommandExecutor -> RuleEngine`。统治者层只作为后续上游预留，当前 v0.5 主链路不调用 `RulerAgent`，也不恢复 Cabinet / Minister。历史测试基线曾达到 v0.37 Probe 18/0、Stage Regression 69/0、Full 226/0；当前工作流默认不跑 Xcode / XCTest / 模拟器测试，只按 `md/test/test.md` 做轻量检查。**
+> **当前状态：代码仍以 WWIIHexV0 / 阿登 legacy 底座为兼容主线，文档大纲已切换到 v4.0-v4.8 明末迁移路线。当前工作树已推进到 v4.2 默认数据首片：`Faction` 可表达明廷、后金/清、大顺、大西和地方中立，`DiplomacyState` 提供敌我关系 helper，回合顺序增加 `turnOrder` / human / AI 控制数组；`DataLoader.loadInitialGameState()` 优先加载 `崇祯十五年：天下裂变` 明末 JSON，失败才回退阿登；MapEditor 默认桥接也改为读写明末默认数据。明末兵种模板、经济命名、胜利规则和发布级 UI 仍未完成。历史测试基线曾达到 v0.37 Probe 18/0、Stage Regression 69/0、Full 226/0；当前工作流默认不跑 Xcode / XCTest / 模拟器测试，只按 `md/test/test.md` 做轻量检查。**
 
 ---
 
 ## 项目定位
 
-一款 iOS / macOS 回合制二战策略游戏，目标结合战棋（六角格操作感）、大战略（省份占领、补给、前线）与角色扮演（LLM 驱动的将领 AI）。
+一款 iOS / macOS 回合制 AI 策略战棋工程。现有可运行底座来自二战阿登原型，当前迁移目标是 `明末棋策 Agent`：保留 hex / region / dynamic theater / front / deployment / command pipeline 等成熟架构，逐步替换为明末多势力、粮草军饷、朝廷/督师/将领 Agent 和发布级舆图 UI。
 
 **核心参考：**
 - 《统一指挥2》：六角格战棋、补给、攻击（战术层参照）
@@ -90,6 +90,14 @@ WWIIHexV0/
 └── Tests/         — 历史单元测试 / 集成测试 / 真实战局模拟（默认不执行）
 ```
 
+### 明末默认数据首片
+
+- 默认新局优先读取 `WWIIHexV0/Data/chongzhen_1642_scenario.json` 与 `WWIIHexV0/Data/chongzhen_1642_regions.json`。
+- 剧本名为 `崇祯十五年：天下裂变`，当前规模为 120 个 hex、30 个 region、69 条 region edge、9 个补给源、12 个 objective、22 个初始单位。
+- 初始势力为明廷、后金/清、大顺、大西、地方中立；玩家默认明廷，清 / 大顺 / 大西为 AI。
+- 若明末 JSON 加载失败，仍保留阿登 legacy fallback，方便兼容旧数据和旧调试路径。
+- 当前初始单位仍复用 legacy unit template id，明末兵种、围城、粮草和战术规则迁移属于 v4.3。
+
 ### 核心架构原则
 
 - **规则与 UI 解耦**：游戏状态只能由 `RuleEngine` 修改，UI 只读取状态
@@ -119,17 +127,17 @@ WWIIHexV0/
 | `Agents/AgentDecisionParser.swift` | JSON → envelope | 校验 schemaVersion / agentId / turn，malformed 抛 typed error |
 | `Agents/AgentCommandMapper.swift` | order → Command | `AgentCommandMapper.map(_:agentId:) -> IssuedCommand`，缺字段抛 error |
 | `Agents/AgentDecisionRecord.swift` | 决策记录 | `AgentDecisionRecord` / `CommandResultSummary`（UI 读） |
-| `Agents/MockAIClient.swift` | v0 默认 provider | 启发式：resupply → attack → move(向 Bastogne) → hold |
+| `Agents/MockAIClient.swift` | Legacy Agent D fallback provider | 启发式：resupply → attack → objective-oriented move → hold；默认战争 AI 主路径不回退到旧 Agent D |
 | `Agents/LLMClient.swift` | Legacy LLM 接口预留 | `protocol LLMClient` + `LLMRequest`（旧 Agent D 用，默认不启用） |
 | `Agents/LocalLLMDecisionProvider.swift` | 本地 LLM provider | 注入 `LLMClient` + `AgentPromptBuilder` + parser，失败由上层 fallback MockAI |
 | `Agents/AgentPromptBuilder.swift` | prompt 构造 | system + user prompt，强制 JSON 输出 |
-| `Turn/TurnManager.swift` | 德军 AI 回合编排 | `runGermanAITurn(state:) async -> AgentTurnOutcome`（含 endTurn 推进） |
-| `App/AppContainer.swift` | AI 接线 | `runAIIfNeeded()`（guard germany+germanAI → Task → 写 state/record），`lastAgentDecisionRecord` |
+| `Turn/TurnManager.swift` | legacy 方法名下的 AI 回合编排 | `runGermanAITurn(state:) async -> AgentTurnOutcome` 仍保留兼容名，实际调用方按当前 active faction 构造 commander pool 并推进 endTurn |
+| `App/AppContainer.swift` | AI 接线 | `runAIIfNeeded()` 读取 `activeFaction`、`phase`、`aiControlledFactions` / `humanControlledFactions`，为当前 AI 势力触发 Task 并写 state/record |
 | `UI/AgentPanelView.swift` | 决策展示 | 读 `record`（agent/provider/intent/context/command results/errors/raw JSON） |
-| `UI/RootGameView.swift` | 启动触发 | `.task { container.runAIIfNeeded() }` |
+| `UI/RootGameView.swift` | 玩家入口 | 结束回合按钮走 `advanceOrRunAI()`；当前开局不自动 `.task` 跑 AI |
 
-**MockAI 行为（guderian，装甲突破风格）：**
-跳过已行动单位 → 低补给/包围优先 resupply → 射程内低 hp 敌军优先 attack（炮兵优先打城市/要塞）→ 装甲沿道路向 Bastogne move → 否则 hold
+**Legacy MockAI 行为（guderian，装甲突破风格）：**
+跳过已行动单位 → 低补给/包围优先 resupply → 射程内低 hp 敌军优先 attack（炮兵优先打城市/要塞）→ 向当前 objective 推进 → 否则 hold。明末默认 AI 主路径仍以 `MarshalAgent / ZoneDirective / WarCommandExecutor` 为收口，旧 Agent D 只作兼容和回归参考。
 
 **v0.7 ZoneDirective 战术行为：**
 `ZoneCommanderAgent` 读取所属 `FrontZone` 的前线/部署摘要，`BinaryTacticClassifier` 会结合兵力比、机动兵力、炮兵支援、纵深预备队、压力和补给警告，在 `standardAttack`、`blitzkrieg`、`spearhead`、`breakthrough`、`pincerMovement`、`fireCoverage`、`feint`、`guerrillaWarfare`、`holdPosition`、`elasticDefense`、`defenseInDepth`、`lastStand` 之间分类；`WarCommandExecutor` 将这些战术降级为 `move / attack / hold / allowRetreat`，仍统一交给 `RuleEngine` 校验执行。`WarDirectiveRecord` 记录 `category` / `tactic` / `commanderAgentId` / `commandTarget`，便于后续接真 LLM 回放与审计。
@@ -299,24 +307,35 @@ WWIIHexV0/
 
 ```
 md/
-├── 项目总规划.md                    — 整体设计目标、地图方案、LLM 架构、长期路线图
-├── v0测试/
-│   ├── phase0_v0_minimum_scope.md   — v0 最小可玩范围定义、数据结构清单
-│   ├── phase1_hex_core_rules.md     — 六角格坐标、地形、战斗、补给、包围详细规则
-│   ├── phase3_v0_engineering_architecture.md — v0 工程架构设计
-│   ├── 阶段性4:第一版可玩测试板任务拆解.md  — v0 任务拆解和实现步骤
-│   └── 误删agentD/                  — Agent D 打捞代码 + jsonl 会话记录（历史归档）
-└── v0.1～1.0提示词/
-    ├── 总体长期规划.md              — v0 至 v1.0 路线图全览
-    ├── v0.1.md                      — v0.1 子 agent 提示词（已完成）
-    ├── v0.2.md                      — v0.2 提示词（⚠️ 旧版纯省份替换方案，已废弃；新版见下方）
-    ├── v0.3.md                      — v0.3 前线系统提示词
-    ├── v0.4.md                      — v0.4 聊天命令与角色服从提示词
-    ├── v0.5.md                      — v0.5 国家与部长 agent 提示词
-    └── v1.0.md                      — v1.0 大战略原型提示词
+├── plan/
+│   └── plan.md
+│       当前项目 md 大纲；已切换为明末迁移路线入口。
+├── flow/
+│   ├── flow.md
+│   │   当前真实运行链路，仍以源码现状为准。
+│   ├── flowchart.md
+│   │   Mermaid 核心流程图总览。
+│   └── 01_*.mermaid / 02_*.mermaid / 03_*.mermaid / 04_*.mermaid
+│       独立流程图片段。
+├── test/
+│   └── test.md
+│       本机轻量检查、云端验证、禁止项和交付写法。
+└── prompt/
+    ├── README.md
+    │   Agent A/B/C 提示词工作流和路线索引。
+    ├── v4.0-明末迁移/
+    │   ├── codex-v4.0-明末aiagent迁移总提示词.md
+    │   └── v4.0_audit_and_contract.md
+    │       明末迁移总合同与 v4.0 审计阶段文档。
+    ├── v0.*（已完成）/
+    │   WWIIHexV0 历史实现资料。
+    ├── v2.0-三国迁移/、v3.0-拿战迁移/、v5.0-唐宋迁移/、v6.0-现代战争迁移/
+    │   其他题材迁移参考，不是当前明末主线。
+    └── old/、anti生成/、claude生成/
+        历史资料、打捞记录和反例归档。
 ```
 
-> ⚠️ `v0.2.md` 是旧的"纯省份替换 hex"方案，已废弃。v0.2 新方向见本文档"地图架构"与"v0.2"行：**省份叠加，不替换 hex**。
+> 明末迁移是当前文档大纲的目标方向，但源码事实仍以 `md/flow/flow.md` 和当前代码为准；不要把目标文案当成已完成实现。
 
 ---
 

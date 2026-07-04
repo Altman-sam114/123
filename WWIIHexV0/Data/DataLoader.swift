@@ -17,6 +17,13 @@ struct DataLoader {
 
     func loadInitialGameState() -> GameState {
         if let state = try? loadGameState(
+            scenarioName: "chongzhen_1642_scenario",
+            regionName: "chongzhen_1642_regions"
+        ) {
+            return state
+        }
+
+        if let state = try? loadGameState(
             scenarioName: "ardennes_v0_scenario",
             regionName: "ardennes_v02_regions"
         ) {
@@ -136,6 +143,9 @@ struct DataLoader {
             frontLineState: frontLineState,
             warDeploymentState: warDeploymentState,
             diplomacyState: DiplomacyState.initial(from: scenario.factions, turn: turn),
+            turnOrder: turnOrder(for: scenario),
+            humanControlledFactions: humanControlledFactions(for: scenario),
+            aiControlledFactions: aiControlledFactions(for: scenario),
             divisions: divisions,
             victoryState: .ongoing,
             selectedUnitSummary: nil,
@@ -157,9 +167,50 @@ struct DataLoader {
             return Faction(rawValue: scenario.playerFaction) ?? .allies
         case .germanAI:
             return Faction(rawValue: scenario.aiFaction) ?? .germany
+        case .humanAction:
+            return humanControlledFactions(for: scenario).first ?? turnOrder(for: scenario).first ?? .allies
+        case .aiAction:
+            return aiControlledFactions(for: scenario).first ?? turnOrder(for: scenario).first ?? .germany
         case .resolution:
             return Faction(rawValue: scenario.playerFaction) ?? .allies
         }
+    }
+
+    private func turnOrder(for scenario: ScenarioDefinition) -> [Faction] {
+        let configured = scenario.turnOrder?.compactMap(Faction.init(rawValue:)) ?? []
+        if !configured.isEmpty {
+            return normalizedFactionList(configured)
+        }
+
+        let aiFaction = Faction(rawValue: scenario.aiFaction) ?? .germany
+        let playerFaction = Faction(rawValue: scenario.playerFaction) ?? .allies
+        return normalizedFactionList([aiFaction, playerFaction])
+    }
+
+    private func humanControlledFactions(for scenario: ScenarioDefinition) -> [Faction] {
+        let configured = scenario.humanControlledFactions?.compactMap(Faction.init(rawValue:)) ?? []
+        if !configured.isEmpty {
+            return normalizedFactionList(configured)
+        }
+        return [Faction(rawValue: scenario.playerFaction) ?? .allies]
+    }
+
+    private func aiControlledFactions(for scenario: ScenarioDefinition) -> [Faction] {
+        let configured = scenario.aiControlledFactions?.compactMap(Faction.init(rawValue:)) ?? []
+        if !configured.isEmpty {
+            return normalizedFactionList(configured)
+        }
+        return [Faction(rawValue: scenario.aiFaction) ?? .germany]
+    }
+
+    private func normalizedFactionList(_ factions: [Faction]) -> [Faction] {
+        var seen: Set<Faction> = []
+        var result: [Faction] = []
+        for faction in factions where !seen.contains(faction) {
+            seen.insert(faction)
+            result.append(faction)
+        }
+        return result
     }
 
     func loadTerrainRules() throws -> TerrainRuleDefinition {

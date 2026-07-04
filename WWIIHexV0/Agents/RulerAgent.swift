@@ -358,6 +358,56 @@ extension RulerAgent {
                 coalitionDiscipline: 82,
                 riskTolerance: 48
             )
+        case .ming:
+            config = RulerAgentConfig(
+                id: country?.rulerAgentId ?? "ruler_chongzhen",
+                name: "崇祯皇帝",
+                faction: faction,
+                countryId: country?.id,
+                aggression: 52,
+                coalitionDiscipline: 58,
+                riskTolerance: 42
+            )
+        case .qing:
+            config = RulerAgentConfig(
+                id: country?.rulerAgentId ?? "ruler_huangtaiji",
+                name: "清方统治者",
+                faction: faction,
+                countryId: country?.id,
+                aggression: 78,
+                coalitionDiscipline: 76,
+                riskTolerance: 64
+            )
+        case .dashun:
+            config = RulerAgentConfig(
+                id: country?.rulerAgentId ?? "ruler_li_zicheng",
+                name: "李自成",
+                faction: faction,
+                countryId: country?.id,
+                aggression: 72,
+                coalitionDiscipline: 48,
+                riskTolerance: 66
+            )
+        case .daxi:
+            config = RulerAgentConfig(
+                id: country?.rulerAgentId ?? "ruler_zhang_xianzhong",
+                name: "张献忠",
+                faction: faction,
+                countryId: country?.id,
+                aggression: 76,
+                coalitionDiscipline: 40,
+                riskTolerance: 72
+            )
+        case .localNeutral:
+            config = RulerAgentConfig(
+                id: country?.rulerAgentId ?? "ruler_local_neutral",
+                name: "地方乡绅",
+                faction: faction,
+                countryId: country?.id,
+                aggression: 25,
+                coalitionDiscipline: 35,
+                riskTolerance: 30
+            )
         }
         return RulerAgent(config: config)
     }

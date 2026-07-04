@@ -1,8 +1,8 @@
-# WWIIHexV0 核心流程文档（v0.5 元帅决策链分支）
+# WWIIHexV0 核心流程文档（明末迁移 v4.2 默认数据首片）
 
 > 本文是项目当前核心逻辑的接手文档。目标不是复述历史设计，而是按当前代码真实链路说明：数据如何进入游戏，hex / region / theater / front / deploy 如何派生，主游戏和地图编辑器如何共同维护同一套地图语义，AI / 玩家命令如何落到规则系统。
 
-资料依据：`AGENT.md`、`README.md`、`update_log.md`、`md/test/test.md`、v0.355/v0.36/v0.37 阶段文档、最近 git 记录，以及当前源码中的 `Core/`、`Rules/`、`Commands/`、`Agents/`、`Turn/`、`App/`、`SpriteKit/`、`UI/`、`MapEditor/` 与关键测试。
+资料依据：`AGENTS.md`、`README.md`、`update_log.md`、`md/test/test.md`、`md/prompt/v4.0-明末迁移/codex-v4.0-明末aiagent迁移总提示词.md`、v0.355/v0.36/v0.37 阶段文档，以及当前源码中的 `Core/`、`Rules/`、`Commands/`、`Agents/`、`Turn/`、`App/`、`SpriteKit/`、`UI/`、`MapEditor/` 与关键测试。
 
 ---
 
@@ -14,6 +14,8 @@
 MapEditor / JSON 数据
   -> DataLoader
   -> GameState
+  -> turnOrder / humanControlledFactions / aiControlledFactions
+  -> DiplomacyState 关系判断
   -> Hex controller / Division coord
   -> Region 聚合
   -> EconomyState 收入 / 生产 / 补员
@@ -38,6 +40,9 @@ MapEditor / JSON 数据
 - `regionToTheater` 是初始/基础战区归属，不是运行时推进层。
 - `hexToTheater` 是运行时动态战区权威。
 - `hexToFrontZone` 是部署层动态归属权威。
+- v4.1 兼容层中，`Faction` 已扩展为 legacy Germany / Allies 加明廷、后金/清、大顺、大西、地方中立；新敌我判断应走 `DiplomacyState`，不再新增 `Faction.opponent` 调用。
+- v4.2 默认数据首片中，`DataLoader.loadInitialGameState()` 优先尝试 `chongzhen_1642_scenario` + `chongzhen_1642_regions`，失败才回退阿登 legacy 数据。
+- `turnOrder`、`humanControlledFactions`、`aiControlledFactions` 是通用回合和控制方配置；旧阿登仍 fallback 为 Germany AI / Allies player。
 - `EconomyState` 是 faction 级经济总账；收入来自受控 region、城市、工厂、基础设施和补给值，但战术占领仍以 hex 为准。
 - 玩家、AI、后续聊天命令最终都必须经过 `Command` / `ZoneDirective -> WarCommandExecutor -> RuleEngine`，不能直接改 `GameState`。
 - v0.5 默认战争 AI 上游是 `MarshalAgent -> TheaterDirective JSON -> TheaterDirectiveDecoder -> TheaterDirectiveCompiler`，下游执行收口到 `ZoneDirective -> WarCommandExecutor -> RuleEngine`。
@@ -63,6 +68,10 @@ theaterState: TheaterState
 frontLineState: FrontLineState
 warDeploymentState: WarDeploymentState
 economyState: EconomyState
+diplomacyState: DiplomacyState
+turnOrder: [Faction]
+humanControlledFactions: [Faction]
+aiControlledFactions: [Faction]
 divisions: [Division]
 victoryState
 eventLog
@@ -78,6 +87,8 @@ playerCommandState
 - `frontLineState` 从动态战区相邻 hex 派生。
 - `warDeploymentState` 从动态战区/前线/单位位置派生，供 AI 调度单位。
 - `economyState` 保存 manpower、industry、supplies、生产队列、上回合收入/维护费/补员消耗，不直接改变战术占领权。
+- `diplomacyState` 保存国家/集团/关系；v4.1 起 `canAttack`、`isHostile`、`isFriendly`、`canEnterTerritory` 是新敌我判断入口。
+- `turnOrder` 决定多势力轮转；`humanControlledFactions` / `aiControlledFactions` 决定当前 active faction 由玩家还是 AI 控制。
 - `eventLog` 给 UI 和调试看。
 - `warDirectiveRecords` 记录战争指令执行回放，供 v0.36+ 后续接 LLM / 聊天命令审计。
 
@@ -446,7 +457,25 @@ AppContainer.bootstrap()
   -> AppContainer(...)
 ```
 
-`DataLoader.loadInitialGameState()` 当前优先走编辑器兼容 JSON：
+`DataLoader.loadInitialGameState()` 当前优先走明末编辑器兼容 JSON：
+
+```text
+loadGameState(
+  scenarioName: "chongzhen_1642_scenario",
+  regionName: "chongzhen_1642_regions"
+)
+```
+
+这组数据当前是 `崇祯十五年：天下裂变` 首片：
+
+- 12x10 共 120 个 hex。
+- 30 个 region，69 条 region edge，`hexToRegion` 覆盖 120 个 hex。
+- 9 个补给源，12 个 objective，14 个 key location。
+- 5 个规则势力：`ming`、`qing`、`dashun`、`daxi`、`localNeutral`。
+- 回合顺序为 `ming -> qing -> dashun -> daxi`，玩家默认明廷，清 / 大顺 / 大西由 AI 控制。
+- 初始单位 22 个，显示名已用明末中文，但 `templateId` 暂时复用 legacy `infantry_division` / `motorized_division` / `artillery_division` / `garrison_division`。完整明末兵种模板属于 v4.3。
+
+如果明末 JSON 失败，才 fallback 到：
 
 ```text
 loadGameState(
@@ -455,7 +484,7 @@ loadGameState(
 )
 ```
 
-如果失败，才 fallback 到老的 `GameState.initial()` + v0.2 region 叠加路径。
+若阿登编辑器兼容 JSON 也失败，最后才 fallback 到老的 `GameState.initial()` + v0.2 region 叠加路径。
 
 ### 2.2 loadGameState 的完整链条
 
@@ -486,6 +515,8 @@ loadRegionDataSet(named:)
   -> FrontLineManager.makeInitialState(...)
   -> WarDeploymentManager.makeInitialState(...)
   -> GameState(...)
+     - turnOrder / humanControlledFactions / aiControlledFactions 来自 scenario 字段
+     - 若旧 JSON 缺这些字段，回退 playerFaction / aiFaction
 ```
 
 DEBUG 下资源读取优先源码目录 `WWIIHexV0/Data/*.json`，不是旧 bundle。旧 simulator 进程不会自动重载，改默认地图后需要重新运行 app。
@@ -628,6 +659,7 @@ RegionDataSet JSON
 - 每个 `MapEditorHex` 写为 `ScenarioTileDefinition`。
 - terrain / road / controller / city / fortress / supply / objective / regionId。
 - factions、initialTurn、initialPhase、playerFaction、aiFaction。
+- turnOrder、humanControlledFactions、aiControlledFactions 会从文档中的势力推导；明末势力文档默认玩家为 `ming`，AI 为其他参战势力；legacy 文档仍导出 Allies 玩家 / Germany AI。
 - `initialUnits` 从 `MapEditorUnitDraft` 写入。
 - 底图不写入。
 
@@ -663,8 +695,8 @@ supplySources / objectives:
 默认读写路径：
 
 ```text
-WWIIHexV0/Data/ardennes_v0_scenario.json
-WWIIHexV0/Data/ardennes_v02_regions.json
+WWIIHexV0/Data/chongzhen_1642_scenario.json
+WWIIHexV0/Data/chongzhen_1642_regions.json
 ```
 
 流程：
@@ -744,9 +776,8 @@ handleBoardTap(coord)
 玩家可行动单位必须满足：
 
 - 非 observer mode。
-- 单位属于 `playerFaction`。
-- 当前 activeFaction 是 `playerFaction`。
-- 当前 phase 是 `.alliedPlayer`。
+- 单位属于 `activeFaction`。
+- 当前 active faction 在 `humanControlledFactions` 中，且 phase 为 `.humanAction` 或 legacy `.alliedPlayer`。
 - 未行动。
 
 ### 4.2 RootGameView
@@ -904,7 +935,7 @@ destination 没有其他单位
 ```text
 attacker 可行动
 target exists
-target.faction != attacker.faction
+DiplomacyState.canAttack(attacker: attacker.faction, target: target.faction)
 distance <= attacker.range
 ```
 
@@ -1076,8 +1107,13 @@ SupplyRules.applyEncirclementAttrition
 VictoryRules.updateVictoryState
 
 activeFaction:
-  germany -> allies, phase alliedPlayer
-  allies -> germany, phase germanAI, turn += 1
+  按 GameState.resolvedTurnOrder 找到下一个 faction
+  到达队列末尾时回到第一个 faction，并 turn += 1
+  phase = actionPhase(for: nextActiveFaction)
+    legacy Germany AI -> germanAI
+    legacy Allies human -> alliedPlayer
+    human controlled -> humanAction
+    otherwise -> aiAction
 
 resetActionsForActiveFaction
 StrategicStateBootstrapper.refreshRuntimeState
@@ -1170,11 +1206,14 @@ TurnManager.runAITurn(... pipelineMode: .zoneDirective)
 `AppContainer.shouldRunAI`：
 
 ```text
-germany:
-  phase == .germanAI
-
-allies:
-  observerModeEnabled && phase == .alliedPlayer
+如果 phase == resolution:
+  不运行
+如果 activeFaction 在 aiControlledFactions:
+  运行 AI
+否则如果 observerModeEnabled 且 activeFaction 在 humanControlledFactions:
+  运行 observer AI
+否则:
+  等待玩家操作
 ```
 
 `runAISequence`：

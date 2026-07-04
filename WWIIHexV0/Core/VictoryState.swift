@@ -34,6 +34,8 @@ struct VictoryState: Codable, Equatable {
             eliminatedGermanDivisions += 1
         case .allies:
             eliminatedAlliedDivisions += 1
+        case .ming, .qing, .dashun, .daxi, .localNeutral:
+            break
         }
     }
 }

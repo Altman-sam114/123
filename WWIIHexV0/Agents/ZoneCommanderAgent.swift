@@ -912,6 +912,51 @@ struct MarshalAgentConfig: Codable, Equatable, Identifiable {
                 strategicBias: .balanced,
                 theaterGroupZoneIds: zoneIds
             )
+        case .ming:
+            return MarshalAgentConfig(
+                id: "marshal_ming_default",
+                name: "明廷督师",
+                faction: .ming,
+                personality: "Cautious late Ming coordinator; prioritizes capital defense, border armies, and scarce supplies.",
+                strategicBias: .defensive,
+                theaterGroupZoneIds: zoneIds
+            )
+        case .qing:
+            return MarshalAgentConfig(
+                id: "marshal_qing_default",
+                name: "清方统帅",
+                faction: .qing,
+                personality: "Mobile banner commander; favors pressure, encirclement, and cutting relief routes.",
+                strategicBias: .offensive,
+                theaterGroupZoneIds: zoneIds
+            )
+        case .dashun:
+            return MarshalAgentConfig(
+                id: "marshal_dashun_default",
+                name: "大顺军议",
+                faction: .dashun,
+                personality: "Expansion-minded rebel command; favors grain regions, weak cities, and rapid consolidation.",
+                strategicBias: .offensive,
+                theaterGroupZoneIds: zoneIds
+            )
+        case .daxi:
+            return MarshalAgentConfig(
+                id: "marshal_daxi_default",
+                name: "大西军议",
+                faction: .daxi,
+                personality: "Fluid raiding command; favors mobile operations, rear disruption, and supply capture.",
+                strategicBias: .offensive,
+                theaterGroupZoneIds: zoneIds
+            )
+        case .localNeutral:
+            return MarshalAgentConfig(
+                id: "marshal_local_neutral_default",
+                name: "地方团练",
+                faction: .localNeutral,
+                personality: "Local defense network; avoids offensive commitments and prioritizes town security.",
+                strategicBias: .defensive,
+                theaterGroupZoneIds: zoneIds
+            )
         }
     }
 }
@@ -986,7 +1031,7 @@ struct MarshalBattlefieldSummarizer {
             .map { frontSummary(for: $0, faction: faction, state: state) }
 
         let heldObjectives = objectiveNames(controlledBy: faction, state: state)
-        let lostObjectives = objectiveNames(controlledBy: faction.opponent, state: state)
+        let lostObjectives = hostileObjectiveNames(against: faction, state: state)
         let recentEvents = Array(state.eventLog.suffix(maxRecentEvents)).map(\.message)
 
         return MarshalBattlefieldSummary(
@@ -1051,7 +1096,7 @@ struct MarshalBattlefieldSummarizer {
             garrisonUnitCount: zone.unitsGarrison.count,
             supplyWarningCount: supplyWarnings,
             keyObjectivesHeld: objectiveNames(in: frontRegionIds, controlledBy: faction, state: state),
-            keyObjectivesLost: objectiveNames(in: enemyRegionIds, controlledBy: faction.opponent, state: state),
+            keyObjectivesLost: hostileObjectiveNames(in: enemyRegionIds, against: faction, state: state),
             status: status(for: zone, ratio: ratio, supplyWarnings: supplyWarnings)
         )
     }
@@ -1153,6 +1198,33 @@ struct MarshalBattlefieldSummarizer {
         return state.map.objectives
             .filter { objective in
                 guard state.map.tile(at: objective.coord)?.controller == faction,
+                      let regionId = state.map.region(for: objective.coord) else {
+                    return false
+                }
+                return regionSet.contains(regionId)
+            }
+            .map(\.name)
+            .sorted()
+    }
+
+    private func hostileObjectiveNames(against faction: Faction, state: GameState) -> [String] {
+        state.map.objectives
+            .filter {
+                state.diplomacyState.canAttack(attacker: faction, target: state.map.tile(at: $0.coord)?.controller)
+            }
+            .map(\.name)
+            .sorted()
+    }
+
+    private func hostileObjectiveNames(
+        in regionIds: [RegionId],
+        against faction: Faction,
+        state: GameState
+    ) -> [String] {
+        let regionSet = Set(regionIds)
+        return state.map.objectives
+            .filter { objective in
+                guard state.diplomacyState.canAttack(attacker: faction, target: state.map.tile(at: objective.coord)?.controller),
                       let regionId = state.map.region(for: objective.coord) else {
                     return false
                 }

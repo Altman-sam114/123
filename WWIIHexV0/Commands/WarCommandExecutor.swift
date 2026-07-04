@@ -806,7 +806,7 @@ struct WarCommandExecutor {
     ) -> Int {
         state.divisions
             .filter { division in
-                guard division.faction != faction,
+                guard state.diplomacyState.isHostile(faction, division.faction),
                       !division.isDestroyed else {
                     return false
                 }
@@ -935,7 +935,7 @@ struct WarCommandExecutor {
         state: GameState
     ) -> Bool {
         state.divisions.contains { division in
-            guard division.faction != zone.faction,
+            guard state.diplomacyState.isHostile(zone.faction, division.faction),
                   !division.isDestroyed else {
                 return false
             }
@@ -993,8 +993,8 @@ struct WarCommandExecutor {
                 if lhsIsCurrent != rhsIsCurrent {
                     return !lhsIsCurrent
                 }
-                let lhsEnemyControlled = state.map.tile(at: $0)?.controller == division.faction.opponent
-                let rhsEnemyControlled = state.map.tile(at: $1)?.controller == division.faction.opponent
+                let lhsEnemyControlled = state.diplomacyState.canAttack(attacker: division.faction, target: state.map.tile(at: $0)?.controller)
+                let rhsEnemyControlled = state.diplomacyState.canAttack(attacker: division.faction, target: state.map.tile(at: $1)?.controller)
                 if lhsEnemyControlled != rhsEnemyControlled {
                     return lhsEnemyControlled
                 }
@@ -1033,8 +1033,8 @@ struct WarCommandExecutor {
                 let lhsDistance = nearestDistance(from: $0, to: targets)
                 let rhsDistance = nearestDistance(from: $1, to: targets)
                 if lhsDistance == rhsDistance {
-                    let lhsEnemyControlled = state.map.tile(at: $0)?.controller == division.faction.opponent
-                    let rhsEnemyControlled = state.map.tile(at: $1)?.controller == division.faction.opponent
+                    let lhsEnemyControlled = state.diplomacyState.canAttack(attacker: division.faction, target: state.map.tile(at: $0)?.controller)
+                    let rhsEnemyControlled = state.diplomacyState.canAttack(attacker: division.faction, target: state.map.tile(at: $1)?.controller)
                     if lhsEnemyControlled != rhsEnemyControlled {
                         return lhsEnemyControlled
                     }
@@ -1255,7 +1255,7 @@ struct WarCommandExecutor {
         }
 
         if let controller = state.map.tile(at: hex)?.controller {
-            return controller != advancingFaction
+            return state.diplomacyState.canAttack(attacker: advancingFaction, target: controller)
         }
 
         return false

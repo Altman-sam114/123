@@ -2,7 +2,17 @@
 
 本目录保存各阶段 Agent A 写给 Agent B 的实现提示词、迁移路线和验收记录。当前默认协作制度已经升级为 `main` 直推 + GitHub Actions 云端验证 + Agent C 下载结果包复判。
 
-## 1. 角色召唤
+## 1. 当前路线索引
+
+- 当前明末迁移主入口：`md/plan/plan.md`。
+- 明末迁移总提示词：`md/prompt/v4.0-明末迁移/codex-v4.0-明末aiagent迁移总提示词.md`。
+- v4.0 审计与合同阶段文档：`md/prompt/v4.0-明末迁移/v4.0_audit_and_contract.md`。
+- v4.1 多势力实现提示词：`md/prompt/v4.0-明末迁移/v4.1_powers_turns_prompt.md`；当前工作树已开始按该提示词落地兼容层。
+- v4.2 明末默认数据记录：`md/prompt/v4.0-明末迁移/v4.2_ming_scenario_data_record.md`；当前默认新局优先读取 `崇祯十五年：天下裂变` 明末 JSON，失败才回退阿登，兵种模板、经济和发布级 UI 仍未完成。
+- 当前真实运行链路仍以 `md/flow/flow.md` 和 `md/flow/flowchart.md` 为准；明末路线是迁移目标，不等于源码已完成迁移。
+- `v0.*（已完成）` 是 WWIIHexV0 历史实现资料；`v2.0`、`v3.0`、`v5.0`、`v6.0` 等其他题材迁移目录只作参考，不是当前明末主线。
+
+## 2. 角色召唤
 
 - 用户消息以 `agenta`、`a:` 或 `A:` 开头，表示召唤 Agent A。
 - 用户消息以 `agentb`、`b:` 或 `B:` 开头，表示召唤 Agent B。
@@ -15,7 +25,7 @@
 - Agent B 最终回复第一行必须写：`我是 Agent B。`
 - Agent C 最终回复第一行必须写：`我是 Agent C。`
 
-## 2. Agent A 提示词必须写清
+## 3. Agent A 提示词必须写清
 
 Agent A 生成阶段提示词时，必须包含：
 
@@ -30,7 +40,7 @@ Agent A 生成阶段提示词时，必须包含：
 9. 文档同步要求：若流程、验证、核心逻辑或版本状态变化，必须更新 `AGENTS.md`、`md/test/test.md`、`md/flow/*`、`README.md`、`update_log.md` 或本目录相关文档。
 10. 验收标准、风险提示和最终交付格式。
 
-## 3. Agent B 实现提示词模板要点
+## 4. Agent B 实现提示词模板要点
 
 Agent B 的提示词应明确：
 
@@ -51,7 +61,7 @@ git push origin main
 记录 workflow run id、attempt、artifact 名称和未跑本机重测试的原因。
 ```
 
-## 4. Agent C 验收提示词模板要点
+## 5. Agent C 验收提示词模板要点
 
 Agent C 的提示词应明确：
 
@@ -71,7 +81,7 @@ gh run download <run_id> --dir /private/tmp/wwiihexv0-c-review-<run_id>
 
 只有 `manifest.commitSha == origin/main 最新 commit` 且 run / artifact 与最新 main 提交一致时，才可验收通过。
 
-## 5. 禁止项
+## 6. 禁止项
 
 - 不把 AITRANS 的漫画探针、GGUF、模型 Release、`test/1.png`、`smalldata_test` 等项目特例复制到 WWIIHexV0。
 - 不把旧 artifact、旧 output 或 checkout 自带报告冒充本轮云端结果。

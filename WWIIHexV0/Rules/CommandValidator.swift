@@ -64,7 +64,7 @@ struct CommandValidator {
             return .invalid(.targetNotFound)
         }
 
-        guard target.faction != attacker.faction else {
+        guard state.diplomacyState.canAttack(attacker: attacker.faction, target: target.faction) else {
             return .invalid(.invalidTargetFaction)
         }
 
@@ -137,10 +137,14 @@ struct CommandValidator {
 
     private func phaseAllowsCommands(in state: GameState) -> Bool {
         switch state.phase {
+        case .humanAction:
+            return state.isHumanControlled(state.activeFaction)
+        case .aiAction:
+            return state.isAIControlled(state.activeFaction)
         case .germanAI:
-            return state.activeFaction == .germany
+            return state.activeFaction == .germany || state.isAIControlled(state.activeFaction)
         case .alliedPlayer:
-            return state.activeFaction == .allies
+            return state.activeFaction == .allies || state.isHumanControlled(state.activeFaction)
         case .resolution:
             return false
         }

@@ -1,0 +1,2376 @@
+{
+  "schemaVersion": 2,
+  "scenarioId": "chongzhen_1642_collapse",
+  "displayName": "崇祯十五年：天下裂变州府图",
+  "hexToRegion": {
+    "0,0": "region_liaodong_rear",
+    "1,0": "region_liaodong_rear",
+    "2,0": "region_jinzhou",
+    "3,0": "region_jinzhou",
+    "4,0": "region_ningyuan",
+    "5,0": "region_ningyuan",
+    "6,0": "region_shanhaiguan",
+    "7,0": "region_shanhaiguan",
+    "8,0": "region_xuanfu",
+    "9,0": "region_xuanfu",
+    "10,0": "region_datong",
+    "11,0": "region_datong",
+    "0,1": "region_liaodong_rear",
+    "1,1": "region_liaodong_rear",
+    "2,1": "region_jinzhou",
+    "3,1": "region_jinzhou",
+    "4,1": "region_ningyuan",
+    "5,1": "region_ningyuan",
+    "6,1": "region_shanhaiguan",
+    "7,1": "region_shanhaiguan",
+    "8,1": "region_xuanfu",
+    "9,1": "region_xuanfu",
+    "10,1": "region_datong",
+    "11,1": "region_datong",
+    "0,2": "region_yongping",
+    "1,2": "region_yongping",
+    "2,2": "region_jizhou",
+    "3,2": "region_jizhou",
+    "4,2": "region_beijing",
+    "5,2": "region_beijing",
+    "6,2": "region_baoding",
+    "7,2": "region_baoding",
+    "8,2": "region_zhending",
+    "9,2": "region_zhending",
+    "10,2": "region_taiyuan",
+    "11,2": "region_taiyuan",
+    "0,3": "region_yongping",
+    "1,3": "region_yongping",
+    "2,3": "region_jizhou",
+    "3,3": "region_jizhou",
+    "4,3": "region_beijing",
+    "5,3": "region_beijing",
+    "6,3": "region_baoding",
+    "7,3": "region_baoding",
+    "8,3": "region_zhending",
+    "9,3": "region_zhending",
+    "10,3": "region_taiyuan",
+    "11,3": "region_taiyuan",
+    "0,4": "region_dengzhou",
+    "1,4": "region_dengzhou",
+    "2,4": "region_jinan",
+    "3,4": "region_jinan",
+    "4,4": "region_kaifeng",
+    "5,4": "region_kaifeng",
+    "6,4": "region_luoyang",
+    "7,4": "region_luoyang",
+    "8,4": "region_tongguan",
+    "9,4": "region_tongguan",
+    "10,4": "region_xian",
+    "11,4": "region_xian",
+    "0,5": "region_dengzhou",
+    "1,5": "region_dengzhou",
+    "2,5": "region_jinan",
+    "3,5": "region_jinan",
+    "4,5": "region_kaifeng",
+    "5,5": "region_kaifeng",
+    "6,5": "region_luoyang",
+    "7,5": "region_luoyang",
+    "8,5": "region_tongguan",
+    "9,5": "region_tongguan",
+    "10,5": "region_xian",
+    "11,5": "region_xian",
+    "0,6": "region_xuzhou",
+    "1,6": "region_xuzhou",
+    "2,6": "region_guide",
+    "3,6": "region_guide",
+    "4,6": "region_nanyang",
+    "5,6": "region_nanyang",
+    "6,6": "region_xiangyang",
+    "7,6": "region_xiangyang",
+    "8,6": "region_hanzhong",
+    "9,6": "region_hanzhong",
+    "10,6": "region_shaanxi_hinterland",
+    "11,6": "region_shaanxi_hinterland",
+    "0,7": "region_xuzhou",
+    "1,7": "region_xuzhou",
+    "2,7": "region_guide",
+    "3,7": "region_guide",
+    "4,7": "region_nanyang",
+    "5,7": "region_nanyang",
+    "6,7": "region_xiangyang",
+    "7,7": "region_xiangyang",
+    "8,7": "region_hanzhong",
+    "9,7": "region_hanzhong",
+    "10,7": "region_shaanxi_hinterland",
+    "11,7": "region_shaanxi_hinterland",
+    "0,8": "region_huaian",
+    "1,8": "region_huaian",
+    "2,8": "region_fengyang",
+    "3,8": "region_fengyang",
+    "4,8": "region_wuchang",
+    "5,8": "region_wuchang",
+    "6,8": "region_jingzhou",
+    "7,8": "region_jingzhou",
+    "8,8": "region_yunyang",
+    "9,8": "region_yunyang",
+    "10,8": "region_sichuan_gate",
+    "11,8": "region_sichuan_gate",
+    "0,9": "region_huaian",
+    "1,9": "region_huaian",
+    "2,9": "region_fengyang",
+    "3,9": "region_fengyang",
+    "4,9": "region_wuchang",
+    "5,9": "region_wuchang",
+    "6,9": "region_jingzhou",
+    "7,9": "region_jingzhou",
+    "8,9": "region_yunyang",
+    "9,9": "region_yunyang",
+    "10,9": "region_sichuan_gate",
+    "11,9": "region_sichuan_gate"
+  },
+  "regions": [
+    {
+      "id": "region_liaodong_rear",
+      "name": "辽东后路",
+      "owner": "qing",
+      "controller": "qing",
+      "theaterId": "theater_qing_liaodong",
+      "terrain": "plain",
+      "neighbors": [
+        "region_jinzhou",
+        "region_yongping"
+      ],
+      "displayHexes": [
+        {
+          "q": 0,
+          "r": 0
+        },
+        {
+          "q": 1,
+          "r": 0
+        },
+        {
+          "q": 0,
+          "r": 1
+        },
+        {
+          "q": 1,
+          "r": 1
+        }
+      ],
+      "representativeHex": {
+        "q": 0,
+        "r": 0
+      },
+      "city": {
+        "name": "沈阳军府",
+        "victoryPoints": 2,
+        "isCapital": false
+      },
+      "infrastructure": 3,
+      "supplyValue": 5,
+      "factories": 1,
+      "resources": [],
+      "coreOf": [
+        "qing"
+      ],
+      "occupationState": {
+        "resistance": 0,
+        "compliance": 70
+      },
+      "isPassable": true
+    },
+    {
+      "id": "region_jinzhou",
+      "name": "锦州",
+      "owner": "qing",
+      "controller": "qing",
+      "theaterId": "theater_qing_liaodong",
+      "terrain": "fortress",
+      "neighbors": [
+        "region_jizhou",
+        "region_liaodong_rear",
+        "region_ningyuan",
+        "region_yongping"
+      ],
+      "displayHexes": [
+        {
+          "q": 2,
+          "r": 0
+        },
+        {
+          "q": 3,
+          "r": 0
+        },
+        {
+          "q": 2,
+          "r": 1
+        },
+        {
+          "q": 3,
+          "r": 1
+        }
+      ],
+      "representativeHex": {
+        "q": 2,
+        "r": 0
+      },
+      "city": {
+        "name": "锦州",
+        "victoryPoints": 5,
+        "isCapital": false
+      },
+      "infrastructure": 3,
+      "supplyValue": 4,
+      "factories": 1,
+      "resources": [],
+      "coreOf": [
+        "ming",
+        "qing"
+      ],
+      "occupationState": {
+        "resistance": 0,
+        "compliance": 70
+      },
+      "isPassable": true
+    },
+    {
+      "id": "region_ningyuan",
+      "name": "宁远",
+      "owner": "ming",
+      "controller": "ming",
+      "theaterId": "theater_ming_guanning",
+      "terrain": "fortress",
+      "neighbors": [
+        "region_beijing",
+        "region_jinzhou",
+        "region_jizhou",
+        "region_shanhaiguan"
+      ],
+      "displayHexes": [
+        {
+          "q": 4,
+          "r": 0
+        },
+        {
+          "q": 5,
+          "r": 0
+        },
+        {
+          "q": 4,
+          "r": 1
+        },
+        {
+          "q": 5,
+          "r": 1
+        }
+      ],
+      "representativeHex": {
+        "q": 4,
+        "r": 0
+      },
+      "city": {
+        "name": "宁远",
+        "victoryPoints": 5,
+        "isCapital": false
+      },
+      "infrastructure": 4,
+      "supplyValue": 5,
+      "factories": 1,
+      "resources": [],
+      "coreOf": [
+        "ming"
+      ],
+      "occupationState": {
+        "resistance": 0,
+        "compliance": 70
+      },
+      "isPassable": true
+    },
+    {
+      "id": "region_shanhaiguan",
+      "name": "山海关",
+      "owner": "ming",
+      "controller": "ming",
+      "theaterId": "theater_ming_guanning",
+      "terrain": "fortress",
+      "neighbors": [
+        "region_baoding",
+        "region_beijing",
+        "region_ningyuan",
+        "region_xuanfu"
+      ],
+      "displayHexes": [
+        {
+          "q": 6,
+          "r": 0
+        },
+        {
+          "q": 7,
+          "r": 0
+        },
+        {
+          "q": 6,
+          "r": 1
+        },
+        {
+          "q": 7,
+          "r": 1
+        }
+      ],
+      "representativeHex": {
+        "q": 6,
+        "r": 0
+      },
+      "city": {
+        "name": "山海关",
+        "victoryPoints": 7,
+        "isCapital": false
+      },
+      "infrastructure": 5,
+      "supplyValue": 6,
+      "factories": 1,
+      "resources": [],
+      "coreOf": [
+        "ming"
+      ],
+      "occupationState": {
+        "resistance": 0,
+        "compliance": 70
+      },
+      "isPassable": true
+    },
+    {
+      "id": "region_xuanfu",
+      "name": "宣府",
+      "owner": "ming",
+      "controller": "ming",
+      "theaterId": "theater_ming_northwest",
+      "terrain": "fortress",
+      "neighbors": [
+        "region_baoding",
+        "region_datong",
+        "region_shanhaiguan",
+        "region_zhending"
+      ],
+      "displayHexes": [
+        {
+          "q": 8,
+          "r": 0
+        },
+        {
+          "q": 9,
+          "r": 0
+        },
+        {
+          "q": 8,
+          "r": 1
+        },
+        {
+          "q": 9,
+          "r": 1
+        }
+      ],
+      "representativeHex": {
+        "q": 8,
+        "r": 0
+      },
+      "city": {
+        "name": "宣府",
+        "victoryPoints": 4,
+        "isCapital": false
+      },
+      "infrastructure": 4,
+      "supplyValue": 4,
+      "factories": 1,
+      "resources": [],
+      "coreOf": [
+        "ming"
+      ],
+      "occupationState": {
+        "resistance": 0,
+        "compliance": 70
+      },
+      "isPassable": true
+    },
+    {
+      "id": "region_datong",
+      "name": "大同",
+      "owner": "ming",
+      "controller": "ming",
+      "theaterId": "theater_ming_northwest",
+      "terrain": "fortress",
+      "neighbors": [
+        "region_taiyuan",
+        "region_xuanfu",
+        "region_zhending"
+      ],
+      "displayHexes": [
+        {
+          "q": 10,
+          "r": 0
+        },
+        {
+          "q": 11,
+          "r": 0
+        },
+        {
+          "q": 10,
+          "r": 1
+        },
+        {
+          "q": 11,
+          "r": 1
+        }
+      ],
+      "representativeHex": {
+        "q": 10,
+        "r": 0
+      },
+      "city": {
+        "name": "大同",
+        "victoryPoints": 4,
+        "isCapital": false
+      },
+      "infrastructure": 4,
+      "supplyValue": 4,
+      "factories": 1,
+      "resources": [],
+      "coreOf": [
+        "ming"
+      ],
+      "occupationState": {
+        "resistance": 0,
+        "compliance": 70
+      },
+      "isPassable": true
+    },
+    {
+      "id": "region_yongping",
+      "name": "永平",
+      "owner": "ming",
+      "controller": "ming",
+      "theaterId": "theater_ming_jifu",
+      "terrain": "plain",
+      "neighbors": [
+        "region_dengzhou",
+        "region_jinzhou",
+        "region_jizhou",
+        "region_liaodong_rear"
+      ],
+      "displayHexes": [
+        {
+          "q": 0,
+          "r": 2
+        },
+        {
+          "q": 1,
+          "r": 2
+        },
+        {
+          "q": 0,
+          "r": 3
+        },
+        {
+          "q": 1,
+          "r": 3
+        }
+      ],
+      "representativeHex": {
+        "q": 0,
+        "r": 2
+      },
+      "city": {
+        "name": "永平",
+        "victoryPoints": 2,
+        "isCapital": false
+      },
+      "infrastructure": 3,
+      "supplyValue": 3,
+      "factories": 0,
+      "resources": [],
+      "coreOf": [
+        "ming"
+      ],
+      "occupationState": {
+        "resistance": 0,
+        "compliance": 70
+      },
+      "isPassable": true
+    },
+    {
+      "id": "region_jizhou",
+      "name": "蓟州",
+      "owner": "ming",
+      "controller": "ming",
+      "theaterId": "theater_ming_jifu",
+      "terrain": "hill",
+      "neighbors": [
+        "region_beijing",
+        "region_dengzhou",
+        "region_jinan",
+        "region_jinzhou",
+        "region_ningyuan",
+        "region_yongping"
+      ],
+      "displayHexes": [
+        {
+          "q": 2,
+          "r": 2
+        },
+        {
+          "q": 3,
+          "r": 2
+        },
+        {
+          "q": 2,
+          "r": 3
+        },
+        {
+          "q": 3,
+          "r": 3
+        }
+      ],
+      "representativeHex": {
+        "q": 2,
+        "r": 2
+      },
+      "city": {
+        "name": "蓟州",
+        "victoryPoints": 3,
+        "isCapital": false
+      },
+      "infrastructure": 3,
+      "supplyValue": 3,
+      "factories": 0,
+      "resources": [],
+      "coreOf": [
+        "ming"
+      ],
+      "occupationState": {
+        "resistance": 0,
+        "compliance": 70
+      },
+      "isPassable": true
+    },
+    {
+      "id": "region_beijing",
+      "name": "北京",
+      "owner": "ming",
+      "controller": "ming",
+      "theaterId": "theater_ming_jifu",
+      "terrain": "city",
+      "neighbors": [
+        "region_baoding",
+        "region_jinan",
+        "region_jizhou",
+        "region_kaifeng",
+        "region_ningyuan",
+        "region_shanhaiguan"
+      ],
+      "displayHexes": [
+        {
+          "q": 4,
+          "r": 2
+        },
+        {
+          "q": 5,
+          "r": 2
+        },
+        {
+          "q": 4,
+          "r": 3
+        },
+        {
+          "q": 5,
+          "r": 3
+        }
+      ],
+      "representativeHex": {
+        "q": 4,
+        "r": 2
+      },
+      "city": {
+        "name": "北京",
+        "victoryPoints": 9,
+        "isCapital": true
+      },
+      "infrastructure": 6,
+      "supplyValue": 7,
+      "factories": 4,
+      "resources": [],
+      "coreOf": [
+        "ming"
+      ],
+      "occupationState": {
+        "resistance": 0,
+        "compliance": 70
+      },
+      "isPassable": true
+    },
+    {
+      "id": "region_baoding",
+      "name": "保定",
+      "owner": "ming",
+      "controller": "ming",
+      "theaterId": "theater_ming_jifu",
+      "terrain": "plain",
+      "neighbors": [
+        "region_beijing",
+        "region_kaifeng",
+        "region_luoyang",
+        "region_shanhaiguan",
+        "region_xuanfu",
+        "region_zhending"
+      ],
+      "displayHexes": [
+        {
+          "q": 6,
+          "r": 2
+        },
+        {
+          "q": 7,
+          "r": 2
+        },
+        {
+          "q": 6,
+          "r": 3
+        },
+        {
+          "q": 7,
+          "r": 3
+        }
+      ],
+      "representativeHex": {
+        "q": 6,
+        "r": 2
+      },
+      "city": {
+        "name": "保定",
+        "victoryPoints": 3,
+        "isCapital": false
+      },
+      "infrastructure": 4,
+      "supplyValue": 4,
+      "factories": 1,
+      "resources": [],
+      "coreOf": [
+        "ming"
+      ],
+      "occupationState": {
+        "resistance": 0,
+        "compliance": 70
+      },
+      "isPassable": true
+    },
+    {
+      "id": "region_zhending",
+      "name": "真定",
+      "owner": "ming",
+      "controller": "ming",
+      "theaterId": "theater_ming_northwest",
+      "terrain": "plain",
+      "neighbors": [
+        "region_baoding",
+        "region_datong",
+        "region_luoyang",
+        "region_taiyuan",
+        "region_tongguan",
+        "region_xuanfu"
+      ],
+      "displayHexes": [
+        {
+          "q": 8,
+          "r": 2
+        },
+        {
+          "q": 9,
+          "r": 2
+        },
+        {
+          "q": 8,
+          "r": 3
+        },
+        {
+          "q": 9,
+          "r": 3
+        }
+      ],
+      "representativeHex": {
+        "q": 8,
+        "r": 2
+      },
+      "city": {
+        "name": "真定",
+        "victoryPoints": 2,
+        "isCapital": false
+      },
+      "infrastructure": 3,
+      "supplyValue": 3,
+      "factories": 0,
+      "resources": [],
+      "coreOf": [
+        "ming"
+      ],
+      "occupationState": {
+        "resistance": 0,
+        "compliance": 70
+      },
+      "isPassable": true
+    },
+    {
+      "id": "region_taiyuan",
+      "name": "太原",
+      "owner": "ming",
+      "controller": "ming",
+      "theaterId": "theater_ming_northwest",
+      "terrain": "hill",
+      "neighbors": [
+        "region_datong",
+        "region_tongguan",
+        "region_xian",
+        "region_zhending"
+      ],
+      "displayHexes": [
+        {
+          "q": 10,
+          "r": 2
+        },
+        {
+          "q": 11,
+          "r": 2
+        },
+        {
+          "q": 10,
+          "r": 3
+        },
+        {
+          "q": 11,
+          "r": 3
+        }
+      ],
+      "representativeHex": {
+        "q": 10,
+        "r": 2
+      },
+      "city": {
+        "name": "太原",
+        "victoryPoints": 4,
+        "isCapital": false
+      },
+      "infrastructure": 3,
+      "supplyValue": 4,
+      "factories": 1,
+      "resources": [],
+      "coreOf": [
+        "ming"
+      ],
+      "occupationState": {
+        "resistance": 0,
+        "compliance": 70
+      },
+      "isPassable": true
+    },
+    {
+      "id": "region_dengzhou",
+      "name": "登莱",
+      "owner": "ming",
+      "controller": "ming",
+      "theaterId": "theater_ming_shandong",
+      "terrain": "plain",
+      "neighbors": [
+        "region_jinan",
+        "region_jizhou",
+        "region_xuzhou",
+        "region_yongping"
+      ],
+      "displayHexes": [
+        {
+          "q": 0,
+          "r": 4
+        },
+        {
+          "q": 1,
+          "r": 4
+        },
+        {
+          "q": 0,
+          "r": 5
+        },
+        {
+          "q": 1,
+          "r": 5
+        }
+      ],
+      "representativeHex": {
+        "q": 0,
+        "r": 4
+      },
+      "city": {
+        "name": "登州",
+        "victoryPoints": 2,
+        "isCapital": false
+      },
+      "infrastructure": 3,
+      "supplyValue": 4,
+      "factories": 0,
+      "resources": [],
+      "coreOf": [
+        "ming"
+      ],
+      "occupationState": {
+        "resistance": 0,
+        "compliance": 70
+      },
+      "isPassable": true
+    },
+    {
+      "id": "region_jinan",
+      "name": "济南",
+      "owner": "ming",
+      "controller": "ming",
+      "theaterId": "theater_ming_shandong",
+      "terrain": "city",
+      "neighbors": [
+        "region_beijing",
+        "region_dengzhou",
+        "region_guide",
+        "region_jizhou",
+        "region_kaifeng",
+        "region_xuzhou"
+      ],
+      "displayHexes": [
+        {
+          "q": 2,
+          "r": 4
+        },
+        {
+          "q": 3,
+          "r": 4
+        },
+        {
+          "q": 2,
+          "r": 5
+        },
+        {
+          "q": 3,
+          "r": 5
+        }
+      ],
+      "representativeHex": {
+        "q": 2,
+        "r": 4
+      },
+      "city": {
+        "name": "济南",
+        "victoryPoints": 4,
+        "isCapital": false
+      },
+      "infrastructure": 4,
+      "supplyValue": 5,
+      "factories": 1,
+      "resources": [],
+      "coreOf": [
+        "ming"
+      ],
+      "occupationState": {
+        "resistance": 0,
+        "compliance": 70
+      },
+      "isPassable": true
+    },
+    {
+      "id": "region_kaifeng",
+      "name": "开封",
+      "owner": "ming",
+      "controller": "dashun",
+      "theaterId": "theater_dashun_henan",
+      "terrain": "city",
+      "neighbors": [
+        "region_baoding",
+        "region_beijing",
+        "region_guide",
+        "region_jinan",
+        "region_luoyang",
+        "region_nanyang"
+      ],
+      "displayHexes": [
+        {
+          "q": 4,
+          "r": 4
+        },
+        {
+          "q": 5,
+          "r": 4
+        },
+        {
+          "q": 4,
+          "r": 5
+        },
+        {
+          "q": 5,
+          "r": 5
+        }
+      ],
+      "representativeHex": {
+        "q": 4,
+        "r": 4
+      },
+      "city": {
+        "name": "开封",
+        "victoryPoints": 6,
+        "isCapital": false
+      },
+      "infrastructure": 4,
+      "supplyValue": 6,
+      "factories": 1,
+      "resources": [],
+      "coreOf": [
+        "ming",
+        "dashun"
+      ],
+      "occupationState": {
+        "resistance": 10,
+        "compliance": 45
+      },
+      "isPassable": true
+    },
+    {
+      "id": "region_luoyang",
+      "name": "洛阳",
+      "owner": "ming",
+      "controller": "dashun",
+      "theaterId": "theater_dashun_henan",
+      "terrain": "city",
+      "neighbors": [
+        "region_baoding",
+        "region_kaifeng",
+        "region_nanyang",
+        "region_tongguan",
+        "region_xiangyang",
+        "region_zhending"
+      ],
+      "displayHexes": [
+        {
+          "q": 6,
+          "r": 4
+        },
+        {
+          "q": 7,
+          "r": 4
+        },
+        {
+          "q": 6,
+          "r": 5
+        },
+        {
+          "q": 7,
+          "r": 5
+        }
+      ],
+      "representativeHex": {
+        "q": 6,
+        "r": 4
+      },
+      "city": {
+        "name": "洛阳",
+        "victoryPoints": 5,
+        "isCapital": false
+      },
+      "infrastructure": 4,
+      "supplyValue": 5,
+      "factories": 1,
+      "resources": [],
+      "coreOf": [
+        "ming",
+        "dashun"
+      ],
+      "occupationState": {
+        "resistance": 10,
+        "compliance": 45
+      },
+      "isPassable": true
+    },
+    {
+      "id": "region_tongguan",
+      "name": "潼关",
+      "owner": "ming",
+      "controller": "dashun",
+      "theaterId": "theater_dashun_shaanxi",
+      "terrain": "fortress",
+      "neighbors": [
+        "region_hanzhong",
+        "region_luoyang",
+        "region_taiyuan",
+        "region_xian",
+        "region_xiangyang",
+        "region_zhending"
+      ],
+      "displayHexes": [
+        {
+          "q": 8,
+          "r": 4
+        },
+        {
+          "q": 9,
+          "r": 4
+        },
+        {
+          "q": 8,
+          "r": 5
+        },
+        {
+          "q": 9,
+          "r": 5
+        }
+      ],
+      "representativeHex": {
+        "q": 8,
+        "r": 4
+      },
+      "city": {
+        "name": "潼关",
+        "victoryPoints": 4,
+        "isCapital": false
+      },
+      "infrastructure": 3,
+      "supplyValue": 3,
+      "factories": 0,
+      "resources": [],
+      "coreOf": [
+        "ming",
+        "dashun"
+      ],
+      "occupationState": {
+        "resistance": 10,
+        "compliance": 45
+      },
+      "isPassable": true
+    },
+    {
+      "id": "region_xian",
+      "name": "西安",
+      "owner": "ming",
+      "controller": "dashun",
+      "theaterId": "theater_dashun_shaanxi",
+      "terrain": "city",
+      "neighbors": [
+        "region_hanzhong",
+        "region_shaanxi_hinterland",
+        "region_taiyuan",
+        "region_tongguan"
+      ],
+      "displayHexes": [
+        {
+          "q": 10,
+          "r": 4
+        },
+        {
+          "q": 11,
+          "r": 4
+        },
+        {
+          "q": 10,
+          "r": 5
+        },
+        {
+          "q": 11,
+          "r": 5
+        }
+      ],
+      "representativeHex": {
+        "q": 10,
+        "r": 4
+      },
+      "city": {
+        "name": "西安",
+        "victoryPoints": 6,
+        "isCapital": false
+      },
+      "infrastructure": 4,
+      "supplyValue": 5,
+      "factories": 1,
+      "resources": [],
+      "coreOf": [
+        "ming",
+        "dashun"
+      ],
+      "occupationState": {
+        "resistance": 10,
+        "compliance": 45
+      },
+      "isPassable": true
+    },
+    {
+      "id": "region_xuzhou",
+      "name": "徐州",
+      "owner": "localNeutral",
+      "controller": "localNeutral",
+      "theaterId": "theater_ming_huaihu",
+      "terrain": "plain",
+      "neighbors": [
+        "region_dengzhou",
+        "region_guide",
+        "region_huaian",
+        "region_jinan"
+      ],
+      "displayHexes": [
+        {
+          "q": 0,
+          "r": 6
+        },
+        {
+          "q": 1,
+          "r": 6
+        },
+        {
+          "q": 0,
+          "r": 7
+        },
+        {
+          "q": 1,
+          "r": 7
+        }
+      ],
+      "representativeHex": {
+        "q": 0,
+        "r": 6
+      },
+      "city": {
+        "name": "徐州",
+        "victoryPoints": 2,
+        "isCapital": false
+      },
+      "infrastructure": 3,
+      "supplyValue": 4,
+      "factories": 0,
+      "resources": [],
+      "coreOf": [
+        "ming"
+      ],
+      "occupationState": {
+        "resistance": 0,
+        "compliance": 70
+      },
+      "isPassable": true
+    },
+    {
+      "id": "region_guide",
+      "name": "归德",
+      "owner": "localNeutral",
+      "controller": "localNeutral",
+      "theaterId": "theater_ming_huaihu",
+      "terrain": "plain",
+      "neighbors": [
+        "region_fengyang",
+        "region_huaian",
+        "region_jinan",
+        "region_kaifeng",
+        "region_nanyang",
+        "region_xuzhou"
+      ],
+      "displayHexes": [
+        {
+          "q": 2,
+          "r": 6
+        },
+        {
+          "q": 3,
+          "r": 6
+        },
+        {
+          "q": 2,
+          "r": 7
+        },
+        {
+          "q": 3,
+          "r": 7
+        }
+      ],
+      "representativeHex": {
+        "q": 2,
+        "r": 6
+      },
+      "city": {
+        "name": "归德",
+        "victoryPoints": 2,
+        "isCapital": false
+      },
+      "infrastructure": 2,
+      "supplyValue": 4,
+      "factories": 0,
+      "resources": [],
+      "coreOf": [
+        "ming",
+        "dashun"
+      ],
+      "occupationState": {
+        "resistance": 0,
+        "compliance": 70
+      },
+      "isPassable": true
+    },
+    {
+      "id": "region_nanyang",
+      "name": "南阳",
+      "owner": "ming",
+      "controller": "dashun",
+      "theaterId": "theater_dashun_henan",
+      "terrain": "hill",
+      "neighbors": [
+        "region_fengyang",
+        "region_guide",
+        "region_kaifeng",
+        "region_luoyang",
+        "region_wuchang",
+        "region_xiangyang"
+      ],
+      "displayHexes": [
+        {
+          "q": 4,
+          "r": 6
+        },
+        {
+          "q": 5,
+          "r": 6
+        },
+        {
+          "q": 4,
+          "r": 7
+        },
+        {
+          "q": 5,
+          "r": 7
+        }
+      ],
+      "representativeHex": {
+        "q": 4,
+        "r": 6
+      },
+      "city": {
+        "name": "南阳",
+        "victoryPoints": 3,
+        "isCapital": false
+      },
+      "infrastructure": 3,
+      "supplyValue": 4,
+      "factories": 0,
+      "resources": [],
+      "coreOf": [
+        "ming",
+        "dashun"
+      ],
+      "occupationState": {
+        "resistance": 10,
+        "compliance": 45
+      },
+      "isPassable": true
+    },
+    {
+      "id": "region_xiangyang",
+      "name": "襄阳",
+      "owner": "ming",
+      "controller": "ming",
+      "theaterId": "theater_ming_huaihu",
+      "terrain": "fortress",
+      "neighbors": [
+        "region_hanzhong",
+        "region_jingzhou",
+        "region_luoyang",
+        "region_nanyang",
+        "region_tongguan",
+        "region_wuchang"
+      ],
+      "displayHexes": [
+        {
+          "q": 6,
+          "r": 6
+        },
+        {
+          "q": 7,
+          "r": 6
+        },
+        {
+          "q": 6,
+          "r": 7
+        },
+        {
+          "q": 7,
+          "r": 7
+        }
+      ],
+      "representativeHex": {
+        "q": 6,
+        "r": 6
+      },
+      "city": {
+        "name": "襄阳",
+        "victoryPoints": 5,
+        "isCapital": false
+      },
+      "infrastructure": 4,
+      "supplyValue": 5,
+      "factories": 1,
+      "resources": [],
+      "coreOf": [
+        "ming"
+      ],
+      "occupationState": {
+        "resistance": 0,
+        "compliance": 70
+      },
+      "isPassable": true
+    },
+    {
+      "id": "region_hanzhong",
+      "name": "汉中",
+      "owner": "localNeutral",
+      "controller": "localNeutral",
+      "theaterId": "theater_dashun_shaanxi",
+      "terrain": "mountain",
+      "neighbors": [
+        "region_jingzhou",
+        "region_shaanxi_hinterland",
+        "region_tongguan",
+        "region_xian",
+        "region_xiangyang",
+        "region_yunyang"
+      ],
+      "displayHexes": [
+        {
+          "q": 8,
+          "r": 6
+        },
+        {
+          "q": 9,
+          "r": 6
+        },
+        {
+          "q": 8,
+          "r": 7
+        },
+        {
+          "q": 9,
+          "r": 7
+        }
+      ],
+      "representativeHex": {
+        "q": 8,
+        "r": 6
+      },
+      "city": {
+        "name": "汉中",
+        "victoryPoints": 2,
+        "isCapital": false
+      },
+      "infrastructure": 2,
+      "supplyValue": 3,
+      "factories": 0,
+      "resources": [],
+      "coreOf": [
+        "ming",
+        "dashun"
+      ],
+      "occupationState": {
+        "resistance": 0,
+        "compliance": 70
+      },
+      "isPassable": true
+    },
+    {
+      "id": "region_shaanxi_hinterland",
+      "name": "秦陕后路",
+      "owner": "dashun",
+      "controller": "dashun",
+      "theaterId": "theater_dashun_shaanxi",
+      "terrain": "hill",
+      "neighbors": [
+        "region_hanzhong",
+        "region_sichuan_gate",
+        "region_xian",
+        "region_yunyang"
+      ],
+      "displayHexes": [
+        {
+          "q": 10,
+          "r": 6
+        },
+        {
+          "q": 11,
+          "r": 6
+        },
+        {
+          "q": 10,
+          "r": 7
+        },
+        {
+          "q": 11,
+          "r": 7
+        }
+      ],
+      "representativeHex": {
+        "q": 10,
+        "r": 6
+      },
+      "city": {
+        "name": "延安",
+        "victoryPoints": 2,
+        "isCapital": false
+      },
+      "infrastructure": 2,
+      "supplyValue": 4,
+      "factories": 0,
+      "resources": [],
+      "coreOf": [
+        "dashun"
+      ],
+      "occupationState": {
+        "resistance": 0,
+        "compliance": 70
+      },
+      "isPassable": true
+    },
+    {
+      "id": "region_huaian",
+      "name": "淮安",
+      "owner": "ming",
+      "controller": "ming",
+      "theaterId": "theater_ming_huaihu",
+      "terrain": "city",
+      "neighbors": [
+        "region_fengyang",
+        "region_guide",
+        "region_xuzhou"
+      ],
+      "displayHexes": [
+        {
+          "q": 0,
+          "r": 8
+        },
+        {
+          "q": 1,
+          "r": 8
+        },
+        {
+          "q": 0,
+          "r": 9
+        },
+        {
+          "q": 1,
+          "r": 9
+        }
+      ],
+      "representativeHex": {
+        "q": 0,
+        "r": 8
+      },
+      "city": {
+        "name": "淮安",
+        "victoryPoints": 3,
+        "isCapital": false
+      },
+      "infrastructure": 5,
+      "supplyValue": 6,
+      "factories": 1,
+      "resources": [],
+      "coreOf": [
+        "ming"
+      ],
+      "occupationState": {
+        "resistance": 0,
+        "compliance": 70
+      },
+      "isPassable": true
+    },
+    {
+      "id": "region_fengyang",
+      "name": "凤阳",
+      "owner": "ming",
+      "controller": "ming",
+      "theaterId": "theater_ming_huaihu",
+      "terrain": "city",
+      "neighbors": [
+        "region_guide",
+        "region_huaian",
+        "region_nanyang",
+        "region_wuchang"
+      ],
+      "displayHexes": [
+        {
+          "q": 2,
+          "r": 8
+        },
+        {
+          "q": 3,
+          "r": 8
+        },
+        {
+          "q": 2,
+          "r": 9
+        },
+        {
+          "q": 3,
+          "r": 9
+        }
+      ],
+      "representativeHex": {
+        "q": 2,
+        "r": 8
+      },
+      "city": {
+        "name": "凤阳",
+        "victoryPoints": 3,
+        "isCapital": false
+      },
+      "infrastructure": 4,
+      "supplyValue": 5,
+      "factories": 1,
+      "resources": [],
+      "coreOf": [
+        "ming"
+      ],
+      "occupationState": {
+        "resistance": 0,
+        "compliance": 70
+      },
+      "isPassable": true
+    },
+    {
+      "id": "region_wuchang",
+      "name": "武昌",
+      "owner": "ming",
+      "controller": "ming",
+      "theaterId": "theater_ming_huaihu",
+      "terrain": "city",
+      "neighbors": [
+        "region_fengyang",
+        "region_jingzhou",
+        "region_nanyang",
+        "region_xiangyang"
+      ],
+      "displayHexes": [
+        {
+          "q": 4,
+          "r": 8
+        },
+        {
+          "q": 5,
+          "r": 8
+        },
+        {
+          "q": 4,
+          "r": 9
+        },
+        {
+          "q": 5,
+          "r": 9
+        }
+      ],
+      "representativeHex": {
+        "q": 4,
+        "r": 8
+      },
+      "city": {
+        "name": "武昌",
+        "victoryPoints": 5,
+        "isCapital": false
+      },
+      "infrastructure": 5,
+      "supplyValue": 6,
+      "factories": 2,
+      "resources": [],
+      "coreOf": [
+        "ming"
+      ],
+      "occupationState": {
+        "resistance": 0,
+        "compliance": 70
+      },
+      "isPassable": true
+    },
+    {
+      "id": "region_jingzhou",
+      "name": "荆州",
+      "owner": "ming",
+      "controller": "daxi",
+      "theaterId": "theater_daxi_huguang",
+      "terrain": "city",
+      "neighbors": [
+        "region_hanzhong",
+        "region_wuchang",
+        "region_xiangyang",
+        "region_yunyang"
+      ],
+      "displayHexes": [
+        {
+          "q": 6,
+          "r": 8
+        },
+        {
+          "q": 7,
+          "r": 8
+        },
+        {
+          "q": 6,
+          "r": 9
+        },
+        {
+          "q": 7,
+          "r": 9
+        }
+      ],
+      "representativeHex": {
+        "q": 6,
+        "r": 8
+      },
+      "city": {
+        "name": "荆州",
+        "victoryPoints": 4,
+        "isCapital": false
+      },
+      "infrastructure": 4,
+      "supplyValue": 5,
+      "factories": 1,
+      "resources": [],
+      "coreOf": [
+        "ming",
+        "daxi"
+      ],
+      "occupationState": {
+        "resistance": 10,
+        "compliance": 45
+      },
+      "isPassable": true
+    },
+    {
+      "id": "region_yunyang",
+      "name": "郧阳",
+      "owner": "daxi",
+      "controller": "daxi",
+      "theaterId": "theater_daxi_huguang",
+      "terrain": "hill",
+      "neighbors": [
+        "region_hanzhong",
+        "region_jingzhou",
+        "region_shaanxi_hinterland",
+        "region_sichuan_gate"
+      ],
+      "displayHexes": [
+        {
+          "q": 8,
+          "r": 8
+        },
+        {
+          "q": 9,
+          "r": 8
+        },
+        {
+          "q": 8,
+          "r": 9
+        },
+        {
+          "q": 9,
+          "r": 9
+        }
+      ],
+      "representativeHex": {
+        "q": 8,
+        "r": 8
+      },
+      "city": {
+        "name": "郧阳",
+        "victoryPoints": 2,
+        "isCapital": false
+      },
+      "infrastructure": 2,
+      "supplyValue": 4,
+      "factories": 0,
+      "resources": [],
+      "coreOf": [
+        "daxi"
+      ],
+      "occupationState": {
+        "resistance": 0,
+        "compliance": 70
+      },
+      "isPassable": true
+    },
+    {
+      "id": "region_sichuan_gate",
+      "name": "川东门户",
+      "owner": "daxi",
+      "controller": "daxi",
+      "theaterId": "theater_daxi_huguang",
+      "terrain": "mountain",
+      "neighbors": [
+        "region_shaanxi_hinterland",
+        "region_yunyang"
+      ],
+      "displayHexes": [
+        {
+          "q": 10,
+          "r": 8
+        },
+        {
+          "q": 11,
+          "r": 8
+        },
+        {
+          "q": 10,
+          "r": 9
+        },
+        {
+          "q": 11,
+          "r": 9
+        }
+      ],
+      "representativeHex": {
+        "q": 10,
+        "r": 8
+      },
+      "city": {
+        "name": "夔门",
+        "victoryPoints": 3,
+        "isCapital": false
+      },
+      "infrastructure": 2,
+      "supplyValue": 4,
+      "factories": 0,
+      "resources": [],
+      "coreOf": [
+        "daxi"
+      ],
+      "occupationState": {
+        "resistance": 0,
+        "compliance": 70
+      },
+      "isPassable": true
+    }
+  ],
+  "edges": [
+    {
+      "from": "region_baoding",
+      "to": "region_beijing",
+      "hasRoad": true,
+      "hasRiverCrossing": false,
+      "movementCostModifier": 0
+    },
+    {
+      "from": "region_baoding",
+      "to": "region_kaifeng",
+      "hasRoad": false,
+      "hasRiverCrossing": false,
+      "movementCostModifier": 0
+    },
+    {
+      "from": "region_baoding",
+      "to": "region_luoyang",
+      "hasRoad": false,
+      "hasRiverCrossing": false,
+      "movementCostModifier": 0
+    },
+    {
+      "from": "region_baoding",
+      "to": "region_shanhaiguan",
+      "hasRoad": false,
+      "hasRiverCrossing": false,
+      "movementCostModifier": 0
+    },
+    {
+      "from": "region_baoding",
+      "to": "region_xuanfu",
+      "hasRoad": false,
+      "hasRiverCrossing": false,
+      "movementCostModifier": 0
+    },
+    {
+      "from": "region_baoding",
+      "to": "region_zhending",
+      "hasRoad": true,
+      "hasRiverCrossing": false,
+      "movementCostModifier": 0
+    },
+    {
+      "from": "region_beijing",
+      "to": "region_jinan",
+      "hasRoad": false,
+      "hasRiverCrossing": false,
+      "movementCostModifier": 0
+    },
+    {
+      "from": "region_beijing",
+      "to": "region_jizhou",
+      "hasRoad": true,
+      "hasRiverCrossing": false,
+      "movementCostModifier": 0
+    },
+    {
+      "from": "region_beijing",
+      "to": "region_kaifeng",
+      "hasRoad": false,
+      "hasRiverCrossing": false,
+      "movementCostModifier": 0
+    },
+    {
+      "from": "region_beijing",
+      "to": "region_ningyuan",
+      "hasRoad": false,
+      "hasRiverCrossing": false,
+      "movementCostModifier": 0
+    },
+    {
+      "from": "region_beijing",
+      "to": "region_shanhaiguan",
+      "hasRoad": false,
+      "hasRiverCrossing": false,
+      "movementCostModifier": 0
+    },
+    {
+      "from": "region_datong",
+      "to": "region_taiyuan",
+      "hasRoad": false,
+      "hasRiverCrossing": false,
+      "movementCostModifier": 0
+    },
+    {
+      "from": "region_datong",
+      "to": "region_xuanfu",
+      "hasRoad": true,
+      "hasRiverCrossing": false,
+      "movementCostModifier": 0
+    },
+    {
+      "from": "region_datong",
+      "to": "region_zhending",
+      "hasRoad": false,
+      "hasRiverCrossing": false,
+      "movementCostModifier": 0
+    },
+    {
+      "from": "region_dengzhou",
+      "to": "region_jinan",
+      "hasRoad": false,
+      "hasRiverCrossing": false,
+      "movementCostModifier": 0
+    },
+    {
+      "from": "region_dengzhou",
+      "to": "region_jizhou",
+      "hasRoad": false,
+      "hasRiverCrossing": false,
+      "movementCostModifier": 0
+    },
+    {
+      "from": "region_dengzhou",
+      "to": "region_xuzhou",
+      "hasRoad": false,
+      "hasRiverCrossing": false,
+      "movementCostModifier": 0
+    },
+    {
+      "from": "region_dengzhou",
+      "to": "region_yongping",
+      "hasRoad": false,
+      "hasRiverCrossing": false,
+      "movementCostModifier": 0
+    },
+    {
+      "from": "region_fengyang",
+      "to": "region_guide",
+      "hasRoad": false,
+      "hasRiverCrossing": false,
+      "movementCostModifier": 0
+    },
+    {
+      "from": "region_fengyang",
+      "to": "region_huaian",
+      "hasRoad": true,
+      "hasRiverCrossing": false,
+      "movementCostModifier": 0
+    },
+    {
+      "from": "region_fengyang",
+      "to": "region_nanyang",
+      "hasRoad": false,
+      "hasRiverCrossing": false,
+      "movementCostModifier": 0
+    },
+    {
+      "from": "region_fengyang",
+      "to": "region_wuchang",
+      "hasRoad": false,
+      "hasRiverCrossing": false,
+      "movementCostModifier": 0
+    },
+    {
+      "from": "region_guide",
+      "to": "region_huaian",
+      "hasRoad": false,
+      "hasRiverCrossing": false,
+      "movementCostModifier": 0
+    },
+    {
+      "from": "region_guide",
+      "to": "region_jinan",
+      "hasRoad": false,
+      "hasRiverCrossing": false,
+      "movementCostModifier": 0
+    },
+    {
+      "from": "region_guide",
+      "to": "region_kaifeng",
+      "hasRoad": false,
+      "hasRiverCrossing": false,
+      "movementCostModifier": 0
+    },
+    {
+      "from": "region_guide",
+      "to": "region_nanyang",
+      "hasRoad": true,
+      "hasRiverCrossing": false,
+      "movementCostModifier": 0
+    },
+    {
+      "from": "region_guide",
+      "to": "region_xuzhou",
+      "hasRoad": true,
+      "hasRiverCrossing": false,
+      "movementCostModifier": 0
+    },
+    {
+      "from": "region_hanzhong",
+      "to": "region_jingzhou",
+      "hasRoad": false,
+      "hasRiverCrossing": false,
+      "movementCostModifier": 0
+    },
+    {
+      "from": "region_hanzhong",
+      "to": "region_shaanxi_hinterland",
+      "hasRoad": false,
+      "hasRiverCrossing": false,
+      "movementCostModifier": 0
+    },
+    {
+      "from": "region_hanzhong",
+      "to": "region_tongguan",
+      "hasRoad": false,
+      "hasRiverCrossing": false,
+      "movementCostModifier": 0
+    },
+    {
+      "from": "region_hanzhong",
+      "to": "region_xian",
+      "hasRoad": false,
+      "hasRiverCrossing": false,
+      "movementCostModifier": 0
+    },
+    {
+      "from": "region_hanzhong",
+      "to": "region_xiangyang",
+      "hasRoad": false,
+      "hasRiverCrossing": false,
+      "movementCostModifier": 0
+    },
+    {
+      "from": "region_hanzhong",
+      "to": "region_yunyang",
+      "hasRoad": false,
+      "hasRiverCrossing": false,
+      "movementCostModifier": 0
+    },
+    {
+      "from": "region_huaian",
+      "to": "region_xuzhou",
+      "hasRoad": false,
+      "hasRiverCrossing": false,
+      "movementCostModifier": 0
+    },
+    {
+      "from": "region_jinan",
+      "to": "region_jizhou",
+      "hasRoad": false,
+      "hasRiverCrossing": false,
+      "movementCostModifier": 0
+    },
+    {
+      "from": "region_jinan",
+      "to": "region_kaifeng",
+      "hasRoad": true,
+      "hasRiverCrossing": false,
+      "movementCostModifier": 0
+    },
+    {
+      "from": "region_jinan",
+      "to": "region_xuzhou",
+      "hasRoad": false,
+      "hasRiverCrossing": false,
+      "movementCostModifier": 0
+    },
+    {
+      "from": "region_jingzhou",
+      "to": "region_wuchang",
+      "hasRoad": true,
+      "hasRiverCrossing": false,
+      "movementCostModifier": 0
+    },
+    {
+      "from": "region_jingzhou",
+      "to": "region_xiangyang",
+      "hasRoad": false,
+      "hasRiverCrossing": false,
+      "movementCostModifier": 0
+    },
+    {
+      "from": "region_jingzhou",
+      "to": "region_yunyang",
+      "hasRoad": true,
+      "hasRiverCrossing": false,
+      "movementCostModifier": 0
+    },
+    {
+      "from": "region_jinzhou",
+      "to": "region_jizhou",
+      "hasRoad": false,
+      "hasRiverCrossing": false,
+      "movementCostModifier": 0
+    },
+    {
+      "from": "region_jinzhou",
+      "to": "region_liaodong_rear",
+      "hasRoad": true,
+      "hasRiverCrossing": false,
+      "movementCostModifier": 0
+    },
+    {
+      "from": "region_jinzhou",
+      "to": "region_ningyuan",
+      "hasRoad": true,
+      "hasRiverCrossing": false,
+      "movementCostModifier": 0
+    },
+    {
+      "from": "region_jinzhou",
+      "to": "region_yongping",
+      "hasRoad": false,
+      "hasRiverCrossing": false,
+      "movementCostModifier": 0
+    },
+    {
+      "from": "region_jizhou",
+      "to": "region_ningyuan",
+      "hasRoad": false,
+      "hasRiverCrossing": false,
+      "movementCostModifier": 0
+    },
+    {
+      "from": "region_jizhou",
+      "to": "region_yongping",
+      "hasRoad": true,
+      "hasRiverCrossing": false,
+      "movementCostModifier": 0
+    },
+    {
+      "from": "region_kaifeng",
+      "to": "region_luoyang",
+      "hasRoad": true,
+      "hasRiverCrossing": false,
+      "movementCostModifier": 0
+    },
+    {
+      "from": "region_kaifeng",
+      "to": "region_nanyang",
+      "hasRoad": false,
+      "hasRiverCrossing": false,
+      "movementCostModifier": 0
+    },
+    {
+      "from": "region_liaodong_rear",
+      "to": "region_yongping",
+      "hasRoad": false,
+      "hasRiverCrossing": false,
+      "movementCostModifier": 0
+    },
+    {
+      "from": "region_luoyang",
+      "to": "region_nanyang",
+      "hasRoad": false,
+      "hasRiverCrossing": false,
+      "movementCostModifier": 0
+    },
+    {
+      "from": "region_luoyang",
+      "to": "region_tongguan",
+      "hasRoad": true,
+      "hasRiverCrossing": false,
+      "movementCostModifier": 0
+    },
+    {
+      "from": "region_luoyang",
+      "to": "region_xiangyang",
+      "hasRoad": false,
+      "hasRiverCrossing": false,
+      "movementCostModifier": 0
+    },
+    {
+      "from": "region_luoyang",
+      "to": "region_zhending",
+      "hasRoad": false,
+      "hasRiverCrossing": false,
+      "movementCostModifier": 0
+    },
+    {
+      "from": "region_nanyang",
+      "to": "region_wuchang",
+      "hasRoad": false,
+      "hasRiverCrossing": false,
+      "movementCostModifier": 0
+    },
+    {
+      "from": "region_nanyang",
+      "to": "region_xiangyang",
+      "hasRoad": true,
+      "hasRiverCrossing": false,
+      "movementCostModifier": 0
+    },
+    {
+      "from": "region_ningyuan",
+      "to": "region_shanhaiguan",
+      "hasRoad": true,
+      "hasRiverCrossing": false,
+      "movementCostModifier": 0
+    },
+    {
+      "from": "region_shaanxi_hinterland",
+      "to": "region_sichuan_gate",
+      "hasRoad": false,
+      "hasRiverCrossing": false,
+      "movementCostModifier": 0
+    },
+    {
+      "from": "region_shaanxi_hinterland",
+      "to": "region_xian",
+      "hasRoad": false,
+      "hasRiverCrossing": false,
+      "movementCostModifier": 0
+    },
+    {
+      "from": "region_shaanxi_hinterland",
+      "to": "region_yunyang",
+      "hasRoad": false,
+      "hasRiverCrossing": false,
+      "movementCostModifier": 0
+    },
+    {
+      "from": "region_shanhaiguan",
+      "to": "region_xuanfu",
+      "hasRoad": false,
+      "hasRiverCrossing": false,
+      "movementCostModifier": 0
+    },
+    {
+      "from": "region_sichuan_gate",
+      "to": "region_yunyang",
+      "hasRoad": true,
+      "hasRiverCrossing": false,
+      "movementCostModifier": 0
+    },
+    {
+      "from": "region_taiyuan",
+      "to": "region_tongguan",
+      "hasRoad": false,
+      "hasRiverCrossing": false,
+      "movementCostModifier": 0
+    },
+    {
+      "from": "region_taiyuan",
+      "to": "region_xian",
+      "hasRoad": false,
+      "hasRiverCrossing": false,
+      "movementCostModifier": 0
+    },
+    {
+      "from": "region_taiyuan",
+      "to": "region_zhending",
+      "hasRoad": true,
+      "hasRiverCrossing": false,
+      "movementCostModifier": 0
+    },
+    {
+      "from": "region_tongguan",
+      "to": "region_xian",
+      "hasRoad": true,
+      "hasRiverCrossing": false,
+      "movementCostModifier": 0
+    },
+    {
+      "from": "region_tongguan",
+      "to": "region_xiangyang",
+      "hasRoad": false,
+      "hasRiverCrossing": false,
+      "movementCostModifier": 0
+    },
+    {
+      "from": "region_tongguan",
+      "to": "region_zhending",
+      "hasRoad": false,
+      "hasRiverCrossing": false,
+      "movementCostModifier": 0
+    },
+    {
+      "from": "region_wuchang",
+      "to": "region_xiangyang",
+      "hasRoad": true,
+      "hasRiverCrossing": false,
+      "movementCostModifier": 0
+    },
+    {
+      "from": "region_xuanfu",
+      "to": "region_zhending",
+      "hasRoad": false,
+      "hasRiverCrossing": false,
+      "movementCostModifier": 0
+    }
+  ],
+  "supplySources": [
+    {
+      "id": "supply_liaodong_rear",
+      "faction": "qing",
+      "regionId": "region_liaodong_rear"
+    },
+    {
+      "id": "supply_shanhaiguan",
+      "faction": "ming",
+      "regionId": "region_shanhaiguan"
+    },
+    {
+      "id": "supply_beijing",
+      "faction": "ming",
+      "regionId": "region_beijing"
+    },
+    {
+      "id": "supply_datong",
+      "faction": "ming",
+      "regionId": "region_datong"
+    },
+    {
+      "id": "supply_jinan",
+      "faction": "ming",
+      "regionId": "region_jinan"
+    },
+    {
+      "id": "supply_luoyang",
+      "faction": "dashun",
+      "regionId": "region_luoyang"
+    },
+    {
+      "id": "supply_xian",
+      "faction": "dashun",
+      "regionId": "region_xian"
+    },
+    {
+      "id": "supply_jingzhou",
+      "faction": "daxi",
+      "regionId": "region_jingzhou"
+    },
+    {
+      "id": "supply_sichuan_gate",
+      "faction": "daxi",
+      "regionId": "region_sichuan_gate"
+    }
+  ],
+  "objectives": [
+    {
+      "id": "obj_jinzhou",
+      "name": "锦州",
+      "regionId": "region_jinzhou",
+      "type": "fortress",
+      "victoryPoints": 5,
+      "mainObjective": true
+    },
+    {
+      "id": "obj_ningyuan",
+      "name": "宁远",
+      "regionId": "region_ningyuan",
+      "type": "fortress",
+      "victoryPoints": 5,
+      "mainObjective": true
+    },
+    {
+      "id": "obj_shanhaiguan",
+      "name": "山海关",
+      "regionId": "region_shanhaiguan",
+      "type": "fortress",
+      "victoryPoints": 7,
+      "mainObjective": true
+    },
+    {
+      "id": "obj_beijing",
+      "name": "北京",
+      "regionId": "region_beijing",
+      "type": "city",
+      "victoryPoints": 9,
+      "mainObjective": true
+    },
+    {
+      "id": "obj_datong",
+      "name": "大同",
+      "regionId": "region_datong",
+      "type": "fortress",
+      "victoryPoints": 4,
+      "mainObjective": false
+    },
+    {
+      "id": "obj_jinan",
+      "name": "济南",
+      "regionId": "region_jinan",
+      "type": "city",
+      "victoryPoints": 4,
+      "mainObjective": false
+    },
+    {
+      "id": "obj_kaifeng",
+      "name": "开封",
+      "regionId": "region_kaifeng",
+      "type": "city",
+      "victoryPoints": 6,
+      "mainObjective": true
+    },
+    {
+      "id": "obj_luoyang",
+      "name": "洛阳",
+      "regionId": "region_luoyang",
+      "type": "city",
+      "victoryPoints": 5,
+      "mainObjective": true
+    },
+    {
+      "id": "obj_xian",
+      "name": "西安",
+      "regionId": "region_xian",
+      "type": "city",
+      "victoryPoints": 6,
+      "mainObjective": true
+    },
+    {
+      "id": "obj_xiangyang",
+      "name": "襄阳",
+      "regionId": "region_xiangyang",
+      "type": "fortress",
+      "victoryPoints": 5,
+      "mainObjective": true
+    },
+    {
+      "id": "obj_wuchang",
+      "name": "武昌",
+      "regionId": "region_wuchang",
+      "type": "city",
+      "victoryPoints": 5,
+      "mainObjective": true
+    },
+    {
+      "id": "obj_jingzhou",
+      "name": "荆州",
+      "regionId": "region_jingzhou",
+      "type": "city",
+      "victoryPoints": 4,
+      "mainObjective": false
+    }
+  ]
+}

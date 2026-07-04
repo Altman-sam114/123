@@ -413,19 +413,28 @@ struct FrontLineManager {
             }
             let type: FrontLineType = hasEncirclement ? .encirclement : (hasBreakthrough ? .breakthrough : .normal)
             let state = operationalState(maxPressure: maxPressure, hasEncirclement: hasEncirclement)
+            let factionB = opposingFaction(for: finalSegments, factionA: factionA, map: map)
 
             return FrontLine(
-                id: frontLineId(theaterId: theaterId, factionA: factionA, factionB: factionA.opponent),
+                id: frontLineId(theaterId: theaterId, factionA: factionA, factionB: factionB),
                 theaterId: theaterId,
                 opposingTheaterIds: Array(opposingTheaterIds),
                 factionA: factionA,
-                factionB: factionA.opponent,
+                factionB: factionB,
                 segments: finalSegments,
                 type: type,
                 state: state
             )
         }
         .sorted { $0.id.rawValue < $1.id.rawValue }
+    }
+
+    private func opposingFaction(for segments: [FrontSegment], factionA: Faction, map: MapState) -> Faction {
+        segments
+            .compactMap { map.regions[$0.regionB]?.controller }
+            .first { $0 != factionA } ??
+            Faction.legacyCases.first { $0 != factionA } ??
+            .localNeutral
     }
 
     private func makeRegionStates(

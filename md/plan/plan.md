@@ -1,58 +1,175 @@
-## 1. 当前架构：四层数据模型
+# 明末迁移项目 md 大纲
 
-```
-Hex（战术层）
-  ↓ hexToRegion 映射
-Region（战略层 / 省份，v0.2 引入）
-  ↓ regionToTheater 映射
-Theater（战区层，v0.31 引入）
-  ↓ 邻接边推导
-FrontLine（前线层，v0.32 引入，战区间接触边界，非寻路）
-```
-
-外加两条横向系统：
-
-- **Deployment（部署/编队层，约 v0.33 引入）**：把每个单位归类为 `frontUnit`（前线作战部队）或 `garrisonUnit`（驻军），决定它是否进入某个 `FrontZone` 的可调度兵力池。这一层是本轮（v0.353~v0.355）绝大多数"AI 看起来不动"类 bug 的实际病灶所在。
-- **War Directive 指令协议（v0.351 引入）**：`MockAICommander`（未来可替换为真 LLM 或更高级 agent）输出 `ZoneDirective`（`attack`/`defend`），`WarCommandExecutor` 把它翻译成底层 `Command`（move/attack/hold/allowRetreat），最终统一交给原有的 `RuleEngine` 校验执行——这条链路保证"AI 指令"和"玩家操作"最终都经过同一套合法性校验，理论上不应该出现两套规则打架（但实际过程中出现过，见第 5 节）。
-
-```
-CommandCategory（命令层）
-    ├── offense（进攻类）
-    │   └── standardAttack（普通进攻）   ← 当前实现
-    │   [后续: blitzkrieg, fireSupression, infiltration, breakthrough]
-    └── defense（防御类）
-        └── holdPosition（普通防御）     ← 当前实现
-        [后续: elasticDefense, depthDefense]
-    [后续类别: retreat, support]
-```
-
-## 2. 版本演进一览
-
-| 版本 | 主题 | 关键交付 |
-|---|---|---|
-| v0 | 六角格测试板 | Ardennes 测试场景，地形/移动/战斗/补给/包围/胜利条件，MockAI（guderian 风格） |
-| v0.1 | strength 战斗模型 | 移除 organization，只看兵力；撤退模式（HOLD/RETREATABLE） |
-| v0.2 | Region 战略层叠加 | `RegionGraph`/`RegionNode`/`hexToRegion` 模型与阿登 17 省数据，省份叠加 hex、不替换 hex |
-| v0.31 | Theater 战区系统 | 固定四战区生成、控制比例/胜利点聚合、70% 阈值扩张/退役规则、战区互助接口（预留未实现调用方） |
-| v0.32 | FrontLine 前线系统 | 战区边界邻接边、dirty-event 局部更新、简化包围识别、多敌战区合并为单一主前线 |
-| v0.33 | 编队/部署底层 | `frontUnit`/`garrisonUnit` 角色分类、`WarDeploymentState` |
-| v0.34 | 地图编辑器 | 自建网页/本地地图编辑工具，直接导出项目自有 schema，放弃了引入 Tiled 的方案（评估过 Tiled+多边形画省界的可行性，但用户已自行实现更贴合需求的编辑器） |
-| v0.351 | 初级战争指令系统 | `DirectiveEnvelope`/`ZoneDirective`（attack/defend）、`WarCommandExecutor`、`MockAICommander`（兵力比阈值判断 attack/defend） |
-| v0.352 | 管线统一 + 观察者模式 + 分层 UI | `WarPipelineMode`（新管线默认，旧 Agent D 管线保留不删）、双方可由 AI 自动对战的观察者模式、`WarDirectiveRecord`、hex/province/theater/frontLine 图层切换、阈值从 1.5 调到 1.2 |
-| v0.353 | 归属判定地基重构 | hex controller 确立为唯一权威归属源，region/theater/补给站归属全部改为从 hex controller 派生，不再用静态阵营标签 |
-| v0.354 | 真实联动修复（分两轮） | 修复占领-视野-战区不同回合同步的断链；修复 ZOC 误判（友军互相阻挡）；定位并修复"AI 看起来不动"的真实病灶——部队推进过深后被部署层误判为 garrison，从前线兵力池消失；统一玩家与 AI 占领判定逻辑（修复"AI 能占玩家地，玩家占不了 AI 地"的不对称 bug） |
-| v0.355 | 动态/初始战区分离 + 前线可视化 + UI 收尾 | `TheaterState.initialSnapshot`（只读初始划分）与运行时 `theaters`（动态战区）正式分离；修复战区阵营身份不能从动态控制比例反推的根因；前线 overlay 改为按 segment 连线绘制；图层拆分为 hex/province/initialTheater/dynamicTheater/frontLine；观察者模式开关接入主界面 UI |
+> 本大纲依据 `md/prompt/v4.0-明末迁移/codex-v4.0-明末aiagent迁移总提示词.md` 整理。它是项目文档入口和阶段路线，不是源码实现记录。当前工程仍是 `WWIIHexV0` 兼容底座，迁移目标是逐步做成 AI Agent 驱动的明末历史策略游戏。
 
 ---
 
-## 3. 后续计划
+## 1. 接手阅读顺序
 
-0.35 继续优化前线、动态战区ui、seg前线ui
-0.3 整合命令层、优化ui、~~撤退类等命令扩展~~(扔0.7)
-0.4 将军养成初步设定、将军ui、将军命令整合、玩家操控ui
-0.5 元帅引入、决策链规范化（后续加入统治者）、llm接入测试、json输入输出、解码器
-0.6 优化数据统计、真实阿登大地图简单推演测试、补给、后勤优化
-0.7 战术大升级，命令大扩展，定点突破高级决策，阿登闪击
-0.8 回合制初级经济系统、生产、城市、地形
-0.9 统治者agent、多国家大测试、初步外交状态
-1.0 简易ui美观化、性能优化、mockai完善、初版游玩测试
+每轮任务先按项目规则读取：
+
+1. `AGENTS.md`：入口规则、Agent A/B/C 工作流、检查边界。
+2. `update_log.md`：历史版本、维护记录、遗留风险。
+3. `md/flow/flow.md`：当前真实运行链路。
+4. `md/flow/flowchart.md`：核心流程图。
+5. `md/test/test.md`：本机轻量检查与禁止项。
+6. `md/prompt/v4.0-明末迁移/codex-v4.0-明末aiagent迁移总提示词.md`：明末迁移总合同。
+7. 当前版本阶段文档，例如 `md/prompt/v4.0-明末迁移/v4.0_audit_and_contract.md`。
+
+若文档、源码和检查结果冲突，以当前源码和真实检查结果为准，并在本轮结束时同步修正文档。
+
+---
+
+## 2. 当前工程底座
+
+当前代码不是新项目，而是 Swift + SwiftUI + SpriteKit 的 `WWIIHexV0` 战棋工程，已有：
+
+- Hex 战术层：`HexTile.controller`、`Division.coord` 是移动、攻击、占领、补给落点的权威。
+- Region 战略聚合层：资源、胜利点、补给、控制比例从 hex 聚合。
+- 动态 Theater / FrontLine / WarDeployment：`regionToTheater` 是初始/基础战区，`hexToTheater` 是运行时动态战区权威，`hexToFrontZone` 是部署层动态归属权威。
+- 统一命令管线：玩家、AI、未来聊天命令都必须落到 `Command` / `ZoneDirective`，再经 `WarCommandExecutor`、`CommandValidator`、`RuleEngine` 执行。
+- Agent 记录链：`WarDirectiveRecord`、`AgentDecisionRecord`、`RulerDecisionRecord` 等用于复盘和审计。
+- iOS 主游戏、macOS 主游戏和 macOS MapEditor 方向。
+
+明末迁移必须保留这些工程资产，不能绕过规则系统直接改 `GameState`。
+
+---
+
+## 3. 明末产品目标
+
+暂定产品名：`明末棋策 Agent`，英文工作名可用 `Late Ming Agent Strategy`。
+
+首发目标：
+
+- 默认剧本：`崇祯十五年：天下裂变`。
+- 时间范围：约 1642 年，松锦战后前后。
+- 地图范围：辽西、山海关、畿辅、山东、河南、陕西、湖广北部的抽象战区。
+- 首版规模：约 100-180 个 hex、30-55 个 region、8-14 个方面/防区。
+- 主要势力：明廷、后金/清、大顺、大西、地方中立/乡绅团练。
+- 玩家默认明廷；清、大顺、大西等由 AI Agent 驱动。
+- 第一屏直接进入可玩战役地图，不做营销落地页。
+- 玩家可微操军队，也可通过朝廷、督抚、将领面板下达宏观命令。
+- AI Agent 只能输出结构化 directive，经 decoder / validator / compiler 后进入规则系统。
+- 发布前玩家可见主 UI 不应残留主要二战文案：德国、盟军、阿登、巴斯托涅、Panzer、Division、NATO、Manpower / Industry / Supplies 等。
+
+---
+
+## 4. 迁移合同
+
+### 4.1 保留
+
+- Hex 坐标、移动、攻击、占领、视野、补给落点权威。
+- Region 作为战略聚合层，不替代 hex。
+- 动态战区、前线、部署层从 hex 和单位位置派生。
+- `Command` / `ZoneDirective` / `WarCommandExecutor` / `RuleEngine` 统一执行管线。
+- MapEditor 的稀疏 hex、region、theater、unit 编辑与导出能力。
+- Legacy Agent D 作为回归参考保留，不回退为默认战争 AI 主路径。
+
+### 4.2 替换或抽象
+
+| 当前二战语义 | 明末目标语义 |
+|---|---|
+| `Faction.germany/allies` | `ming`、`qing`、`dashun`、`daxi`、`localNeutral` 等多势力 |
+| `Faction.opponent` | `DiplomacyState` / `PowerRelation` / `WarRelationRules` |
+| `GamePhase.germanAI/alliedPlayer` | 通用 active faction 回合阶段 |
+| `Division` 玩家可见文案 | 军队、营兵、边军、旗营、流民军、团练 |
+| `tank/motorizedInfantry/infantry/artillery` | 步军、骑兵、火器、炮队、旗骑、攻城器械、团练等 |
+| `manpower/industry/supplies` | 民力/兵源、银两/军费、粮草 |
+| `panzerDivision` 等生产项 | 募营兵、募骑兵、造炮队、整训团练、筹粮、修城、征饷 |
+| Theater / FrontZone UI | 方面、防区、军镇、前线军区、镇守区 |
+| MarshalAgent / RulerAgent 展示 | 督师/枢辅/军机 Agent、皇帝/摄政王/义军首领 Agent |
+
+### 4.3 禁止
+
+- 不一次性大规模重命名所有类型后凭感觉修编译。
+- 不让任何 Agent 直接修改 hex controller、unit coord、dynamic theater、front zone 或 economy ledger。
+- 不恢复旧 Cabinet / Minister / StrategicDirective 污染。
+- 不把 region 当成战术权威。
+- 不把完整 1618-1662 全国沙盒一次塞进首版。
+- 不使用受版权保护的影视、游戏、小说人物图或 UI 素材。
+- 未获人工授权，不跑 Xcode / XCTest / 模拟器 / Probe / Smoke / Stage Regression / Full / 性能测试。
+
+---
+
+## 5. 文档结构
+
+```text
+md/
+├── plan/
+│   └── plan.md
+│       明末迁移项目 md 大纲和阶段路线入口。
+├── flow/
+│   ├── flow.md
+│   │   当前真实运行链路；源码行为变化后必须同步。
+│   ├── flowchart.md
+│   │   Mermaid 核心流程图总览。
+│   └── 01_*.mermaid / 02_*.mermaid / 03_*.mermaid / 04_*.mermaid
+│       独立流程图片段。
+├── test/
+│   └── test.md
+│       本机轻量检查、云端验证、禁止项和交付写法。
+└── prompt/
+    ├── README.md
+    │   Agent A/B/C 提示词工作流和路线索引。
+    ├── v4.0-明末迁移/
+    │   ├── codex-v4.0-明末aiagent迁移总提示词.md
+    │   ├── v4.0_audit_and_contract.md
+    │   │   v4.0 审计、兼容层和明末题材合同阶段文档。
+    │   ├── v4.1_powers_turns_prompt.md
+    │   │   v4.1 多势力、外交关系和通用回合编排实现提示词。
+    │   └── v4.2_ming_scenario_data_record.md
+    │       v4.2 默认明末剧本、region 数据和 MapEditor 默认桥接记录。
+    ├── v0.*（已完成）/
+    │   历史 WWIIHexV0 阶段记录。
+    ├── v2.0-三国迁移/、v3.0-拿战迁移/、v5.0-唐宋迁移/、v6.0-现代战争迁移/
+    │   其他题材迁移参考，不是当前明末主线。
+    └── old/、anti生成/、claude生成/
+        历史资料和打捞记录；不得把旧污染当作当前主线。
+```
+
+---
+
+## 6. v4.0-v4.8 阶段路线
+
+| 阶段 | 主题 | 交付重点 | 主要文档 |
+|---|---|---|---|
+| v4.0 | 迁移审计、兼容层和明末题材合同 | 硬编码审计、术语表、版本边界、子 Agent 分工、风险清单；当前已完成首轮只读审计，未改源码 | `v4.0_audit_and_contract.md`、`update_log.md` |
+| v4.1 | 多势力、外交关系和通用回合编排 | `Faction` 多势力、敌我判断、通用 active faction、AI 回合不再绑定德国；当前兼容层源码已部分落地 | `v4.1_powers_turns_prompt.md`、`flow.md`、`flowchart.md`、阶段实现记录 |
+| v4.2 | 明末地图、剧本数据和 MapEditor 迁移 | `崇祯十五年：天下裂变` 默认数据首片已落地：120 hex、30 region、5 势力、22 初始单位；`DataLoader` 和 MapEditor 默认桥接优先明末 JSON；明末 unit template、经济和 UI 仍后置 | `v4.2_ming_scenario_data_record.md`、`flow.md`、数据 schema 记录 |
+| v4.3 | 明末军队、围城、粮草和战术规则 | 明末兵种、围城、粮道、战术名称明末化；仍经 `RuleEngine` | `flow.md`、战术规则记录 |
+| v4.4 | 经济、灾荒、军饷和地方治理 | 民力/银两/粮草、征募/筹粮/修城、灾荒和治安影响 | `flow.md`、经济规则记录 |
+| v4.5 | 皇帝、朝议、督师、将领和流民军 Agent | 多角色 Agent 分层、Codable directive、fallback、复盘面板 | `flowchart.md`、Agent schema 记录 |
+| v4.6 | 发布级明末 UI、美术和交互收口 | 舆图、军令牌、战报、粮道、势力旗色、移动端/macOS 布局 | UI 设计记录、截图检查清单 |
+| v4.7 | 历史事件、教程、战役内容和可玩性 | 松锦、催饷、饥荒、开封围城、10-20 回合目标链 | 内容记录、事件 schema |
+| v4.8 | 发布候选、存档、设置和验收 | 新局/继续/重置、存档、设置、版本说明、发布前授权重验证清单 | `README.md`、`update_log.md`、发布候选记录 |
+
+---
+
+## 7. 并发 Agent 边界
+
+默认仍使用项目当前 `main` 直推 + GitHub Actions + Agent C 结果包复判流程。若启用并发子 Agent，主 Agent 必须先定义文件边界：
+
+- Data / Scenario Agent：`WWIIHexV0/Data/`、DataLoader 和数据 schema。
+- Rules / Core Agent：`Core/`、`Commands/`、`Rules/`。
+- AI Agent：`Agents/`、`Turn/`，只读核心规则。
+- UI / Art Agent：`UI/`、`SpriteKit/`、资产目录。
+- MapEditor Agent：`MapEditor/`，只读数据 schema。
+- Docs / QA Agent：`README.md`、`update_log.md`、`md/flow/`、`md/test/`、`md/prompt/v4.0-明末迁移/`。
+
+没有完成同文件冲突、public API、JSON schema、project 文件和文档口径检查前，不得声称并发结果可合并。
+
+---
+
+## 8. 轻量检查口径
+
+文档-only 修改默认只跑本机轻量检查：
+
+```sh
+rg -n "[[:blank:]]+$" AGENTS.md README.md update_log.md md/test/test.md md/flow/flow.md md/flow/flowchart.md md/prompt/README.md md/plan/plan.md md/prompt/v4.0-明末迁移
+```
+
+```sh
+rg -n "<<<<<<<|=======|>>>>>>>" AGENTS.md README.md update_log.md md
+```
+
+若修改 workflow、project、JSON、scheme 或 Swift 文件，再按 `md/test/test.md` 追加对应 YAML / `plutil` / `jq` / `xmllint` / 可行的单文件 parse。未获人工授权，不跑本机 Xcode build/test、模拟器、Probe、Smoke、Stage Regression、Dynamic Theater Regression、Full 或性能测试。

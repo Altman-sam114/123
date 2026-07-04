@@ -14,7 +14,7 @@ struct RegionDataSet: Codable, Equatable {
 }
 
 /// JSON 中的省份定义。映射到 Core.RegionNode。
-/// controller 省略时回退 owner；owner/controller 为 null 时映射 nil（中立）。
+/// controller 省略时回退 owner；owner/controller 省略时在运行时映射为 localNeutral。
 struct RegionNodeDefinition: Codable, Equatable {
     let id: RegionId
     let name: String
@@ -264,7 +264,7 @@ struct RegionObjectiveDefinition: Codable, Equatable {
 // MARK: - RegionDataSet → Core 映射
 
 extension RegionDataSet {
-    /// 转 RegionNode 字典。controller 缺省回退 owner。
+    /// 转 RegionNode 字典。controller 缺省回退 owner，owner/controller 同时缺省时使用地方中立。
     func toRegions() -> [RegionId: RegionNode] {
         var result: [RegionId: RegionNode] = [:]
         for def in regions {
@@ -272,8 +272,8 @@ extension RegionDataSet {
             result[def.id] = RegionNode(
                 id: def.id,
                 name: def.name,
-                owner: def.owner ?? .allies,
-                controller: resolvedController ?? .allies,
+                owner: def.owner ?? .localNeutral,
+                controller: resolvedController ?? .localNeutral,
                 terrain: def.terrain,
                 neighbors: def.neighbors,
                 displayHexes: def.displayHexes,

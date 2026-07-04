@@ -12,6 +12,9 @@ struct GameState: Codable, Equatable {
     var warDeploymentState: WarDeploymentState
     var economyState: EconomyState
     var diplomacyState: DiplomacyState
+    var turnOrder: [Faction]
+    var humanControlledFactions: [Faction]
+    var aiControlledFactions: [Faction]
     var divisions: [Division]
     var victoryState: VictoryState
     var selectedUnitSummary: String?
@@ -31,6 +34,9 @@ struct GameState: Codable, Equatable {
         warDeploymentState: WarDeploymentState = .empty,
         economyState: EconomyState = .empty,
         diplomacyState: DiplomacyState = .empty,
+        turnOrder: [Faction] = [.germany, .allies],
+        humanControlledFactions: [Faction] = [.allies],
+        aiControlledFactions: [Faction] = [.germany],
         divisions: [Division],
         victoryState: VictoryState,
         selectedUnitSummary: String?,
@@ -49,6 +55,9 @@ struct GameState: Codable, Equatable {
         self.warDeploymentState = warDeploymentState
         self.economyState = economyState
         self.diplomacyState = diplomacyState
+        self.turnOrder = Self.normalizedFactionList(turnOrder)
+        self.humanControlledFactions = Self.normalizedFactionList(humanControlledFactions)
+        self.aiControlledFactions = Self.normalizedFactionList(aiControlledFactions)
         self.divisions = divisions
         self.victoryState = victoryState
         self.selectedUnitSummary = selectedUnitSummary
@@ -71,7 +80,10 @@ struct GameState: Codable, Equatable {
             frontLineState: .empty,
             warDeploymentState: .empty,
             economyState: .empty,
-            diplomacyState: DiplomacyState.initial(for: Faction.allCases, turn: 1),
+            diplomacyState: DiplomacyState.initial(for: Faction.legacyCases, turn: 1),
+            turnOrder: [.germany, .allies],
+            humanControlledFactions: [.allies],
+            aiControlledFactions: [.germany],
             divisions: [
                 .panzer(
                     id: "ger_panzer_1",
@@ -147,6 +159,9 @@ struct GameState: Codable, Equatable {
         case warDeploymentState
         case economyState
         case diplomacyState
+        case turnOrder
+        case humanControlledFactions
+        case aiControlledFactions
         case divisions
         case victoryState
         case selectedUnitSummary
@@ -169,6 +184,9 @@ struct GameState: Codable, Equatable {
             warDeploymentState: try container.decodeIfPresent(WarDeploymentState.self, forKey: .warDeploymentState) ?? .empty,
             economyState: try container.decodeIfPresent(EconomyState.self, forKey: .economyState) ?? .empty,
             diplomacyState: try container.decodeIfPresent(DiplomacyState.self, forKey: .diplomacyState) ?? .empty,
+            turnOrder: try container.decodeIfPresent([Faction].self, forKey: .turnOrder) ?? [.germany, .allies],
+            humanControlledFactions: try container.decodeIfPresent([Faction].self, forKey: .humanControlledFactions) ?? [.allies],
+            aiControlledFactions: try container.decodeIfPresent([Faction].self, forKey: .aiControlledFactions) ?? [.germany],
             divisions: try container.decode([Division].self, forKey: .divisions),
             victoryState: try container.decode(VictoryState.self, forKey: .victoryState),
             selectedUnitSummary: try container.decodeIfPresent(String.self, forKey: .selectedUnitSummary),
@@ -216,5 +234,50 @@ struct GameState: Codable, Equatable {
                 message: message
             )
         )
+    }
+
+    var resolvedTurnOrder: [Faction] {
+        let order = Self.normalizedFactionList(turnOrder)
+        if !order.isEmpty {
+            return order
+        }
+
+        let activeFactions = Self.normalizedFactionList(divisions.map(\.faction))
+        if !activeFactions.isEmpty {
+            return activeFactions
+        }
+
+        return [.germany, .allies]
+    }
+
+    func isHumanControlled(_ faction: Faction) -> Bool {
+        humanControlledFactions.contains(faction)
+    }
+
+    func isAIControlled(_ faction: Faction) -> Bool {
+        aiControlledFactions.contains(faction)
+    }
+
+    func actionPhase(for faction: Faction) -> GamePhase {
+        if faction == .germany && isAIControlled(faction) {
+            return .germanAI
+        }
+        if faction == .allies && isHumanControlled(faction) {
+            return .alliedPlayer
+        }
+        if isHumanControlled(faction) {
+            return .humanAction
+        }
+        return .aiAction
+    }
+
+    private static func normalizedFactionList(_ factions: [Faction]) -> [Faction] {
+        var seen: Set<Faction> = []
+        var result: [Faction] = []
+        for faction in factions where !seen.contains(faction) {
+            seen.insert(faction)
+            result.append(faction)
+        }
+        return result
     }
 }

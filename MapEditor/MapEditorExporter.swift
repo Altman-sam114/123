@@ -81,6 +81,7 @@ enum MapEditorExporter {
     }
 
     private static func makeScenarioDefinition(from document: MapEditorDocument) -> ScenarioDefinition {
+        let scenarioControl = scenarioControlDefaults(from: document)
         let objectives = document.sortedHexes.compactMap { hex -> ObjectiveDefinition? in
             guard let objectiveId = hex.objectiveId else { return nil }
             return ObjectiveDefinition(
@@ -131,12 +132,15 @@ enum MapEditorExporter {
                     )
                 }
             ),
-            factions: Faction.allCases.map(\.rawValue),
+            factions: exportedFactions(from: document),
             maxTurns: 12,
             initialTurn: 1,
-            initialPhase: GamePhase.alliedPlayer.rawValue,
-            playerFaction: Faction.allies.rawValue,
-            aiFaction: Faction.germany.rawValue,
+            initialPhase: scenarioControl.initialPhase.rawValue,
+            playerFaction: scenarioControl.playerFaction.rawValue,
+            aiFaction: scenarioControl.aiFaction.rawValue,
+            turnOrder: scenarioControl.turnOrder.map(\.rawValue),
+            humanControlledFactions: scenarioControl.humanControlledFactions.map(\.rawValue),
+            aiControlledFactions: scenarioControl.aiControlledFactions.map(\.rawValue),
             keyLocations: keyLocations,
             objectives: objectives,
             initialUnits: document.initialUnits.map { unit in
@@ -159,6 +163,79 @@ enum MapEditorExporter {
                 "Region neighbors, road edges, and representative hexes are derived at export time."
             ]
         )
+    }
+
+    private static func exportedFactions(from document: MapEditorDocument) -> [String] {
+        exportedFactionValues(from: document).map(\.rawValue)
+    }
+
+    private static func exportedFactionValues(from document: MapEditorDocument) -> [Faction] {
+        let documentFactions = document.sortedHexes.compactMap(\.controller)
+            + document.sortedHexes.compactMap(\.supplyFaction)
+            + document.initialUnits.map(\.faction)
+        let seedFactions = containsMingEraFaction(documentFactions) ? [] : Faction.legacyCases
+        return normalizedFactions(seedFactions + documentFactions)
+    }
+
+    private static func scenarioControlDefaults(
+        from document: MapEditorDocument
+    ) -> (
+        initialPhase: GamePhase,
+        playerFaction: Faction,
+        aiFaction: Faction,
+        turnOrder: [Faction],
+        humanControlledFactions: [Faction],
+        aiControlledFactions: [Faction]
+    ) {
+        let factions = exportedFactionValues(from: document)
+        if containsMingEraFaction(factions) {
+            let humanFaction = factions.contains(.ming)
+                ? Faction.ming
+                : factions.first(where: { !$0.isLocalNeutral }) ?? .ming
+            let preferredOrder = [Faction.ming, .qing, .dashun, .daxi].filter { factions.contains($0) }
+            let otherCombatants = factions.filter { faction in
+                !faction.isLocalNeutral
+                    && faction != humanFaction
+                    && !preferredOrder.contains(faction)
+            }
+            let turnOrder = normalizedFactions([humanFaction] + preferredOrder + otherCombatants)
+                .filter { !$0.isLocalNeutral }
+            let aiFactions = turnOrder.filter { $0 != humanFaction }
+            return (
+                .humanAction,
+                humanFaction,
+                aiFactions.first ?? humanFaction,
+                turnOrder.isEmpty ? [humanFaction] : turnOrder,
+                [humanFaction],
+                aiFactions
+            )
+        }
+
+        return (
+            .alliedPlayer,
+            .allies,
+            .germany,
+            [.germany, .allies],
+            [.allies],
+            [.germany]
+        )
+    }
+
+    private static func containsMingEraFaction(_ factions: [Faction]) -> Bool {
+        factions.contains { faction in
+            [.ming, .qing, .dashun, .daxi].contains(faction)
+        }
+    }
+
+    private static func normalizedFactions(_ factions: [Faction]) -> [Faction] {
+        var seen: Set<Faction> = []
+        return factions.compactMap { faction in
+            guard !seen.contains(faction) else {
+                return nil
+            }
+            seen.insert(faction)
+            return faction
+        }
     }
 
     private static func makeRegionDataSet(from document: MapEditorDocument) throws -> RegionDataSet {

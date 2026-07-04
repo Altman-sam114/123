@@ -11,6 +11,8 @@
   -> 游戏启动加载为 GameState
   -> hex 是真实战术权威
   -> region / theater / front / deploy 都是从 hex 和单位位置派生出来的战略层
+  -> v4.1 兼容层用 turnOrder 与 DiplomacyState 支持多势力回合和敌我判断
+  -> v4.2 默认数据先加载崇祯十五年明末剧本，失败才回退阿登
   -> economy 是 faction 级经济总账，收入仍从真实控制的 hex/region 聚合
   -> v0.5 元帅层是战略意图层，不替代战术权威
   -> 玩家和 AI 都必须把命令交给 RuleEngine
@@ -31,7 +33,7 @@
 ```mermaid
 flowchart TD
     ME["地图编辑器<br/>MapEditor<br/>用来画格子、省份、战区、初始部队"]:::editor
-    JSON["游戏数据 JSON<br/>ScenarioDefinition + RegionDataSet<br/>保存地图、单位、省份、初始战区"]:::data
+    JSON["游戏数据 JSON<br/>ScenarioDefinition + RegionDataSet<br/>优先崇祯十五年明末数据，失败回退阿登"]:::data
     DL["数据加载器<br/>DataLoader.loadGameState<br/>把 JSON 变成可运行 GameState"]:::loader
     GS["运行时总状态<br/>GameState<br/>一局游戏所有状态都在这里"]:::state
 
@@ -42,6 +44,8 @@ flowchart TD
     H2T["动态战区权威<br/>hexToTheater<br/>运行时推进只改具体 hex"]:::authority
     FRONT["前线层<br/>FrontLine / FrontSegment<br/>按双方动态战区的真实相邻 hex 生成"]:::derived
     DEPLOY["部署层<br/>WarDeploymentState<br/>用 hexToFrontZone 把单位分成前线/纵深/驻军"]:::derived
+    TURN["通用回合控制<br/>turnOrder + human/AI factions<br/>决定 active faction 和行动 phase"]:::state
+    DIP["外交关系<br/>DiplomacyState<br/>canAttack / isHostile / canEnterTerritory"]:::state
     ECO["经济总账<br/>EconomyState / EconomyRules<br/>收入、维护费、生产队列、自动补员"]:::economy
     PLAYER["玩家输入<br/>点击地图、移动、攻击、结束回合"]:::input
     AI["AI 元帅系统<br/>MarshalAgent + TheaterDirective JSON<br/>先做大战役级规划"]:::input
@@ -66,8 +70,13 @@ flowchart TD
     R2T -.->|缺失时只用来补初始值| H2T
     HEX --> H2T
     H2T --> FRONT --> DEPLOY
+    GS --> TURN
+    GS --> DIP
     GS --> ECO
 
+    TURN --> PLAYER
+    TURN --> AI
+    DIP --> RE
     PLAYER --> CMD
     AI --> DEC --> COMP --> ZD --> WCE --> CMD
     CMD --> RE --> HEX
@@ -320,7 +329,7 @@ flowchart TD
     REG["省份 JSON<br/>RegionDataSet<br/>保存 hexToRegion、省份、边、初始 theaterId"]:::data
     NEI["自动推导省份邻接<br/>真实 hex 邻接 -> Region.neighbors / RegionEdge<br/>避免手写邻接出错"]:::derived
     BRIDGE["默认资源桥<br/>MapEditorGameResourceBridge<br/>读取或覆盖项目默认地图资源"]:::loader
-    FILES["项目默认数据文件<br/>WWIIHexV0/Data<br/>ardennes_v0_scenario.json + ardennes_v02_regions.json"]:::data
+    FILES["项目默认数据文件<br/>WWIIHexV0/Data<br/>chongzhen_1642_scenario.json + chongzhen_1642_regions.json"]:::data
     LOAD["游戏启动加载<br/>DataLoader.loadGameState<br/>DEBUG 下优先读源码 JSON"]:::loader
     MAP["地图状态<br/>MapState<br/>tiles + hexToRegion + RegionGraph"]:::state
     THEATER["战区状态<br/>TheaterState<br/>捕获 initialSnapshot，并 seed hexToTheater"]:::state

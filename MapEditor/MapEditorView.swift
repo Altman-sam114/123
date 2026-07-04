@@ -451,6 +451,16 @@ private extension Faction {
             return "德军"
         case .allies:
             return "盟军"
+        case .ming:
+            return "明廷"
+        case .qing:
+            return "后金/清"
+        case .dashun:
+            return "大顺"
+        case .daxi:
+            return "大西"
+        case .localNeutral:
+            return "地方中立"
         }
     }
 }
