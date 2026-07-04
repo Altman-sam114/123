@@ -53,6 +53,10 @@ jobs:
           build_log="ci-results/xcodebuild.log"
           result_bundle="ci-results/WWIIHexV0Mac.xcresult"
 
+          annotation_tail() {
+            tail -n 60 "$1" | sed -e 's/%/%25/g' -e 's/\r/%0D/g' -e 's/$/%0A/' | tr -d '\n'
+          }
+
           {
             echo "# CI failure summary"
             echo
@@ -96,6 +100,7 @@ jobs:
               echo "See ci-results/static-checks.log."
               echo
             } >> "${failure_summary}"
+            echo "::error title=Static checks failed::$(annotation_tail ci-results/static-checks.log)"
           fi
 
           xcodebuild \
@@ -115,6 +120,7 @@ jobs:
               echo "See ci-results/xcodebuild.log and the result bundle if present."
               echo
             } >> "${failure_summary}"
+            echo "::error title=Xcode build failed::$(annotation_tail "${build_log}")"
           fi
 
           if [ "${static_status}" -eq 0 ] && [ "${build_status}" -eq 0 ]; then
