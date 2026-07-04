@@ -1,4 +1,4 @@
-# WWIIHexV0 核心流程文档（明末迁移 v4.6 UI、朝廷项目、天下急势、地图标识、粮道线路/开关、舆图图例与四线项目分组首片）
+# WWIIHexV0 核心流程文档（明末迁移 v4.6 UI、朝廷项目、朝议争点、天下急势、地图标识、粮道线路/开关、舆图图例与四线项目分组首片）
 
 > 本文是项目当前核心逻辑的接手文档。目标不是复述历史设计，而是按当前代码真实链路说明：数据如何进入游戏，hex / region / theater / front / deploy 如何派生，主游戏和地图编辑器如何共同维护同一套地图语义，AI / 玩家命令如何落到规则系统。
 
@@ -21,6 +21,7 @@ MapEditor / JSON 数据
   -> Region 聚合
   -> EconomyState 收入 / 生产 / 补员
   -> CourtStrategySummary 政策 / 经济 / 科技 / 军事摘要
+  -> CourtPanelView 朝议争点只读展示
   -> CourtProjectDomain / CourtProjectKind / Command.enactCourtProject 朝廷四线项目
   -> Initial Theater snapshot + runtime hexToTheater
   -> FrontLine 动态 hex 接触
@@ -55,6 +56,7 @@ MapEditor / JSON 数据
 - v4.6 天下急势首片中，`DiplomacyPanelView` 从 `DiplomacyState` 和只读 `CourtStrategySummary` 派生顶部“天下急势”、势力战意条、主要对手和政策/经济/科技/军事四线压力；该片只影响 SwiftUI 展示，不改变外交关系、朝廷项目或规则执行。
 - v4.6 朝廷项目首片中，`CourtProjectKind` 将征饷、赈济安民、修城固守、整训团练、火器整备、粮台转运收口为一次性项目；玩家从朝廷面板触发 `Command.enactCourtProject(kind:)`，再经 `CommandValidator` 与 `EconomyRules` 执行。
 - v4.6 四线项目分组首片中，`CourtProjectDomain` 将朝廷项目归入政策、经济、科技、军事四线；`CourtPanelView` 按四线展示压力值、关注点、项目成本收益和风险，不新增持久政策/科技状态。
+- v4.6 朝议争点首片中，`CourtPanelView` 继续只读 `CourtStrategySummary`，把安民与征饷、火器与团练、粮道与城防三组冲突做成紧凑摘要，让玩家看到政策、经济、科技、军事之间的取舍；该片不新增朝廷状态、不改变项目执行链。
 - v4.6 地图标识首片中，`BaseTerrain.displayName` 已切为明末中文地形名；`HexNode` 用“城 / 关 / 粮”badge 标识城池、关隘/堡寨和粮台，并把旧主地图 `FORT`、`SUP A/G` 标记改为“关隘”“粮台”。该变化只影响 SpriteKit 展示，不改补给、占领、战区或经济规则。
 - v4.6 粮道线路首片中，`SupplyRules.supplyPath` 在既有补给通行/成本规则上返回只读 hex 路线；`BoardScene` 仅在默认 hex 图层为玩家势力有有效补给线的军队绘制粮道虚线，路线位于战争迷雾下方，不新增粮道状态、不改变补给判定。
 - v4.6 粮道开关首片中，`AppContainer.showsSupplyRoutes` 只作为 UI/渲染状态进入 `BoardRenderState`；`RootGameView` 顶部显示“粮道”按钮和图例，关闭后 `BoardScene.drawSupplyRoutes` 直接跳过绘制，不影响 `SupplyRules` 判定。
@@ -64,7 +66,7 @@ MapEditor / JSON 数据
 - `EconomyState` 是 faction 级经济总账；收入来自受控 region、城市、工厂、基础设施和补给值，但战术占领仍以 hex 为准。
 - 玩家、AI、后续聊天命令最终都必须经过 `Command` / `ZoneDirective -> WarCommandExecutor -> RuleEngine`，不能直接改 `GameState`。
 - v0.5 默认战争 AI 上游是 `MarshalAgent -> TheaterDirective JSON -> TheaterDirectiveDecoder -> TheaterDirectiveCompiler`，下游执行收口到 `ZoneDirective -> WarCommandExecutor -> RuleEngine`。
-- `CourtStrategySummary` 是只读派生摘要，不直接改 `GameState`；`CourtProjectDomain` 只服务四线展示和分组，可执行朝廷项目必须走 `Command.enactCourtProject -> CommandValidator -> CommandExecutor -> EconomyRules`。`DiplomacyPanelView` 的天下急势、`AppContainer.showsSupplyRoutes` 和 `MapDisplayLayer` 图例元数据只控制 UI 展示。`RulerAgent` 仍不是默认主链路。
+- `CourtStrategySummary` 是只读派生摘要，不直接改 `GameState`；`CourtPanelView` 的朝议争点和 `CourtProjectDomain` 只服务四线展示、争点表达和项目分组，可执行朝廷项目必须走 `Command.enactCourtProject -> CommandValidator -> CommandExecutor -> EconomyRules`。`DiplomacyPanelView` 的天下急势、`AppContainer.showsSupplyRoutes` 和 `MapDisplayLayer` 图例元数据只控制 UI 展示。`RulerAgent` 仍不是默认主链路。
 
 ---
 
@@ -1971,6 +1973,7 @@ MingDesignTokens
   -> CourtPanelView
 
 CourtProjectDomain + CourtProjectKind
+  -> CourtPanelView 朝议争点
   -> CourtPanelView 四线项目分组
   -> Command.enactCourtProject
   -> CommandValidator
@@ -2002,7 +2005,7 @@ BoardScene / HexNode / UnitNode
 
 当前完成点：
 
-- `CourtPanelView` 独立成文件并加入 iOS/macOS source phase，仍从 `CourtStrategySummary.from(faction:state:)` 只读派生朝议摘要，并按政策、经济、科技、军事四线展示压力值、关注点、项目成本收益和风险。
+- `CourtPanelView` 独立成文件并加入 iOS/macOS source phase，仍从 `CourtStrategySummary.from(faction:state:)` 只读派生朝议摘要，并按政策、经济、科技、军事四线展示压力值、朝议争点、关注点、项目成本收益和风险。
 - 信息按钮、图层 picker、观战 toggle、新局按钮、军令/将领/单位/战报/AI 面板做明末中文 polish。
 - `MingDesignTokens` 提供共享设计常量，避免每个面板继续散落不同圆角、padding 和背景色。
 - `DiplomacyPanelView` 的“天下急势”读取当前势力外交关系、主要对手、战意和朝议四线压力；诸方势力列表用势力色和战意条增强中华世界局势可读性，不改变外交状态。
@@ -2012,6 +2015,7 @@ BoardScene / HexNode / UnitNode
 - `AppContainer.showsSupplyRoutes` 默认开启，只通过 `BoardRenderState` 进入 SpriteKit；`RootGameView` 顶部“粮道”按钮可在 hex 图层开关显示，并用图例标出金色虚线含义。
 - `MapDisplayLayer.displayName` 改为舆图、州府、初划、战局、前线、布防；顶部图例条按当前 layer 展示图标、说明和城/关/粮/步/粮道符号，只作 SwiftUI 说明，不改变底层 rawValue 或 overlay 计算。
 - `CourtProjectDomain` 目前包含政策、经济、科技、军事四类，`CourtProjectKind` 目前包含征饷、赈济安民、修城固守、整训团练、火器整备、粮台转运六项；粮台转运显示为经济/军事交叉项目，但 UI 以主领域分组避免重复列表。
+- `CourtDebateSection` 只在朝廷面板中读取现有压力值、州府数、火器/炮队数和前线数，展示安民与征饷、火器与团练、粮道与城防三组争点，不写入 `GameState`，也不影响 `CourtProjectKind` 的执行可用性。
 - `Command.enactCourtProject(kind:)` 与生产命令同级，`actingDivisionId` 为 nil；校验只允许可行动 phase 且资源足够时执行。
 - `EconomyRules.enactCourtProject` 会扣除项目成本、追加即时资源收益，并按项目轻量调整地方治理、州府 infrastructure/supplyValue、生产队列、火器/炮队兵力或缺粮部队状态。
 

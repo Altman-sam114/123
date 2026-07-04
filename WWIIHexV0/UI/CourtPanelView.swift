@@ -13,6 +13,7 @@ struct CourtPanelView: View {
             CourtHeaderView(faction: gameState.activeFaction, focus: summary.recommendedFocus)
             CourtRationaleView(summary: summary)
             CourtPressureSection(summary: summary)
+            CourtDebateSection(summary: summary)
             CourtProjectSection(
                 summary: summary,
                 recommendedProject: CourtProjectKind(focus: summary.recommendedFocus),
@@ -175,6 +176,157 @@ private struct CourtSecondaryFocusSection: View {
                 }
             }
         }
+    }
+}
+
+private struct CourtDebateSection: View {
+    let summary: CourtStrategySummary
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: MingDesignTokens.compactSpacing) {
+            HStack(alignment: .firstTextBaseline) {
+                Text("朝议争点")
+                    .font(.subheadline.bold())
+                Spacer(minLength: 8)
+                Text(summary.recommendedFocus.displayName)
+                    .font(.caption.bold())
+                    .foregroundStyle(MingDesignTokens.cinnabar)
+            }
+
+            ForEach(debates) { debate in
+                CourtDebateRow(debate: debate)
+            }
+        }
+    }
+
+    private var debates: [CourtDebateItem] {
+        [
+            CourtDebateItem(
+                id: "policy-economy",
+                title: "安民与征饷",
+                systemImage: "scale.3d",
+                tint: summary.policyPressure >= summary.economyPressure ? MingDesignTokens.jade : MingDesignTokens.imperialGold,
+                leadingTitle: "民变",
+                leadingValue: summary.policyPressure,
+                leadingDetail: "不稳州府 \(summary.unstableRegions)",
+                trailingTitle: "军费",
+                trailingValue: summary.economyPressure,
+                trailingDetail: "可控州府 \(summary.controlledRegions)",
+                verdict: summary.policyPressure >= summary.economyPressure ? "先稳地方" : "先补军费"
+            ),
+            CourtDebateItem(
+                id: "technology-military",
+                title: "火器与团练",
+                systemImage: "scope",
+                tint: summary.technologyPressure >= summary.militaryPressure ? MingDesignTokens.porcelainBlue : MingDesignTokens.cinnabar,
+                leadingTitle: "军械",
+                leadingValue: summary.technologyPressure,
+                leadingDetail: "火器/炮队 \(summary.fireSupportUnits)",
+                trailingTitle: "前线",
+                trailingValue: summary.militaryPressure,
+                trailingDetail: "接战 \(summary.activeFronts)",
+                verdict: summary.technologyPressure >= summary.militaryPressure ? "先整火器" : "先固军伍"
+            ),
+            CourtDebateItem(
+                id: "grain-fortress",
+                title: "粮道与城防",
+                systemImage: "shippingbox",
+                tint: summary.economyPressure >= summary.militaryPressure ? MingDesignTokens.imperialGold : MingDesignTokens.cinnabar,
+                leadingTitle: "粮饷",
+                leadingValue: summary.economyPressure,
+                leadingDetail: "银粮压力 \(summary.economyPressure)",
+                trailingTitle: "城关",
+                trailingValue: summary.militaryPressure,
+                trailingDetail: "军事压力 \(summary.militaryPressure)",
+                verdict: summary.economyPressure >= summary.militaryPressure ? "先保粮台" : "先守要冲"
+            )
+        ]
+    }
+}
+
+private struct CourtDebateItem: Identifiable {
+    let id: String
+    let title: String
+    let systemImage: String
+    let tint: Color
+    let leadingTitle: String
+    let leadingValue: Int
+    let leadingDetail: String
+    let trailingTitle: String
+    let trailingValue: Int
+    let trailingDetail: String
+    let verdict: String
+}
+
+private struct CourtDebateRow: View {
+    let debate: CourtDebateItem
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 7) {
+            HStack(alignment: .center, spacing: 8) {
+                Label(debate.title, systemImage: debate.systemImage)
+                    .font(.caption.bold())
+                    .foregroundStyle(debate.tint)
+                    .lineLimit(1)
+
+                Spacer(minLength: 8)
+
+                Text(debate.verdict)
+                    .font(.caption.bold())
+                    .foregroundStyle(.primary)
+                    .lineLimit(1)
+            }
+
+            HStack(alignment: .top, spacing: MingDesignTokens.compactSpacing) {
+                CourtDebateMetric(
+                    title: debate.leadingTitle,
+                    value: debate.leadingValue,
+                    detail: debate.leadingDetail,
+                    tint: debate.tint
+                )
+                CourtDebateMetric(
+                    title: debate.trailingTitle,
+                    value: debate.trailingValue,
+                    detail: debate.trailingDetail,
+                    tint: debate.tint
+                )
+            }
+        }
+        .padding(MingDesignTokens.compactSpacing)
+        .background(MingDesignTokens.sectionBackground)
+        .clipShape(RoundedRectangle(cornerRadius: MingDesignTokens.cornerRadius))
+        .accessibilityElement(children: .combine)
+    }
+}
+
+private struct CourtDebateMetric: View {
+    let title: String
+    let value: Int
+    let detail: String
+    let tint: Color
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            HStack {
+                Text(title)
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+                Spacer(minLength: 4)
+                Text("\(value)")
+                    .font(.caption2.monospacedDigit())
+                    .foregroundStyle(.secondary)
+            }
+
+            ProgressView(value: Double(value), total: 100)
+                .tint(tint)
+
+            Text(detail)
+                .font(.caption2)
+                .foregroundStyle(.secondary)
+                .lineLimit(2)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 }
 
