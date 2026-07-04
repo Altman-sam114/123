@@ -1,4 +1,4 @@
-# WWIIHexV0 核心流程文档（明末迁移 v4.4 钱粮首片）
+# WWIIHexV0 核心流程文档（明末迁移 v4.4 钱粮/治理/天下局势首片）
 
 > 本文是项目当前核心逻辑的接手文档。目标不是复述历史设计，而是按当前代码真实链路说明：数据如何进入游戏，hex / region / theater / front / deploy 如何派生，主游戏和地图编辑器如何共同维护同一套地图语义，AI / 玩家命令如何落到规则系统。
 
@@ -44,6 +44,8 @@ MapEditor / JSON 数据
 - v4.2 默认数据首片中，`DataLoader.loadInitialGameState()` 优先尝试 `chongzhen_1642_scenario` + `chongzhen_1642_regions`，失败才回退阿登 legacy 数据。
 - v4.3 军队首步中，`ComponentType` 已补明末骑兵、火器、旗骑、团练、攻城器械等兼容 case；默认明末初始单位已切到明末 template，legacy 阿登 template 继续保留。
 - v4.4 钱粮首片中，`EconomyResources.manpower/industry/supplies` 暂保留为兼容字段名，但 UI、日志和 AI 摘要显示为民力、银两、粮草；生产项显示为募营兵、募精骑、募哨骑、造炮队和筹粮。
+- v4.4 治理首片中，`OccupationState.resistance/compliance` 已按民变/行政掌控解释，并对州府钱粮产出做轻量修正；该摘要进入州府面板和 AI 钱粮摘要。
+- v4.4 天下局势首片中，玩家信息面板的外交入口改为“天下”，`DiplomacyPanelView` 显示当前势力、名义主体、战事态势、主要对手、诸方势力、战和关系和朝议/军议。
 - `GamePhase.allowsHumanCommands` 是玩家可操作阶段的当前 UI/App 判定入口，兼容 `.humanAction` 与 legacy `.alliedPlayer`。
 - `turnOrder`、`humanControlledFactions`、`aiControlledFactions` 是通用回合和控制方配置；旧阿登仍 fallback 为 Germany AI / Allies player。
 - `EconomyState` 是 faction 级经济总账；收入来自受控 region、城市、工厂、基础设施和补给值，但战术占领仍以 hex 为准。
@@ -403,10 +405,22 @@ supplies -> 粮草
   如果该 region 没有任何真实己方控制 hex，跳过
   cityLevel = EconomyRules.cityLevel(region, map)
   coreBonus = region.coreOf 为空或包含 faction ? 1 : 0
-  民力 = max(1, cityLevel.manpowerGrowth + coreBonus * 4 + infrastructure)
-  银两 = max(0, factories + cityLevel.industryValue + infrastructure / 3)
-  粮草 = max(1, supplyValue * 3 + factories + infrastructure / 2)
+  基础民力 = max(1, cityLevel.manpowerGrowth + coreBonus * 4 + infrastructure)
+  基础银两 = max(0, factories + cityLevel.industryValue + infrastructure / 3)
+  基础粮草 = max(1, supplyValue * 3 + factories + infrastructure / 2)
+  钱粮修正 = OccupationState.economicYieldPercent
+  最终产出 = 基础产出 * 钱粮修正 / 100
 ```
+
+`OccupationState` 当前明末显示语义：
+
+```text
+resistance -> 民变 / 治安压力
+compliance -> 顺服 / 行政掌控
+economicYieldPercent = clamp(50...110, 100 + (compliance - 70) / 5 - resistance / 2)
+```
+
+默认 `stable` 口径为 `resistance=0, compliance=70`，对应 100% 产出。该修正只影响经济收入与州府面板显示，不改变 hex 控制权、region controller 或任何动态战区归属。
 
 城市等级不是单独 JSON schema，当前从既有字段推导：
 
@@ -465,8 +479,8 @@ strength < maxStrength
 
 AI 摘要：
 
-- `AgentContext.economySummary` 给 legacy Agent D / prompt builder 提供库存、上回合收入、军粮维护、补员消耗和民力/银两/粮草缺口。
-- `MarshalBattlefieldSummary.economySummary` 给元帅层和模拟 LLM prompt 提供同一钱粮摘要；schemaVersion 已升到 6。
+- `AgentContext.economySummary` 给 legacy Agent D / prompt builder 提供库存、上回合收入、军粮维护、补员消耗、民力/银两/粮草缺口和治理压力。
+- `MarshalBattlefieldSummary.economySummary` 给元帅层和模拟 LLM prompt 提供同一钱粮摘要；schemaVersion 已升到 7。
 - 钱粮摘要只读 `economyState`，不直接改变生产、占领或补给。
 
 ---
@@ -834,11 +848,11 @@ handleBoardTap(coord)
   - 将领
   - 战报
   - 钱粮
-  - 外交
+  - 天下
   - AI
 - `UnitTooltipView`。
 
-v4.4 首片中，HUD、CommandPanel、EconomyPanel、RegionInspector、UnitInspector、UnitTooltip 和 EventLog 分类已改为明末中文展示；底层图层枚举和命令 displayName 仍保留部分开发兼容名。
+v4.4 首片中，HUD、CommandPanel、EconomyPanel、RegionInspector、UnitInspector、UnitTooltip、DiplomacyPanel 和 EventLog 分类已改为明末中文展示；底层图层枚举和命令 displayName 仍保留部分开发兼容名。
 
 当前开局不会在 `RootGameView` 自动 `.task { runAIIfNeeded() }`。AI 行动由 `advanceOrRunAI()` 或命令提交后的 `runAIIfNeeded()` 触发。
 

@@ -66,7 +66,8 @@ enum ResourceType: String, Codable, Equatable, CaseIterable {
     case chromium
 }
 
-/// 占领区状态。v0.2 占位，抵抗/顺从逻辑留 v1.0。
+/// 占领区状态。v4.4 起用于明末地方治理：resistance 表示民变/治安压力，
+/// compliance 表示顺服/行政掌控。
 struct OccupationState: Codable, Equatable {
     var resistance: Int
     var compliance: Int
@@ -74,6 +75,46 @@ struct OccupationState: Codable, Equatable {
     init(resistance: Int = 0, compliance: Int = 0) {
         self.resistance = max(0, min(100, resistance))
         self.compliance = max(0, min(100, compliance))
+    }
+
+    static var stable: OccupationState {
+        OccupationState(resistance: 0, compliance: 70)
+    }
+
+    var economicYieldPercent: Int {
+        let complianceAdjustment = (compliance - 70) / 5
+        let resistancePenalty = resistance / 2
+        return max(50, min(110, 100 + complianceAdjustment - resistancePenalty))
+    }
+
+    var resistanceDisplayName: String {
+        switch resistance {
+        case 0..<15:
+            return "安定"
+        case 15..<35:
+            return "不稳"
+        case 35..<65:
+            return "民变"
+        default:
+            return "蜂起"
+        }
+    }
+
+    var complianceDisplayName: String {
+        switch compliance {
+        case 0..<30:
+            return "失控"
+        case 30..<55:
+            return "松散"
+        case 55..<80:
+            return "可用"
+        default:
+            return "稳固"
+        }
+    }
+
+    var displaySummary: String {
+        "民变 \(resistance)%（\(resistanceDisplayName)） / 行政 \(compliance)%（\(complianceDisplayName)）"
     }
 }
 

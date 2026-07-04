@@ -224,7 +224,7 @@ private enum CompactInfoPanel: String, CaseIterable, Identifiable {
     case general = "将领"
     case log = "战报"
     case economy = "钱粮"
-    case diplomacy = "外交"
+    case diplomacy = "天下"
     case agent = "AI"
 
     var id: String {

@@ -22,12 +22,14 @@ struct RegionInspectorView: View {
     }
 
     private func regionDetails(_ state: RegionInspectorState) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
+        let occupation = state.region.occupationState ?? .stable
+
+        return VStack(alignment: .leading, spacing: 8) {
             Text(state.region.name)
                 .font(.subheadline.weight(.semibold))
 
             if let selectedHex = state.selectedHex {
-                LabeledContent("Hex") {
+                LabeledContent("地块") {
                     Text("\(selectedHex.q),\(selectedHex.r)")
                 }
 
@@ -75,6 +77,15 @@ struct RegionInspectorView: View {
             LabeledContent("产出") {
                 Text(state.economicOutput.compactDisplaySummary)
                     .multilineTextAlignment(.trailing)
+            }
+
+            LabeledContent("治理") {
+                Text(occupation.displaySummary)
+                    .multilineTextAlignment(.trailing)
+            }
+
+            LabeledContent("钱粮修正") {
+                Text("\(occupation.economicYieldPercent)%")
             }
 
             LabeledContent("方面") {

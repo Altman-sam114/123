@@ -145,19 +145,7 @@ struct EconomyRules {
                 continue
             }
 
-            let level = cityLevel(for: region, map: map)
-            let coreBonus = region.coreOf.isEmpty || region.coreOf.contains(faction) ? 1 : 0
-            let regionManpower = max(1, level.manpowerGrowth + coreBonus * 4 + region.infrastructure)
-            let regionIndustry = max(0, region.factories + level.industryValue + region.infrastructure / 3)
-            let regionSupplies = max(1, region.supplyValue * 3 + region.factories + region.infrastructure / 2)
-
-            income.add(
-                EconomyResources(
-                    manpower: regionManpower,
-                    industry: regionIndustry,
-                    supplies: regionSupplies
-                )
-            )
+            income.add(incomeContribution(for: region, faction: faction, map: map))
         }
 
         if map.regions.isEmpty {
@@ -172,6 +160,17 @@ struct EconomyRules {
         }
 
         return income
+    }
+
+    func incomeContribution(for region: RegionNode, faction: Faction, map: MapState) -> EconomyResources {
+        let level = cityLevel(for: region, map: map)
+        let coreBonus = region.coreOf.isEmpty || region.coreOf.contains(faction) ? 1 : 0
+        let base = EconomyResources(
+            manpower: max(1, level.manpowerGrowth + coreBonus * 4 + region.infrastructure),
+            industry: max(0, region.factories + level.industryValue + region.infrastructure / 3),
+            supplies: max(1, region.supplyValue * 3 + region.factories + region.infrastructure / 2)
+        )
+        return applyGovernanceYield(to: base, occupationState: region.occupationState)
     }
 
     private func ensureLedger(for faction: Faction, in state: inout GameState) {
@@ -190,6 +189,21 @@ struct EconomyRules {
                 )
             )
         }
+    }
+
+    private func applyGovernanceYield(
+        to resources: EconomyResources,
+        occupationState: OccupationState?
+    ) -> EconomyResources {
+        guard let occupationState else {
+            return resources
+        }
+        let percent = occupationState.economicYieldPercent
+        return EconomyResources(
+            manpower: max(1, resources.manpower * percent / 100),
+            industry: max(0, resources.industry * percent / 100),
+            supplies: max(1, resources.supplies * percent / 100)
+        )
     }
 
     private func supplyUpkeep(for faction: Faction, in state: GameState) -> EconomyResources {

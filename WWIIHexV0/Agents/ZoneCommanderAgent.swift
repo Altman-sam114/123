@@ -1032,7 +1032,7 @@ struct MarshalBattlefieldSummarizer {
         let recentEvents = Array(state.eventLog.suffix(maxRecentEvents)).map(\.message)
 
         return MarshalBattlefieldSummary(
-            schemaVersion: 6,
+            schemaVersion: 7,
             turn: state.turn,
             faction: faction,
             marshalId: config.id,
@@ -1042,7 +1042,11 @@ struct MarshalBattlefieldSummarizer {
             overallSupply: overallSupply,
             friendlyLowSupplyCount: lowSupplyCount,
             friendlyEncircledCount: encircledCount,
-            economySummary: EconomyAISummary.from(ledger: state.economyState.ledger(for: faction)),
+            economySummary: EconomyAISummary.from(
+                ledger: state.economyState.ledger(for: faction),
+                faction: faction,
+                map: state.map
+            ),
             objectivesHeld: heldObjectives,
             objectivesLost: lostObjectives,
             fronts: frontSummaries,

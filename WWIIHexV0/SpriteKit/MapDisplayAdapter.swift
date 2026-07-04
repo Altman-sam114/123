@@ -202,11 +202,15 @@ struct MapDisplayAdapter {
             }
             .map(\.name)
         let objectiveStatus = objectiveNames.isEmpty
-            ? "None"
-            : "\(region.controller.displayName) controlled"
+            ? "无"
+            : "\(region.controller.displayName) 控制"
 
         let cityLevel = EconomyRules().cityLevel(for: region, map: state.map)
-        let economicOutput = regionalEconomicOutput(for: region, cityLevel: cityLevel)
+        let economicOutput = EconomyRules().incomeContribution(
+            for: region,
+            faction: region.controller,
+            map: state.map
+        )
 
         return RegionInspectorState(
             region: region,
@@ -276,15 +280,6 @@ struct MapDisplayAdapter {
             return region.controller
         }
         return state.map.tile(at: hex)?.controller
-    }
-
-    private func regionalEconomicOutput(for region: RegionNode, cityLevel: CityLevel) -> EconomyResources {
-        let coreBonus = region.coreOf.isEmpty || region.coreOf.contains(region.controller) ? 1 : 0
-        return EconomyResources(
-            manpower: max(1, cityLevel.manpowerGrowth + coreBonus * 4 + region.infrastructure),
-            industry: max(0, region.factories + cityLevel.industryValue + region.infrastructure / 3),
-            supplies: max(1, region.supplyValue * 3 + region.factories + region.infrastructure / 2)
-        )
     }
 
     private func stackOffset(index: Int, count: Int) -> CGPoint {

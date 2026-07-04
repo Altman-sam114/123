@@ -69,21 +69,21 @@ enum DiplomaticStatus: String, Codable, Equatable, CaseIterable {
     var displayName: String {
         switch self {
         case .allied:
-            return "Allied"
+            return "同盟"
         case .coBelligerent:
-            return "Co-belligerent"
+            return "共同作战"
         case .neutral:
-            return "Neutral"
+            return "观望"
         case .vassal:
-            return "Vassal"
+            return "臣属"
         case .truce:
-            return "Truce"
+            return "停战"
         case .passage:
-            return "Passage"
+            return "借道"
         case .hostile:
-            return "Hostile"
+            return "敌对"
         case .atWar:
-            return "At war"
+            return "交战"
         }
     }
 }
@@ -180,13 +180,13 @@ enum RulerStrategicPosture: String, Codable, Equatable, CaseIterable {
     var displayName: String {
         switch self {
         case .offensive:
-            return "Offensive"
+            return "进取"
         case .defensive:
-            return "Defensive"
+            return "守势"
         case .coalitionMaintenance:
-            return "Coalition"
+            return "维系盟局"
         case .stabilizeFront:
-            return "Stabilize"
+            return "稳住战线"
         }
     }
 }
@@ -411,9 +411,9 @@ struct DiplomacyState: Codable, Equatable {
     }
 
     func summary(for faction: Faction) -> String {
-        let countryNames = countries(for: faction).map(\.name).joined(separator: ", ")
+        let countryNames = countries(for: faction).map(\.name).joined(separator: "、")
         let hostileCount = hostileCountryIds(to: faction).count
-        return "\(faction.displayName): \(countryNames.isEmpty ? "no countries" : countryNames); \(hostileCount) hostile relation(s)."
+        return "\(faction.displayName)：\(countryNames.isEmpty ? "未登记政治主体" : countryNames)；敌对关系 \(hostileCount)"
     }
 
     mutating func appendRulerRecord(_ record: RulerDecisionRecord) {

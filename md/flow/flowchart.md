@@ -14,7 +14,7 @@
   -> v4.1 兼容层用 turnOrder 与 DiplomacyState 支持多势力回合和敌我判断
   -> v4.2 默认数据先加载崇祯十五年明末剧本，失败才回退阿登
   -> v4.3 默认明末单位使用明末 template，战术展示名开始明末化
-  -> v4.4 钱粮首片把 economy 展示为民力、银两、粮草，并进入 AI 摘要
+  -> v4.4 钱粮、治理与天下局势首片把 economy 展示为民力、银两、粮草，民变/行政掌控影响收入，天下面板展示战和关系，并进入 AI 摘要
   -> v0.5 元帅层是战略意图层，不替代战术权威
   -> 玩家和 AI 都必须把命令交给 RuleEngine
   -> 命令执行后再同步刷新战略层和 UI
@@ -46,8 +46,8 @@ flowchart TD
     FRONT["前线层<br/>FrontLine / FrontSegment<br/>按双方动态战区的真实相邻 hex 生成"]:::derived
     DEPLOY["部署层<br/>WarDeploymentState<br/>用 hexToFrontZone 把单位分成前线/纵深/驻军"]:::derived
     TURN["通用回合控制<br/>turnOrder + human/AI factions<br/>决定 active faction 和行动 phase"]:::state
-    DIP["外交关系<br/>DiplomacyState<br/>canAttack / isHostile / canEnterTerritory"]:::state
-    ECO["钱粮总账<br/>EconomyState / EconomyRules<br/>民力、银两、粮草、生产队列、自动补员"]:::economy
+    DIP["天下局势 / 外交关系<br/>DiplomacyState<br/>canAttack / isHostile / canEnterTerritory"]:::state
+    ECO["钱粮总账<br/>EconomyState / EconomyRules<br/>民力、银两、粮草、治理修正、生产队列、自动补员"]:::economy
     PLAYER["玩家输入<br/>点击地图、移动、攻击、结束回合"]:::input
     AI["AI 元帅系统<br/>MarshalAgent + TheaterDirective JSON<br/>读取前线、补给和钱粮摘要"]:::input
     DEC["元帅 JSON 解码<br/>TheaterDirectiveDecoder<br/>提取 fenced JSON、校验 id 与 schema"]:::command
@@ -207,16 +207,17 @@ flowchart TD
     classDef warn fill:#ffedd5,stroke:#f97316,color:#431407
 ```
 
-## 3. v4.4 钱粮、生产与补员链路
+## 3. v4.4 钱粮、治理、生产与补员链路
 
-这张图看 v4.4 钱粮首片。经济总账仍是 faction 级资源池，但 UI、日志和 AI 摘要显示为民力、银两、粮草；收入和部署资格仍回到真实 hex 控制和 region 聚合；生产命令仍走 `RuleEngine`，UI 不直接改 `GameState`。
+这张图看 v4.4 钱粮和治理首片。经济总账仍是 faction 级资源池，但 UI、日志和 AI 摘要显示为民力、银两、粮草；民变/行政掌控会轻量修正州府收入；收入和部署资格仍回到真实 hex 控制和 region 聚合；生产命令仍走 `RuleEngine`，UI 不直接改 `GameState`。
 
 ```mermaid
 flowchart TD
     BOOT["经济启动补账<br/>EconomyRules.bootstrapIfNeeded<br/>旧状态缺 economyState 时从地图推导账本"]:::economy
     HEX["真实控制权<br/>HexTile.controller<br/>经济收入必须有己方控制 hex 证据"]:::authority
     REGION["战略聚合<br/>RegionNode<br/>city / factories / infrastructure / supplyValue"]:::derived
-    INCOME["收入计算<br/>EconomyRules.income<br/>民力 / 银两 / 粮草<br/>底层字段仍兼容 manpower / industry / supplies"]:::economy
+    GOV["地方治理<br/>OccupationState<br/>民变 resistance / 行政 compliance<br/>生成钱粮修正百分比"]:::economy
+    INCOME["收入计算<br/>EconomyRules.income<br/>基础民力/银两/粮草 * 治理修正<br/>底层字段仍兼容 manpower / industry / supplies"]:::economy
     LEDGER["阵营总账<br/>FactionEconomyLedger<br/>库存、上回合收入、维护费、补员消耗、队列"]:::economy
 
     UI["钱粮面板<br/>EconomyPanelView<br/>展示民力、银两、粮草和募兵/筹粮按钮"]:::ui
@@ -237,7 +238,7 @@ flowchart TD
     NEXT["切换阵营并刷新运行时层<br/>StrategicStateBootstrapper.refreshRuntimeState"]:::rules
 
     BOOT --> LEDGER
-    HEX --> REGION --> INCOME --> LEDGER
+    HEX --> REGION --> GOV --> INCOME --> LEDGER
     UI --> QUEUE --> VALIDATE --> PAY --> LEDGER
     END --> SUPPLY --> RESOLVE
     LEDGER --> RESOLVE
@@ -249,7 +250,7 @@ flowchart TD
     DEPLOY -->|没有| WAIT --> NEXT
     RESOLVE --> LEDGER
 
-    LEDGER --> AISUM["AI 钱粮摘要<br/>EconomyAISummary<br/>库存、收入、军粮维护、补员消耗、缺口"]:::economy
+    LEDGER --> AISUM["AI 钱粮摘要<br/>EconomyAISummary<br/>库存、收入、军粮维护、补员消耗、缺口、治理压力"]:::economy
 
     WARN["边界<br/>经济系统不能直接占 hex<br/>也不能把中立/空控制 region 收入算给某阵营"]:::warn
     HEX -.守住.-> WARN

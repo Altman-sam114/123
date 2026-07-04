@@ -49,6 +49,9 @@
 - 玩家默认明廷；清、大顺、大西等由 AI Agent 驱动。
 - 第一屏直接进入可玩战役地图，不做营销落地页。
 - 玩家可微操军队，也可通过朝廷、督抚、将领面板下达宏观命令。
+- 明末代入感必须侧重中华世界局势：明廷、后金/清、大顺、大西、地方势力之间的战和、招抚、粮道、民变和朝议都要能被玩家看见。
+- 政策、经济、科技、军事四条线都要有可解释入口；首版可轻量，但不能只做单一战斗或单一经济面板。
+- 地图、部队、朝廷、钱粮、天下局势等界面要按发布级 UI 目标推进，避免继续停留在调试板观感。
 - AI Agent 只能输出结构化 directive，经 decoder / validator / compiler 后进入规则系统。
 - 发布前玩家可见主 UI 不应残留主要二战文案：德国、盟军、阿登、巴斯托涅、Panzer、Division、NATO、Manpower / Industry / Supplies 等。
 
@@ -122,7 +125,7 @@ md/
     │   ├── v4.3_ming_units_tactics_record.md
     │   │   v4.3 明末兵种 template、战术显示名和规则首步记录。
     │   └── v4.4_ming_economy_governance_record.md
-    │       v4.4 钱粮、生产 UI 和 AI 摘要首片记录。
+    │       v4.4 钱粮、治理、天下局势 UI 和 AI 摘要首片记录。
     ├── v0.*（已完成）/
     │   历史 WWIIHexV0 阶段记录。
     ├── v2.0-三国迁移/、v3.0-拿战迁移/、v5.0-唐宋迁移/、v6.0-现代战争迁移/
@@ -141,9 +144,9 @@ md/
 | v4.1 | 多势力、外交关系和通用回合编排 | `Faction` 多势力、敌我判断、通用 active faction、AI 回合不再绑定德国；当前兼容层源码已部分落地 | `v4.1_powers_turns_prompt.md`、`flow.md`、`flowchart.md`、阶段实现记录 |
 | v4.2 | 明末地图、剧本数据和 MapEditor 迁移 | `崇祯十五年：天下裂变` 默认数据首片已落地：120 hex、30 region、5 势力、22 初始单位；`DataLoader` 和 MapEditor 默认桥接优先明末 JSON | `v4.2_ming_scenario_data_record.md`、`flow.md`、数据 schema 记录 |
 | v4.3 | 明末军队、围城、粮草和战术规则 | 首批明末 unit template、默认单位 templateId、ComponentType 兼容 case、攻城/火器首步修正和战术展示名已开始落地；完整围城状态、粮草命名和经济资源仍后置 | `v4.3_ming_units_tactics_record.md`、`flow.md`、战术规则记录 |
-| v4.4 | 经济、灾荒、军饷和地方治理 | 首片已开始落地：民力/银两/粮草展示、募兵/筹粮生产口径、明末生产单位组件、AI 钱粮摘要；灾荒、治安、完整军饷士气链后续继续 | `v4.4_ming_economy_governance_record.md`、`flow.md`、经济规则记录 |
-| v4.5 | 皇帝、朝议、督师、将领和流民军 Agent | 多角色 Agent 分层、Codable directive、fallback、复盘面板 | `flowchart.md`、Agent schema 记录 |
-| v4.6 | 发布级明末 UI、美术和交互收口 | 舆图、军令牌、战报、粮道、势力旗色、移动端/macOS 布局 | UI 设计记录、截图检查清单 |
+| v4.4 | 经济、灾荒、军饷和地方治理 | 已开始落地：民力/银两/粮草展示、募兵/筹粮生产口径、明末生产单位组件、民变/行政掌控收入修正、AI 钱粮与治理摘要、天下局势入口；灾荒、完整政策/军饷士气链后续继续 | `v4.4_ming_economy_governance_record.md`、`flow.md`、经济规则记录 |
+| v4.5 | 皇帝、朝议、政策科技、督师和将领 Agent | 多角色 Agent 分层、政策/经济/科技/军事 directive、Codable schema、fallback、复盘面板 | `flowchart.md`、Agent schema 记录 |
+| v4.6 | 发布级明末 UI、美术和交互收口 | 舆图地图、军令牌部队、朝廷/天下/钱粮面板、战报、粮道、势力旗色、移动端/macOS 布局 | UI 设计记录、截图检查清单 |
 | v4.7 | 历史事件、教程、战役内容和可玩性 | 松锦、催饷、饥荒、开封围城、10-20 回合目标链 | 内容记录、事件 schema |
 | v4.8 | 发布候选、存档、设置和验收 | 新局/继续/重置、存档、设置、版本说明、发布前授权重验证清单 | `README.md`、`update_log.md`、发布候选记录 |
 

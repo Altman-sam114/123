@@ -46,6 +46,61 @@ struct SupplySummary: Codable, Equatable {
     let enemyEncircled: Int
 }
 
+struct GovernanceAISummary: Codable, Equatable {
+    let controlledRegions: Int
+    let unstableRegions: Int
+    let averageResistance: Int
+    let averageCompliance: Int
+    let lowestComplianceRegionId: RegionId?
+
+    static var empty: GovernanceAISummary {
+        GovernanceAISummary(
+            controlledRegions: 0,
+            unstableRegions: 0,
+            averageResistance: 0,
+            averageCompliance: 0,
+            lowestComplianceRegionId: nil
+        )
+    }
+
+    static func from(faction: Faction, map: MapState) -> GovernanceAISummary {
+        let regions = map.regions.values
+            .filter { $0.controller == faction && $0.isPassable }
+
+        guard !regions.isEmpty else {
+            return .empty
+        }
+
+        let states = regions.map { $0.occupationState ?? .stable }
+        let resistanceTotal = states.reduce(0) { $0 + $1.resistance }
+        let complianceTotal = states.reduce(0) { $0 + $1.compliance }
+        let unstableCount = states.filter {
+            $0.resistance >= 25 || $0.compliance < 55
+        }.count
+        let lowestComplianceRegionId = regions.min {
+            let lhsState = $0.occupationState ?? .stable
+            let rhsState = $1.occupationState ?? .stable
+            if lhsState.compliance == rhsState.compliance {
+                return $0.id.rawValue < $1.id.rawValue
+            }
+            return lhsState.compliance < rhsState.compliance
+        }?.id
+
+        return GovernanceAISummary(
+            controlledRegions: regions.count,
+            unstableRegions: unstableCount,
+            averageResistance: resistanceTotal / regions.count,
+            averageCompliance: complianceTotal / regions.count,
+            lowestComplianceRegionId: lowestComplianceRegionId
+        )
+    }
+
+    var displaySummary: String {
+        let regionText = lowestComplianceRegionId?.rawValue ?? "无"
+        return "控制州府 \(controlledRegions)，不稳 \(unstableRegions)，平均民变 \(averageResistance)，平均行政 \(averageCompliance)，最低行政 \(regionText)"
+    }
+}
+
 struct EconomyAISummary: Codable, Equatable {
     let stockpile: EconomyResources
     let lastIncome: EconomyResources
@@ -54,8 +109,13 @@ struct EconomyAISummary: Codable, Equatable {
     let grainShortfall: Int
     let silverShortfall: Int
     let manpowerShortfall: Int
+    let governanceSummary: GovernanceAISummary
 
-    static func from(ledger: FactionEconomyLedger) -> EconomyAISummary {
+    static func from(
+        ledger: FactionEconomyLedger,
+        faction: Faction? = nil,
+        map: MapState? = nil
+    ) -> EconomyAISummary {
         let minimumActionCost = ProductionKind.allCases
             .map(\.cost)
             .reduce(EconomyResources(manpower: Int.max, industry: Int.max, supplies: Int.max)) { partial, cost in
@@ -75,6 +135,12 @@ struct EconomyAISummary: Codable, Equatable {
                     supplies: min(partial.supplies, cost.supplies)
                 )
             }
+        let governanceSummary: GovernanceAISummary
+        if let faction, let map {
+            governanceSummary = GovernanceAISummary.from(faction: faction, map: map)
+        } else {
+            governanceSummary = .empty
+        }
 
         return EconomyAISummary(
             stockpile: ledger.stockpile,
@@ -83,12 +149,13 @@ struct EconomyAISummary: Codable, Equatable {
             lastReinforcementSpend: ledger.lastReinforcementSpend,
             grainShortfall: max(0, ledger.lastUpkeep.supplies - ledger.stockpile.supplies),
             silverShortfall: max(0, minimumActionCost.industry - ledger.stockpile.industry),
-            manpowerShortfall: max(0, minimumRecruitmentCost.manpower - ledger.stockpile.manpower)
+            manpowerShortfall: max(0, minimumRecruitmentCost.manpower - ledger.stockpile.manpower),
+            governanceSummary: governanceSummary
         )
     }
 
     var displaySummary: String {
-        "库存 \(stockpile.displaySummary)；收入 \(lastIncome.displaySummary)；军粮维护 \(lastUpkeep.displaySummary)；补员 \(lastReinforcementSpend.displaySummary)；缺口 民力 \(manpowerShortfall), 银两 \(silverShortfall), 粮草 \(grainShortfall)"
+        "库存 \(stockpile.displaySummary)；收入 \(lastIncome.displaySummary)；军粮维护 \(lastUpkeep.displaySummary)；补员 \(lastReinforcementSpend.displaySummary)；缺口 民力 \(manpowerShortfall), 银两 \(silverShortfall), 粮草 \(grainShortfall)；治理 \(governanceSummary.displaySummary)"
     }
 }
 
@@ -285,7 +352,11 @@ struct AgentContextBuilder {
     }
 
     private func economySummary(for faction: Faction, state: GameState) -> EconomyAISummary {
-        EconomyAISummary.from(ledger: state.economyState.ledger(for: faction))
+        EconomyAISummary.from(
+            ledger: state.economyState.ledger(for: faction),
+            faction: faction,
+            map: state.map
+        )
     }
 
     private func recentEvents(state: GameState) -> [EventSummary] {
