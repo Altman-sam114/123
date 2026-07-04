@@ -82,6 +82,17 @@ struct RootGameView: View {
 
     private var mapControls: some View {
         VStack(spacing: 6) {
+            HStack(alignment: .firstTextBaseline, spacing: 8) {
+                Label("舆图", systemImage: "map")
+                    .font(.caption.bold())
+                    .foregroundStyle(MingDesignTokens.ink)
+                Spacer(minLength: 8)
+                Label(container.mapDisplayLayer.legendTitle, systemImage: container.mapDisplayLayer.systemImageName)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+            }
+
             Picker("图层", selection: Binding(
                 get: { container.mapDisplayLayer },
                 set: { container.setMapDisplayLayer($0) }
@@ -117,9 +128,10 @@ struct RootGameView: View {
             .font(.caption.weight(.semibold))
             .frame(minHeight: MingDesignTokens.minimumTapSize)
 
-            if container.mapDisplayLayer == .hex && container.showsSupplyRoutes {
-                SupplyRouteLegendView()
-            }
+            MingMapLegendView(
+                layer: container.mapDisplayLayer,
+                showsSupplyRoutes: container.mapDisplayLayer == .hex && container.showsSupplyRoutes
+            )
         }
         .padding(MingDesignTokens.compactSpacing)
         .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: MingDesignTokens.cornerRadius))
@@ -267,7 +279,82 @@ private enum CompactInfoPanel: String, CaseIterable, Identifiable {
     }
 }
 
-private struct SupplyRouteLegendView: View {
+private struct MingMapLegendView: View {
+    let layer: MapDisplayLayer
+    let showsSupplyRoutes: Bool
+
+    var body: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 6) {
+                if layer == .hex {
+                    MapLegendBadge(text: "城", title: "城池", tint: MingDesignTokens.imperialGold)
+                    MapLegendBadge(text: "关", title: "关隘", tint: MingDesignTokens.cinnabar)
+                    MapLegendBadge(text: "粮", title: "粮台", tint: MingDesignTokens.jade)
+                    MapLegendBadge(text: "步", title: "军牌", tint: MingDesignTokens.porcelainBlue)
+
+                    if showsSupplyRoutes {
+                        SupplyRouteLegendBadge()
+                    }
+                } else {
+                    MapLayerLegendBadge(layer: layer)
+                }
+            }
+            .padding(.vertical, 1)
+        }
+        .accessibilityElement(children: .contain)
+    }
+}
+
+private struct MapLayerLegendBadge: View {
+    let layer: MapDisplayLayer
+
+    var body: some View {
+        HStack(spacing: 7) {
+            Image(systemName: layer.systemImageName)
+                .foregroundStyle(MingDesignTokens.cinnabar)
+                .frame(width: 18)
+
+            VStack(alignment: .leading, spacing: 1) {
+                Text(layer.legendTitle)
+                    .font(.caption.bold())
+                Text(layer.legendDetail)
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+            }
+        }
+        .padding(.horizontal, 8)
+        .padding(.vertical, 6)
+        .background(MingDesignTokens.sectionBackground.opacity(0.82), in: RoundedRectangle(cornerRadius: MingDesignTokens.cornerRadius))
+        .accessibilityElement(children: .combine)
+    }
+}
+
+private struct MapLegendBadge: View {
+    let text: String
+    let title: String
+    let tint: Color
+
+    var body: some View {
+        HStack(spacing: 6) {
+            Text(text)
+                .font(.caption.bold())
+                .foregroundStyle(.white)
+                .frame(width: 22, height: 18)
+                .background(tint, in: RoundedRectangle(cornerRadius: 4))
+
+            Text(title)
+                .font(.caption)
+                .lineLimit(1)
+        }
+        .padding(.horizontal, 7)
+        .padding(.vertical, 6)
+        .background(MingDesignTokens.sectionBackground.opacity(0.82), in: RoundedRectangle(cornerRadius: MingDesignTokens.cornerRadius))
+        .accessibilityElement(children: .combine)
+    }
+}
+
+private struct SupplyRouteLegendBadge: View {
     var body: some View {
         HStack(spacing: 8) {
             SupplyRouteSwatch()
