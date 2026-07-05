@@ -17,6 +17,7 @@ struct EconomyPanelView: View {
                 observerModeEnabled: observerModeEnabled
             )
             TreasuryStockpileSection(ledger: ledger)
+            TreasuryFlowSection(ledger: ledger)
             ProductionActionSection(
                 ledger: ledger,
                 canQueue: canQueue,
@@ -178,6 +179,166 @@ private struct TreasuryInfoRow: View {
                 .lineLimit(1)
                 .minimumScaleFactor(0.72)
         }
+    }
+}
+
+private struct TreasuryFlowSection: View {
+    let ledger: FactionEconomyLedger
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: MingDesignTokens.compactSpacing) {
+            HStack(alignment: .firstTextBaseline) {
+                Label("收支急报", systemImage: pressureSystemImageName)
+                    .font(.caption.bold())
+                    .foregroundStyle(pressureTint)
+                Spacer(minLength: 8)
+                Text(pressureStatus.title)
+                    .font(.caption.bold())
+                    .foregroundStyle(pressureTint)
+                    .lineLimit(1)
+            }
+
+            LazyVGrid(columns: [GridItem(.adaptive(minimum: 78), spacing: 6)], alignment: .leading, spacing: 6) {
+                TreasuryNetBadge(title: "净民力", value: netManpower, tint: MingDesignTokens.jade)
+                TreasuryNetBadge(title: "净银两", value: netIndustry, tint: MingDesignTokens.imperialGold)
+                TreasuryNetBadge(title: "净粮草", value: netSupplies, tint: supplyTint)
+                TreasuryNetBadge(title: "营造", value: ledger.productionQueue.count, suffix: "项", tint: queueTint)
+            }
+
+            Text(flowDetail)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .padding(MingDesignTokens.compactSpacing)
+        .background(MingDesignTokens.sectionBackground)
+        .clipShape(RoundedRectangle(cornerRadius: MingDesignTokens.cornerRadius))
+        .accessibilityElement(children: .combine)
+    }
+
+    private var netManpower: Int {
+        ledger.lastIncome.manpower - ledger.lastReinforcementSpend.manpower
+    }
+
+    private var netIndustry: Int {
+        ledger.lastIncome.industry - ledger.lastReinforcementSpend.industry
+    }
+
+    private var netSupplies: Int {
+        ledger.lastIncome.supplies - ledger.lastUpkeep.supplies - ledger.lastReinforcementSpend.supplies
+    }
+
+    private var readyOrders: Int {
+        ledger.productionQueue.filter(\.isReady).count
+    }
+
+    private var pressureStatus: TreasuryPressureStatus {
+        if netSupplies < 0 {
+            return .grain
+        }
+        if netIndustry < 0 || netManpower < 0 {
+            return .reinforcement
+        }
+        if readyOrders > 0 {
+            return .deployment
+        }
+        return .stable
+    }
+
+    private var pressureSystemImageName: String {
+        pressureStatus.systemImageName
+    }
+
+    private var pressureTint: Color {
+        pressureStatus.tint
+    }
+
+    private var supplyTint: Color {
+        netSupplies < 0 ? MingDesignTokens.cinnabar : MingDesignTokens.porcelainBlue
+    }
+
+    private var queueTint: Color {
+        readyOrders > 0 ? MingDesignTokens.porcelainBlue : .secondary
+    }
+
+    private var flowDetail: String {
+        let readyText = readyOrders > 0 ? "，\(readyOrders) 项待部署" : ""
+        return "入账 \(ledger.lastIncome.compactDisplaySummary)；军粮维护粮 \(ledger.lastUpkeep.supplies)，补员耗 \(ledger.lastReinforcementSpend.compactDisplaySummary)\(readyText)。"
+    }
+}
+
+private enum TreasuryPressureStatus {
+    case grain
+    case reinforcement
+    case deployment
+    case stable
+
+    var title: String {
+        switch self {
+        case .grain:
+            return "粮草吃紧"
+        case .reinforcement:
+            return "补员吃紧"
+        case .deployment:
+            return "待部署"
+        case .stable:
+            return "府库平稳"
+        }
+    }
+
+    var systemImageName: String {
+        switch self {
+        case .grain, .reinforcement:
+            return "exclamationmark.triangle"
+        case .deployment:
+            return "flag.checkered"
+        case .stable:
+            return "chart.line.uptrend.xyaxis"
+        }
+    }
+
+    var tint: Color {
+        switch self {
+        case .grain, .reinforcement:
+            return MingDesignTokens.cinnabar
+        case .deployment:
+            return MingDesignTokens.porcelainBlue
+        case .stable:
+            return MingDesignTokens.jade
+        }
+    }
+}
+
+private struct TreasuryNetBadge: View {
+    let title: String
+    let value: Int
+    var suffix: String = ""
+    let tint: Color
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 2) {
+            Text(title)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .lineLimit(1)
+            Text(displayValue)
+                .font(.caption.bold())
+                .foregroundStyle(value < 0 ? MingDesignTokens.cinnabar : tint)
+                .lineLimit(1)
+                .minimumScaleFactor(0.72)
+        }
+        .padding(.horizontal, 7)
+        .padding(.vertical, 6)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(MingDesignTokens.panelBackground.opacity(0.52), in: RoundedRectangle(cornerRadius: 6))
+        .accessibilityElement(children: .combine)
+    }
+
+    private var displayValue: String {
+        if suffix.isEmpty {
+            return value > 0 ? "+\(value)" : "\(value)"
+        }
+        return "\(value)\(suffix)"
     }
 }
 

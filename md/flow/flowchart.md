@@ -16,7 +16,7 @@
   -> v4.3 默认明末单位使用明末 template，战术展示名开始明末化
   -> v4.4 钱粮、治理与天下局势首片把 economy 展示为民力、银两、粮草，民变/行政掌控影响收入，天下面板展示战和关系，并进入 AI 摘要
   -> v4.5 朝廷首片把政策、经济、科技、军事四线压力派生为 CourtStrategySummary，并进入 UI / AI 摘要
-  -> v4.6 UI 首片用 MingDesignTokens、独立 CourtPanelView、朝议争点、朝廷五线态势、朝报令条、军令牌、将印军令、将领名帖、军机复盘牌/军机五线、塘报战记、部队军情牌、州府牌、府库牌、天下急势、天下战和张力条、阵营名义卡、中文军牌、势力旗号、城/关/粮 badge、粮道虚线/开关、军令计划线、舆图图例、兵种/粮草/堆叠图例和四线交叉项目分组 polish 主界面、地图部队和朝廷/将领/军令/AI 面板
+  -> v4.6 UI 首片用 MingDesignTokens、独立 CourtPanelView、朝议争点、朝廷五线态势、朝报令条、军令牌、将印军令、将领名帖、军机复盘牌/军机五线、塘报战记、部队军情牌、州府牌、府库牌收支急报、天下急势、天下战和张力条、阵营名义卡、中文军牌、势力旗号、城/关/粮 badge、粮道虚线/开关、军令计划线、舆图图例、兵种/粮草/堆叠图例和四线交叉项目分组 polish 主界面、地图部队和朝廷/将领/军令/AI 面板
   -> v4.6 朝廷项目首片把征饷、赈济、招抚、农政、修城、整训团练/地方驻防、火器、红衣炮、粮台驿道等主议/备议落到 Command.enactCourtProject 和 EconomyRules
   -> v4.7 明末胜负链首片把 ScenarioDefinition.victoryConditions 写入 GameState，并让清破关入京、大顺据中原秦陕、大西据湖广粮区、明廷守住京师关口等条件进入 BattleObjectiveSummary / VictoryRules，在“目标”“朝廷”和“军机复盘”面板显示只读天下五线态势，并在目标面板显示进度、控制方旗号、只读战役提示、开封围城压力、本旬任务链和阶段战局链，回合末把提示和急务/主线任务入塘报；CampaignAISummary 把同一五线态势送入 AgentContext、MarshalBattlefieldSummary 和 AgentPanelView；CourtStrategySummary 读取同一战役线压力加权朝廷主议；ZoneCommanderDoctrine 让明廷谨慎、清/大顺/大西进取、地方自保，并贯通 TheaterCommanderPool、AppContainer 空将领 registry fallback、MockAICommander、SimulatedMarshalLLMClient 和不同 tactic 映射；AgentPanelView 也只读展示势力军略、风格、技能标签和战术偏向；目标 chip 和任务按钮可只读定位对应 hex / 州府，并在舆图显示“标”令牌、脉冲圈和同胜负线城关连线；目标 hex 换手会写塘报
   -> v0.5 元帅层是战略意图层，不替代战术权威
@@ -53,7 +53,7 @@ flowchart TD
     DIP["天下局势 / 外交关系<br/>DiplomacyState<br/>诸方势力、阵营名义、战和张力"]:::state
     ECO["钱粮总账<br/>EconomyState / EconomyRules<br/>民力、银两、粮草、治理修正、生产队列、自动补员"]:::economy
     HUDINFO["朝报令条<br/>HUDView<br/>回合、势力、胜负、钱粮、入账、营造和四线压力"]:::ui
-    ECONINFO["府库牌<br/>EconomyPanelView<br/>库存、入账、维护、补员、募兵筹粮和营造队列"]:::ui
+    ECONINFO["府库牌<br/>EconomyPanelView<br/>库存、入账、维护、补员、净收支、募兵筹粮和营造队列"]:::ui
     COURT["朝廷摘要<br/>CourtStrategySummary<br/>政策、经济、科技、军事四线压力、战役线加权和议题建议"]:::economy
     COURTDEBATE["朝议争点<br/>CourtPanelView / CourtDebateSection<br/>安民与征饷、火器与团练、粮道与城防只读展示"]:::ui
     COURTFIVE["朝廷五线态势<br/>CourtPanelView / CourtCampaignLineSection<br/>复用 CampaignLineBrief 扫读天下、政策、经济、科技、军事压力"]:::ui
@@ -287,7 +287,7 @@ flowchart TD
     INCOME["收入计算<br/>EconomyRules.income<br/>基础民力/银两/粮草 * 治理修正<br/>底层字段仍兼容 manpower / industry / supplies"]:::economy
     LEDGER["阵营总账<br/>FactionEconomyLedger<br/>库存、上回合收入、维护费、补员消耗、队列"]:::economy
 
-    UI["府库牌<br/>EconomyPanelView<br/>展示库存、入账、维护、补员、募兵筹粮和营造队列"]:::ui
+    UI["府库牌<br/>EconomyPanelView<br/>展示库存、入账、维护、补员、净收支、募兵筹粮和营造队列"]:::ui
     QUEUE["生产命令<br/>Command.queueProduction<br/>玩家/未来 AI 共用底层命令"]:::command
     VALIDATE["生产校验<br/>CommandValidator.validateProduction<br/>检查 phase 与资源是否足够"]:::rules
     PAY["预付成本并入队<br/>EconomyRules.queueProduction<br/>扣民力/银两/粮草，追加 ProductionOrder"]:::economy
