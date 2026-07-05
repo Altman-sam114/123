@@ -4,15 +4,18 @@ struct AgentPanelView: View {
     let record: AgentDecisionRecord?
     let rulerRecord: RulerDecisionRecord?
     let directiveRecords: [WarDirectiveRecord]
+    let campaignSummary: CampaignAISummary
 
     init(
         record: AgentDecisionRecord?,
         rulerRecord: RulerDecisionRecord? = nil,
-        directiveRecords: [WarDirectiveRecord] = []
+        directiveRecords: [WarDirectiveRecord] = [],
+        campaignSummary: CampaignAISummary = .empty
     ) {
         self.record = record
         self.rulerRecord = rulerRecord
         self.directiveRecords = directiveRecords
+        self.campaignSummary = campaignSummary
     }
 
     var body: some View {
@@ -26,6 +29,7 @@ struct AgentPanelView: View {
             )
 
             decisionSection
+            AgentCampaignSituationSection(summary: campaignSummary)
 
             if let rulerRecord {
                 AgentRulerCard(record: rulerRecord)
@@ -164,6 +168,137 @@ struct AgentPanelView: View {
           "orders": []
         }
         """
+    }
+}
+
+private struct AgentCampaignSituationSection: View {
+    let summary: CampaignAISummary
+
+    var body: some View {
+        if summary.isMingScenario {
+            AgentSectionCard(title: "军机五线", systemImage: "globe.asia.australia", tint: MingDesignTokens.cinnabar) {
+                VStack(alignment: .leading, spacing: MingDesignTokens.compactSpacing) {
+                    Text(summary.displaySummary)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+
+                    LazyVGrid(columns: [GridItem(.adaptive(minimum: 108), spacing: 6)], alignment: .leading, spacing: 6) {
+                        ForEach(summary.lineBriefs, id: \.line) { brief in
+                            AgentCampaignLineChip(brief: brief)
+                        }
+                    }
+
+                    if !summary.activeTasks.isEmpty {
+                        VStack(alignment: .leading, spacing: 5) {
+                            Label("当旬军政钱粮火器", systemImage: "list.bullet.clipboard")
+                                .font(.caption.bold())
+                                .foregroundStyle(MingDesignTokens.imperialGold)
+
+                            ForEach(Array(summary.activeTasks.prefix(3)), id: \.self) { task in
+                                Text(task)
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                                    .lineLimit(2)
+                                    .fixedSize(horizontal: false, vertical: true)
+                            }
+                        }
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(MingDesignTokens.compactSpacing)
+                        .background(MingDesignTokens.panelBackground.opacity(0.52), in: RoundedRectangle(cornerRadius: 6))
+                    }
+                }
+            }
+        }
+    }
+}
+
+private struct AgentCampaignLineChip: View {
+    let brief: CampaignLineAISummary
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 5) {
+            HStack(alignment: .center, spacing: 5) {
+                Label(brief.line, systemImage: systemImageName)
+                    .font(.caption.bold())
+                    .foregroundStyle(tint)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.78)
+
+                Spacer(minLength: 4)
+
+                Text(brief.status)
+                    .font(.caption.bold())
+                    .foregroundStyle(tint)
+                    .lineLimit(1)
+            }
+
+            ProgressView(value: Double(brief.pressure), total: 100)
+                .tint(tint)
+
+            HStack(spacing: 5) {
+                Text("势 \(brief.pressure)")
+                    .font(.caption.monospacedDigit())
+                    .foregroundStyle(.secondary)
+                if brief.urgentTaskCount > 0 {
+                    Text("急 \(brief.urgentTaskCount)")
+                        .font(.caption.bold())
+                        .foregroundStyle(MingDesignTokens.cinnabar)
+                } else if brief.activeTaskCount > 0 {
+                    Text("事 \(brief.activeTaskCount)")
+                        .font(.caption.bold())
+                        .foregroundStyle(tint)
+                }
+            }
+
+            Text(brief.detail)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .lineLimit(2)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .padding(8)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(MingDesignTokens.panelBackground.opacity(0.58), in: RoundedRectangle(cornerRadius: 6))
+        .overlay {
+            RoundedRectangle(cornerRadius: 6)
+                .stroke(tint.opacity(brief.status == "告急" ? 0.42 : 0.18), lineWidth: 1)
+        }
+        .accessibilityElement(children: .combine)
+    }
+
+    private var tint: Color {
+        switch brief.line {
+        case "天下":
+            return MingDesignTokens.cinnabar
+        case "政策":
+            return MingDesignTokens.porcelainBlue
+        case "经济":
+            return MingDesignTokens.jade
+        case "科技":
+            return MingDesignTokens.imperialGold
+        case "军事":
+            return MingDesignTokens.ink
+        default:
+            return .secondary
+        }
+    }
+
+    private var systemImageName: String {
+        switch brief.line {
+        case "天下":
+            return "globe.asia.australia"
+        case "政策":
+            return "scroll"
+        case "经济":
+            return "shippingbox"
+        case "科技":
+            return "sparkles"
+        case "军事":
+            return "shield.lefthalf.filled"
+        default:
+            return "circle"
+        }
     }
 }
 
