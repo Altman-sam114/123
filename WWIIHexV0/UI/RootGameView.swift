@@ -81,6 +81,8 @@ struct RootGameView: View {
     }
 
     private var mapControls: some View {
+        let objectiveSummary = BattleObjectiveSummary.from(state: container.gameState)
+
         VStack(spacing: 6) {
             HStack(alignment: .firstTextBaseline, spacing: 8) {
                 Label("舆图", systemImage: "map")
@@ -92,6 +94,8 @@ struct RootGameView: View {
                     .foregroundStyle(.secondary)
                     .lineLimit(1)
             }
+
+            MingMapSituationStrip(summary: objectiveSummary)
 
             Picker("图层", selection: Binding(
                 get: { container.mapDisplayLayer },
@@ -273,6 +277,201 @@ struct RootGameView: View {
             }
             .padding(.horizontal, 8)
             .padding(.bottom, 10)
+        }
+    }
+}
+
+private struct MingMapSituationStrip: View {
+    let summary: BattleObjectiveSummary
+
+    var body: some View {
+        if summary.isMingScenario {
+            VStack(alignment: .leading, spacing: 7) {
+                HStack(alignment: .center, spacing: 8) {
+                    Label("天下急势", systemImage: "globe.asia.australia")
+                        .font(.caption.bold())
+                        .foregroundStyle(MingDesignTokens.ink)
+                        .lineLimit(1)
+
+                    Spacer(minLength: 6)
+
+                    MingMapSituationTaskBadge(title: "急", value: urgentTaskCount, tint: MingDesignTokens.cinnabar)
+                    MingMapSituationTaskBadge(title: "主", value: mainTaskCount, tint: MingDesignTokens.jade)
+                    MingMapSituationLeaderBadge(faction: summary.leadingFaction)
+                }
+
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 6) {
+                        ForEach(lineBriefs) { brief in
+                            MingMapSituationLineChip(brief: brief)
+                        }
+                    }
+                    .padding(.vertical, 1)
+                }
+            }
+            .padding(8)
+            .background(MingDesignTokens.sectionBackground.opacity(0.84), in: RoundedRectangle(cornerRadius: MingDesignTokens.cornerRadius))
+            .overlay {
+                RoundedRectangle(cornerRadius: MingDesignTokens.cornerRadius)
+                    .stroke(MingDesignTokens.courtStroke.opacity(0.72), lineWidth: 1)
+            }
+            .accessibilityElement(children: .contain)
+            .accessibilityLabel("天下急势，当前要冲领先方 \(leaderName)，急务 \(urgentTaskCount) 项，主线 \(mainTaskCount) 项")
+        }
+    }
+
+    private var lineBriefs: [BattleObjectiveSummary.CampaignLineBrief] {
+        summary.lineBriefs.sorted { lhs, rhs in
+            if lhs.status.sortRank == rhs.status.sortRank {
+                return lhs.pressure > rhs.pressure
+            }
+            return lhs.status.sortRank < rhs.status.sortRank
+        }
+    }
+
+    private var urgentTaskCount: Int {
+        summary.tasks.filter { $0.priority == .urgent }.count
+    }
+
+    private var mainTaskCount: Int {
+        summary.tasks.filter { $0.priority == .main }.count
+    }
+
+    private var leaderName: String {
+        summary.leadingFaction?.displayName ?? "未定"
+    }
+}
+
+private struct MingMapSituationLeaderBadge: View {
+    let faction: Faction?
+
+    var body: some View {
+        HStack(spacing: 5) {
+            if let faction {
+                MingFactionFlagBadge(faction: faction)
+                Text(faction.displayName)
+                    .foregroundStyle(faction.mingBannerTint)
+            } else {
+                Text("未定")
+                    .font(.caption.bold())
+                    .foregroundStyle(.secondary)
+                    .padding(.horizontal, 6)
+                    .padding(.vertical, 3)
+                    .background(MingDesignTokens.panelBackground.opacity(0.68), in: RoundedRectangle(cornerRadius: 5))
+            }
+        }
+        .font(.caption.bold())
+        .lineLimit(1)
+        .minimumScaleFactor(0.8)
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("要冲领先方 \(faction?.displayName ?? "未定")")
+    }
+}
+
+private struct MingMapSituationTaskBadge: View {
+    let title: String
+    let value: Int
+    let tint: Color
+
+    var body: some View {
+        HStack(spacing: 3) {
+            Text(title)
+                .font(.caption2.bold())
+            Text("\(value)")
+                .font(.caption2.monospacedDigit().bold())
+        }
+        .foregroundStyle(value > 0 ? tint : .secondary)
+        .lineLimit(1)
+        .padding(.horizontal, 6)
+        .padding(.vertical, 3)
+        .background(tint.opacity(value > 0 ? 0.13 : 0.06), in: RoundedRectangle(cornerRadius: 5))
+        .accessibilityElement(children: .combine)
+    }
+}
+
+private struct MingMapSituationLineChip: View {
+    let brief: BattleObjectiveSummary.CampaignLineBrief
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            HStack(spacing: 5) {
+                Image(systemName: brief.line.systemImage)
+                    .foregroundStyle(tint)
+                    .frame(width: 14)
+                    .accessibilityHidden(true)
+
+                Text(brief.line.displayName)
+                    .font(.caption.bold())
+                    .foregroundStyle(MingDesignTokens.ink)
+
+                Spacer(minLength: 4)
+
+                Text(brief.status.displayName)
+                    .font(.caption2.bold())
+                    .foregroundStyle(tint)
+            }
+            .lineLimit(1)
+            .minimumScaleFactor(0.78)
+
+            ProgressView(value: Double(brief.pressure), total: 100)
+                .tint(tint)
+
+            HStack(spacing: 5) {
+                Text("势 \(brief.pressure)")
+                    .font(.caption2.monospacedDigit())
+                    .foregroundStyle(.secondary)
+
+                if brief.urgentTaskCount > 0 {
+                    Text("急 \(brief.urgentTaskCount)")
+                        .font(.caption2.bold())
+                        .foregroundStyle(MingDesignTokens.cinnabar)
+                } else if brief.activeTaskCount > 0 {
+                    Text("事 \(brief.activeTaskCount)")
+                        .font(.caption2.bold())
+                        .foregroundStyle(tint)
+                }
+            }
+            .lineLimit(1)
+        }
+        .padding(.horizontal, 8)
+        .padding(.vertical, 6)
+        .frame(width: 116, alignment: .leading)
+        .background(MingDesignTokens.panelBackground.opacity(0.66), in: RoundedRectangle(cornerRadius: 6))
+        .overlay {
+            RoundedRectangle(cornerRadius: 6)
+                .stroke(tint.opacity(brief.status == .warning ? 0.44 : 0.18), lineWidth: 1)
+        }
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("\(brief.line.displayName)线，\(brief.status.displayName)，压力 \(brief.pressure)")
+    }
+
+    private var tint: Color {
+        switch brief.line {
+        case .world:
+            return MingDesignTokens.cinnabar
+        case .policy:
+            return MingDesignTokens.porcelainBlue
+        case .economy:
+            return MingDesignTokens.jade
+        case .technology:
+            return MingDesignTokens.imperialGold
+        case .military:
+            return MingDesignTokens.ink
+        }
+    }
+}
+
+private extension BattleObjectiveSummary.CampaignStageStatus {
+    var sortRank: Int {
+        switch self {
+        case .warning:
+            return 0
+        case .focus:
+            return 1
+        case .watch:
+            return 2
+        case .achieved:
+            return 3
         }
     }
 }

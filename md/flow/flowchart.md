@@ -16,7 +16,7 @@
   -> v4.3 默认明末单位使用明末 template，战术展示名开始明末化
   -> v4.4 钱粮、治理与天下局势首片把 economy 展示为民力、银两、粮草，民变/行政掌控影响收入，天下面板展示战和关系，并进入 AI 摘要
   -> v4.5 朝廷首片把政策、经济、科技、军事四线压力派生为 CourtStrategySummary，并进入 UI / AI 摘要
-  -> v4.6 UI 首片用 MingDesignTokens、独立 CourtPanelView、朝议争点、朝廷五线态势、朝报令条、军令牌、将印军令、将领名帖、军机复盘牌/军机五线、塘报战记、部队军情牌/军令战备、州府牌归属旗号、府库牌收支急报、天下急势、天下战和张力条、阵营名义卡、中文军牌、势力旗号、城/关/粮 badge、粮道虚线/开关、军令计划线、舆图图例、兵种/粮草/堆叠图例和四线交叉项目分组 polish 主界面、地图部队和朝廷/将领/军令/AI 面板
+  -> v4.6 UI 首片用 MingDesignTokens、独立 CourtPanelView、朝议争点、朝廷五线态势、朝报令条、军令牌、将印军令、将领名帖、军机复盘牌/军机五线、塘报战记、部队军情牌/军令战备、州府牌归属旗号、府库牌收支急报、天下急势、舆图天下急势、天下战和张力条、阵营名义卡、中文军牌、势力旗号、城/关/粮 badge、粮道虚线/开关、军令计划线、舆图图例、兵种/粮草/堆叠图例和四线交叉项目分组 polish 主界面、地图部队和朝廷/将领/军令/AI 面板
   -> v4.6 朝廷项目首片把征饷、赈济、招抚、农政、修城、整训团练/地方驻防、火器、红衣炮、粮台驿道等主议/备议落到 Command.enactCourtProject 和 EconomyRules
   -> v4.7 明末胜负链首片把 ScenarioDefinition.victoryConditions 写入 GameState，并让清破关入京、大顺据中原秦陕、大西据湖广粮区、明廷守住京师关口等条件进入 BattleObjectiveSummary / VictoryRules，在“目标”“朝廷”和“军机复盘”面板显示只读天下五线态势，并在目标面板显示进度、控制方旗号、只读战役提示、开封围城压力、本旬任务链和阶段战局链，回合末把提示和急务/主线任务入塘报；CampaignAISummary 把同一五线态势送入 AgentContext、MarshalBattlefieldSummary 和 AgentPanelView；CourtStrategySummary 读取同一战役线压力加权朝廷主议；ZoneCommanderDoctrine 让明廷谨慎、清/大顺/大西进取、地方自保，并贯通 TheaterCommanderPool、AppContainer 空将领 registry fallback、MockAICommander、SimulatedMarshalLLMClient 和不同 tactic 映射；AgentPanelView 也只读展示势力军略、风格、技能标签和战术偏向；目标 chip 和任务按钮可只读定位对应 hex / 州府，并在舆图显示“标”令牌、脉冲圈和同胜负线城关连线；目标 hex 换手会写塘报
   -> v0.5 元帅层是战略意图层，不替代战术权威
@@ -59,6 +59,7 @@ flowchart TD
     COURTFIVE["朝廷五线态势<br/>CourtPanelView / CourtCampaignLineSection<br/>复用 CampaignLineBrief 扫读天下、政策、经济、科技、军事压力"]:::ui
     COURTPROJ["朝廷四线项目<br/>CourtProjectDomain + CourtProjectKind / Command.enactCourtProject<br/>政策、经济、科技、军事分组；征饷、赈济、招抚、农政、修城、整训团练/地方驻防、火器、红衣炮、粮台驿道"]:::command
     OBJINFO["战役目标<br/>GameState.victoryConditions -> BattleObjectiveSummary + BattleObjectivePanelView<br/>胜负线、城关控制方旗号、战役提示、开封围城压力、天下五线态势、本旬任务链、阶段战局链、终局要冲分和目标定位只读展示"]:::ui
+    MAPSITUATION["舆图天下急势<br/>RootGameView / MingMapSituationStrip<br/>领先方、急务/主线任务数和五线压力只读前置到地图控件"]:::ui
     CAMPAIGNAI["AI 五线态势摘要<br/>CampaignAISummary<br/>把中华世界局势、领先势力、急务/主线任务转入 AgentContext、元帅摘要和军机复盘牌"]:::derived
     OBJFOCUS["目标定位<br/>AppContainer.focusObjective + BoardScene.drawFocusedObjective<br/>只更新 selectedHex / selectedRegionId / focusedObjectiveId / 高亮和交互日志；舆图只读显示标令牌和同线城关"]:::ui
     CUELOG["战役提示入塘报<br/>CommandExecutor.appendBattleCueEvents<br/>battle-cue relatedRecordId 去重，只写 eventLog"]:::rules
@@ -81,7 +82,7 @@ flowchart TD
     GENERALINFO["将印军令 / 将领名帖<br/>GeneralCommandPanelView + GeneralProfileView<br/>防区、主将、忠诚、军心、麾下军伍和军令计划"]:::ui
     UNITINFO["部队军情牌<br/>UnitInspectorView<br/>兵力、粮草、军令战备、攻守行程察、兵种编成和驻防归属只读展示"]:::ui
     REGIONINFO["州府牌<br/>RegionInspectorView<br/>城关粮坊、治理、钱粮城防、控制方旗号、原属章和当前格只读展示"]:::ui
-    UI["地图和面板显示<br/>SpriteKit / SwiftUI Overlay<br/>v4.6 明末舆图、朝报令条、军令牌、将印军令、将领名帖、军机复盘牌、军机五线态势、势力军略、塘报战记、天下急势/战和张力、朝议争点、朝廷五线态势、部队军情牌/军令战备、州府牌、府库牌、中文图层名、城/关/粮/兵种军牌/粮草堆叠/势力旗/军令计划图例、粮道虚线/开关、中文军牌、朝廷四线兼线项目、AI 面板 polish"]:::ui
+    UI["地图和面板显示<br/>SpriteKit / SwiftUI Overlay<br/>v4.6 明末舆图、舆图天下急势、朝报令条、军令牌、将印军令、将领名帖、军机复盘牌、军机五线态势、势力军略、塘报战记、天下急势/战和张力、朝议争点、朝廷五线态势、部队军情牌/军令战备、州府牌、府库牌、中文图层名、城/关/粮/兵种军牌/粮草堆叠/势力旗/军令计划图例、粮道虚线/开关、中文军牌、朝廷四线兼线项目、AI 面板 polish"]:::ui
     LOG["日志和复盘记录<br/>EventLog / WarDirectiveRecord / AgentDecisionRecord / RulerDecisionRecord<br/>用于 UI 展示和后续调试"]:::ui
 
     ME --> JSON --> DL --> GS
@@ -109,7 +110,9 @@ flowchart TD
     GS --> OBJINFO
     OBJINFO --> COURT
     OBJINFO --> COURTFIVE
+    OBJINFO --> MAPSITUATION
     OBJINFO --> CAMPAIGNAI
+    MAPSITUATION --> UI
     CAMPAIGNAI --> UI
     OBJINFO --> OBJFOCUS --> REGIONINFO
     GS --> CUELOG
