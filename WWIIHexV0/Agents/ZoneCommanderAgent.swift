@@ -1403,7 +1403,7 @@ struct SimulatedMarshalLLMClient: MarshalLLMClient {
                     intensity: front.strengthRatio >= 1.8 ? .allOut : .limitedCounter,
                     maxCommittedUnits: front.frontUnitCount + max(0, front.depthUnitCount / 2),
                     exploitDepth: front.strengthRatio >= 1.8 ? 1 : 0,
-                    rationale: "Simulated marshal JSON: \(tactic.rawValue) selected from \(faction.displayName) doctrine and strength ratio \(String(format: "%.2f", front.strengthRatio))."
+                    rationale: "Simulated marshal JSON: \(tactic.rawValue) selected from \(summary.faction.displayName) doctrine and strength ratio \(String(format: "%.2f", front.strengthRatio))."
                 )
             }
 
