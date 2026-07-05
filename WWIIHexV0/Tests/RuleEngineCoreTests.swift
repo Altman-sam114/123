@@ -840,6 +840,47 @@ final class RuleEngineCoreTests: XCTestCase {
         XCTAssertTrue(summary.stages.first { $0.id == "central_plain_grain_chain" }?.detail.contains("大顺已取得部分") == true)
     }
 
+    func testMingBattleObjectiveSummaryShowsCurrentTaskChain() {
+        let state = Self.mingVictoryState(objectiveControllers: [:])
+
+        let summary = BattleObjectiveSummary.from(state: state)
+
+        XCTAssertEqual(
+            summary.tasks.map(\.id),
+            [
+                "hold_pass_capital",
+                "settle_revenue_and_relief",
+                "guard_grain_chain",
+                "ready_firearms_forts"
+            ]
+        )
+        XCTAssertEqual(summary.tasks.map(\.line), [.military, .policy, .economy, .technology])
+        XCTAssertEqual(summary.tasks.first?.priority, .main)
+        XCTAssertEqual(summary.tasks.first?.targetObjectiveId, "obj_shanhaiguan")
+        XCTAssertTrue(summary.tasks.contains { $0.detail.contains("征饷") && $0.detail.contains("赈济") })
+    }
+
+    func testMingTaskChainReflectsObjectivePressure() {
+        let state = Self.mingVictoryState(
+            objectiveControllers: [
+                "obj_shanhaiguan": .qing,
+                "obj_kaifeng": .dashun,
+                "obj_luoyang": .dashun
+            ]
+        )
+
+        let summary = BattleObjectiveSummary.from(state: state)
+        let militaryTask = summary.tasks.first { $0.id == "hold_pass_capital" }
+        let economyTask = summary.tasks.first { $0.id == "block_central_plain_grain_chain" }
+
+        XCTAssertEqual(militaryTask?.priority, .urgent)
+        XCTAssertEqual(militaryTask?.targetObjectiveId, "obj_beijing")
+        XCTAssertEqual(economyTask?.priority, .urgent)
+        XCTAssertEqual(economyTask?.targetObjectiveId, "obj_xian")
+        XCTAssertTrue(militaryTask?.detail.contains("破关入京") == true)
+        XCTAssertTrue(economyTask?.detail.contains("大顺已取 2 / 3") == true)
+    }
+
     func testMingEndTurnRecordsBattleCuesAsReports() {
         let state = Self.mingVictoryState(objectiveControllers: [:])
 

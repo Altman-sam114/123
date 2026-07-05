@@ -155,6 +155,43 @@ struct BattleObjectiveSummary: Equatable {
         let progress: Double
     }
 
+    struct CampaignTask: Equatable, Identifiable {
+        enum Priority: String, Equatable {
+            case urgent
+            case main
+            case watch
+
+            var displayName: String {
+                switch self {
+                case .urgent:
+                    return "急务"
+                case .main:
+                    return "主线"
+                case .watch:
+                    return "留意"
+                }
+            }
+
+            var systemImage: String {
+                switch self {
+                case .urgent:
+                    return "exclamationmark.triangle.fill"
+                case .main:
+                    return "scope"
+                case .watch:
+                    return "eye"
+                }
+            }
+        }
+
+        let id: String
+        let line: CampaignLine
+        let priority: Priority
+        let title: String
+        let detail: String
+        let targetObjectiveId: String?
+    }
+
     struct Cue: Equatable, Identifiable {
         enum Kind: String, Equatable {
             case history
@@ -224,6 +261,7 @@ struct BattleObjectiveSummary: Equatable {
     let scoreRows: [ScoreRow]
     let leadingFaction: Faction?
     let stages: [CampaignStage]
+    let tasks: [CampaignTask]
     let cues: [Cue]
 
     static func from(state: GameState) -> BattleObjectiveSummary {
@@ -236,6 +274,7 @@ struct BattleObjectiveSummary: Equatable {
                 scoreRows: [],
                 leadingFaction: nil,
                 stages: [],
+                tasks: [],
                 cues: []
             )
         }
@@ -252,6 +291,7 @@ struct BattleObjectiveSummary: Equatable {
             scoreRows: rows,
             leadingFaction: leader,
             stages: campaignStages(from: state, tracks: tracks, leadingFaction: leader),
+            tasks: campaignTasks(from: state, tracks: tracks, leadingFaction: leader),
             cues: cues(from: state, tracks: tracks)
         )
     }
@@ -562,6 +602,147 @@ struct BattleObjectiveSummary: Equatable {
             return "\(leaderText)；开局应先看天下、朝廷、府库和粮道，再决定征饷、赈济、修城或整训。"
         }
         return "\(leaderText)；后续朝议要把民变、银两、粮草、火器和方面军令连成同一条决策链。"
+    }
+
+    private static func campaignTasks(
+        from state: GameState,
+        tracks: [Track],
+        leadingFaction: Faction?
+    ) -> [CampaignTask] {
+        let qingTrack = tracks.first { $0.id == .qingPassCapital }
+        let dashunTrack = tracks.first { $0.id == .dashunCentralPlain }
+        let daxiTrack = tracks.first { $0.id == .daxiHuguang }
+        let mingTrack = tracks.first { $0.id == .mingMandateLine }
+        let mingFireSupportCount = state.divisions.filter {
+            $0.faction == .ming && $0.components.contains { $0.type.isFireSupportComponent }
+        }.count
+
+        var tasks: [CampaignTask] = [
+            militaryTask(qingTrack: qingTrack),
+            policyTask(state: state, leadingFaction: leadingFaction),
+            economyTask(dashunTrack: dashunTrack, daxiTrack: daxiTrack),
+            technologyTask(
+                qingTrack: qingTrack,
+                mingTrack: mingTrack,
+                mingFireSupportCount: mingFireSupportCount
+            )
+        ]
+
+        if state.turn >= max(1, state.maxTurns - 3) {
+            tasks.insert(finalMandateTask(mingTrack: mingTrack), at: 0)
+        }
+
+        return Array(tasks.prefix(5))
+    }
+
+    private static func militaryTask(qingTrack: Track?) -> CampaignTask {
+        let target = missingTarget(in: qingTrack)?.objectiveId ?? "obj_shanhaiguan"
+        let priority: CampaignTask.Priority = (qingTrack?.controlledCount ?? 0) > 0 ? .urgent : .main
+        let title = priority == .urgent ? "堵住破关入京" : "守山海关与京师"
+        let detail = priority == .urgent
+            ? "清军已推进破关入京线；先定位缺口城关，调军粮、守军和火器挡住京畿崩盘。"
+            : "开局先看山海关、北京和周边粮道，北门稳住后才有余力处置河南、湖广。"
+        return CampaignTask(
+            id: "hold_pass_capital",
+            line: .military,
+            priority: priority,
+            title: title,
+            detail: detail,
+            targetObjectiveId: target
+        )
+    }
+
+    private static func policyTask(state: GameState, leadingFaction: Faction?) -> CampaignTask {
+        let priority: CampaignTask.Priority = state.activeFaction == .ming && state.turn <= 2 ? .main : .watch
+        let leaderText = leadingFaction.map { "当前要冲分由 \($0.displayName) 领先" } ?? "当前要冲分未定"
+        return CampaignTask(
+            id: "settle_revenue_and_relief",
+            line: .policy,
+            priority: priority,
+            title: "定征饷安民尺度",
+            detail: "\(leaderText)；朝廷先比较征饷、赈济、修城和团练，短期军费不能压垮州府民变。",
+            targetObjectiveId: nil
+        )
+    }
+
+    private static func economyTask(dashunTrack: Track?, daxiTrack: Track?) -> CampaignTask {
+        if let dashunTrack, dashunTrack.controlledCount > 0 {
+            return CampaignTask(
+                id: "block_central_plain_grain_chain",
+                line: .economy,
+                priority: dashunTrack.progress >= 0.5 ? .urgent : .main,
+                title: "截断河南秦陕粮链",
+                detail: "大顺已取 \(dashunTrack.controlledCount) / \(dashunTrack.requiredCount) 处中原秦陕要冲；先看余下城池和府库粮道，避免其连成粮根。",
+                targetObjectiveId: missingTarget(in: dashunTrack)?.objectiveId
+            )
+        }
+
+        if let daxiTrack, daxiTrack.controlledCount > 0 {
+            return CampaignTask(
+                id: "protect_huguang_grain_base",
+                line: .economy,
+                priority: daxiTrack.progress >= 0.5 ? .urgent : .main,
+                title: "保湖广粮道",
+                detail: "大西已切入湖广粮区；荆州、武昌关系南线军粮和终局要冲分，需先看粮台和守军。",
+                targetObjectiveId: missingTarget(in: daxiTrack)?.objectiveId
+            )
+        }
+
+        return CampaignTask(
+            id: "guard_grain_chain",
+            line: .economy,
+            priority: .watch,
+            title: "巡河南湖广粮根",
+            detail: "河南秦陕和湖广是流民军扩张的粮源；提前盯住开封、洛阳、武昌，别等塘报告急再调兵。",
+            targetObjectiveId: missingTarget(in: dashunTrack)?.objectiveId ?? missingTarget(in: daxiTrack)?.objectiveId
+        )
+    }
+
+    private static func technologyTask(
+        qingTrack: Track?,
+        mingTrack: Track?,
+        mingFireSupportCount: Int
+    ) -> CampaignTask {
+        let target = missingTarget(in: qingTrack)?.objectiveId
+            ?? missingTarget(in: mingTrack)?.objectiveId
+            ?? "obj_beijing"
+        if mingFireSupportCount > 0 {
+            return CampaignTask(
+                id: "ready_firearms_forts",
+                line: .technology,
+                priority: .main,
+                title: "调火器守城",
+                detail: "明廷现有 \(mingFireSupportCount) 支火器/炮队支点；把火力、城防和粮台放到同一条守城链上。",
+                targetObjectiveId: target
+            )
+        }
+
+        return CampaignTask(
+            id: "ready_firearms_forts",
+            line: .technology,
+            priority: .watch,
+            title: "补火器与城防",
+            detail: "当前缺少火器/炮队支点；若山海关、北京或武昌承压，优先考虑火器整备和修城固守。",
+            targetObjectiveId: target
+        )
+    }
+
+    private static func finalMandateTask(mingTrack: Track?) -> CampaignTask {
+        CampaignTask(
+            id: "hold_final_mandate_line",
+            line: .world,
+            priority: .urgent,
+            title: "守终局名分线",
+            detail: "终局前必须同时看北京、山海关和武昌；任何一处易手都会改写明廷名分与天下要冲分。",
+            targetObjectiveId: missingTarget(in: mingTrack)?.objectiveId ?? "obj_beijing"
+        )
+    }
+
+    private static func missingTarget(in track: Track?) -> Target? {
+        guard let track else {
+            return nil
+        }
+        return track.targets.first { !$0.isControlled } ?? track.targets.first
     }
 
     private static func cues(from state: GameState, tracks: [Track]) -> [Cue] {

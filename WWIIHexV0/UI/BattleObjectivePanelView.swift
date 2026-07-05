@@ -18,6 +18,7 @@ struct BattleObjectivePanelView: View {
             if summary.isMingScenario {
                 BattleObjectiveScoreboard(summary: summary)
                 BattleObjectiveCueBoard(cues: summary.cues)
+                BattleObjectiveTaskBoard(tasks: summary.tasks, onFocusObjective: onFocusObjective)
                 BattleObjectiveStageBoard(stages: summary.stages)
 
                 VStack(alignment: .leading, spacing: MingDesignTokens.compactSpacing) {
@@ -102,6 +103,103 @@ private struct BattleObjectiveHeader: View {
         }
         .padding(MingDesignTokens.compactSpacing)
         .background(MingDesignTokens.sectionBackground, in: RoundedRectangle(cornerRadius: MingDesignTokens.cornerRadius))
+    }
+}
+
+private struct BattleObjectiveTaskBoard: View {
+    let tasks: [BattleObjectiveSummary.CampaignTask]
+    let onFocusObjective: (String) -> Void
+
+    var body: some View {
+        if !tasks.isEmpty {
+            VStack(alignment: .leading, spacing: MingDesignTokens.compactSpacing) {
+                Text("本旬任务链")
+                    .font(.subheadline.bold())
+                    .foregroundStyle(MingDesignTokens.ink)
+
+                ForEach(tasks) { task in
+                    BattleObjectiveTaskRow(task: task, onFocusObjective: onFocusObjective)
+                }
+            }
+            .padding(MingDesignTokens.compactSpacing)
+            .background(MingDesignTokens.sectionBackground, in: RoundedRectangle(cornerRadius: MingDesignTokens.cornerRadius))
+        }
+    }
+}
+
+private struct BattleObjectiveTaskRow: View {
+    let task: BattleObjectiveSummary.CampaignTask
+    let onFocusObjective: (String) -> Void
+
+    var body: some View {
+        HStack(alignment: .top, spacing: 8) {
+            Label(task.line.displayName, systemImage: task.line.systemImage)
+                .font(.caption.bold())
+                .foregroundStyle(tint)
+                .labelStyle(.iconOnly)
+                .frame(width: 24, height: 24)
+                .background(tint.opacity(0.12), in: RoundedRectangle(cornerRadius: 6))
+                .accessibilityLabel(task.line.displayName)
+
+            VStack(alignment: .leading, spacing: 3) {
+                HStack(spacing: 6) {
+                    Label(task.priority.displayName, systemImage: task.priority.systemImage)
+                        .font(.caption.bold())
+                        .foregroundStyle(tint)
+                        .lineLimit(1)
+                    Text(task.title)
+                        .font(.caption.bold())
+                        .foregroundStyle(MingDesignTokens.ink)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.78)
+                }
+
+                Text(task.detail)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+
+            if let objectiveId = task.targetObjectiveId {
+                Spacer(minLength: 4)
+
+                Button {
+                    onFocusObjective(objectiveId)
+                } label: {
+                    Label("定位", systemImage: "mappin.and.ellipse")
+                        .font(.caption.bold())
+                        .foregroundStyle(tint)
+                        .lineLimit(1)
+                        .padding(.horizontal, 8)
+                        .frame(minHeight: MingDesignTokens.minimumTapSize)
+                        .background(tint.opacity(0.12), in: RoundedRectangle(cornerRadius: 6))
+                }
+                .buttonStyle(.plain)
+                .accessibilityHint("定位到任务相关城关")
+            }
+        }
+        .padding(.horizontal, 7)
+        .padding(.vertical, 7)
+        .background(MingDesignTokens.panelBackground.opacity(0.58), in: RoundedRectangle(cornerRadius: 6))
+        .overlay {
+            RoundedRectangle(cornerRadius: 6)
+                .stroke(tint.opacity(task.priority == .urgent ? 0.42 : 0.18), lineWidth: 1)
+        }
+    }
+
+    private var tint: Color {
+        switch task.line {
+        case .world:
+            return MingDesignTokens.cinnabar
+        case .policy:
+            return MingDesignTokens.porcelainBlue
+        case .economy:
+            return MingDesignTokens.jade
+        case .technology:
+            return MingDesignTokens.imperialGold
+        case .military:
+            return MingDesignTokens.ink
+        }
     }
 }
 
