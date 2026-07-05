@@ -607,17 +607,37 @@ private struct BattleObjectiveTargetChip: View {
                 Text(target.name)
                     .font(.caption.bold())
                     .lineLimit(1)
-                Text("\(target.controllerName) / \(target.points) 分")
+                Text("现 \(target.controllerName) / \(target.points) 分")
                     .font(.caption)
                     .foregroundStyle(.secondary)
                     .lineLimit(1)
                     .minimumScaleFactor(0.72)
             }
+
+            Spacer(minLength: 4)
+
+            controllerBadge
         }
         .padding(.horizontal, 7)
         .padding(.vertical, 6)
         .background(MingDesignTokens.panelBackground.opacity(0.58), in: RoundedRectangle(cornerRadius: 6))
         .accessibilityElement(children: .combine)
+    }
+
+    @ViewBuilder
+    private var controllerBadge: some View {
+        if let controller = target.controller {
+            MingFactionFlagBadge(faction: controller)
+        } else {
+            Text("无")
+                .font(.caption.bold())
+                .foregroundStyle(.secondary)
+                .lineLimit(1)
+                .frame(minWidth: 20, minHeight: 18)
+                .padding(.horizontal, 4)
+                .background(MingDesignTokens.sectionBackground, in: RoundedRectangle(cornerRadius: 4))
+                .accessibilityLabel("无人控制")
+        }
     }
 }
 
