@@ -74,6 +74,10 @@ struct CommandPanelView: View {
                         .foregroundStyle(selectedDivision.commandPanelReadinessTint)
                         .frame(width: 38, height: 38)
                         .background(MingDesignTokens.panelBackground.opacity(0.58), in: RoundedRectangle(cornerRadius: 6))
+                        .overlay(alignment: .topTrailing) {
+                            MingFactionFlagBadge(faction: selectedDivision.faction)
+                                .offset(x: 5, y: -5)
+                        }
                         .accessibilityHidden(true)
 
                     VStack(alignment: .leading, spacing: 3) {

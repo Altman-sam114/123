@@ -83,3 +83,39 @@ enum MingDesignTokens {
         imperialGold.opacity(0.46)
     }
 }
+
+extension Faction {
+    var mingBannerTint: Color {
+        switch self {
+        case .germany:
+            return .gray
+        case .allies:
+            return .blue
+        case .ming:
+            return MingDesignTokens.cinnabar
+        case .qing:
+            return MingDesignTokens.jade
+        case .dashun:
+            return MingDesignTokens.imperialGold
+        case .daxi:
+            return .purple
+        case .localNeutral:
+            return .secondary
+        }
+    }
+}
+
+struct MingFactionFlagBadge: View {
+    let faction: Faction
+
+    var body: some View {
+        Text(faction.bannerGlyph)
+            .font(.caption.bold())
+            .foregroundStyle(.white)
+            .lineLimit(1)
+            .frame(minWidth: 20, minHeight: 18)
+            .padding(.horizontal, 4)
+            .background(faction.mingBannerTint, in: RoundedRectangle(cornerRadius: 4))
+            .accessibilityLabel(Text("\(faction.displayName)旗号"))
+    }
+}

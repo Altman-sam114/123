@@ -16,7 +16,7 @@
   -> v4.3 默认明末单位使用明末 template，战术展示名开始明末化
   -> v4.4 钱粮、治理与天下局势首片把 economy 展示为民力、银两、粮草，民变/行政掌控影响收入，天下面板展示战和关系，并进入 AI 摘要
   -> v4.5 朝廷首片把政策、经济、科技、军事四线压力派生为 CourtStrategySummary，并进入 UI / AI 摘要
-  -> v4.6 UI 首片用 MingDesignTokens、独立 CourtPanelView、朝议争点、朝报令条、军令牌、将印军令、将领名帖、军机复盘牌、塘报战记、部队军情牌、州府牌、府库牌、天下急势、中文军牌、城/关/粮 badge、粮道虚线/开关、军令计划线、舆图图例和四线项目分组 polish 主界面、地图部队和朝廷/将领/军令/AI 面板
+  -> v4.6 UI 首片用 MingDesignTokens、独立 CourtPanelView、朝议争点、朝报令条、军令牌、将印军令、将领名帖、军机复盘牌、塘报战记、部队军情牌、州府牌、府库牌、天下急势、中文军牌、势力旗号、城/关/粮 badge、粮道虚线/开关、军令计划线、舆图图例和四线项目分组 polish 主界面、地图部队和朝廷/将领/军令/AI 面板
   -> v4.6 朝廷项目首片把六类主议/备议落到 Command.enactCourtProject 和 EconomyRules
   -> v0.5 元帅层是战略意图层，不替代战术权威
   -> 玩家和 AI 都必须把命令交给 RuleEngine
@@ -73,7 +73,7 @@ flowchart TD
     GENERALINFO["将印军令 / 将领名帖<br/>GeneralCommandPanelView + GeneralProfileView<br/>防区、主将、忠诚、军心、麾下军伍和军令计划"]:::ui
     UNITINFO["部队军情牌<br/>UnitInspectorView<br/>兵力、粮草、攻守行程察、兵种编成和驻防归属只读展示"]:::ui
     REGIONINFO["州府牌<br/>RegionInspectorView<br/>城关粮坊、治理、钱粮城防、战局归属和当前格只读展示"]:::ui
-    UI["地图和面板显示<br/>SpriteKit / SwiftUI Overlay<br/>v4.6 明末舆图、朝报令条、军令牌、将印军令、将领名帖、军机复盘牌、塘报战记、天下急势、朝议争点、部队军情牌、州府牌、府库牌、中文图层名、城/关/粮/步/军令计划图例、粮道虚线/开关、中文军牌、朝廷四线项目、AI 面板 polish"]:::ui
+    UI["地图和面板显示<br/>SpriteKit / SwiftUI Overlay<br/>v4.6 明末舆图、朝报令条、军令牌、将印军令、将领名帖、军机复盘牌、塘报战记、天下急势、朝议争点、部队军情牌、州府牌、府库牌、中文图层名、城/关/粮/步/势力旗/军令计划图例、粮道虚线/开关、中文军牌、朝廷四线项目、AI 面板 polish"]:::ui
     LOG["日志和复盘记录<br/>EventLog / WarDirectiveRecord / AgentDecisionRecord / RulerDecisionRecord<br/>用于 UI 展示和后续调试"]:::ui
 
     ME --> JSON --> DL --> GS
@@ -459,7 +459,7 @@ flowchart TD
     ROOT["主界面<br/>RootGameView<br/>HUD + 信息 tabs + MingDesignTokens"]:::ui
     LOG["塘报战记<br/>EventLogView<br/>最近 60 条 LogDisplayEntry + 战事/粮草/州府/天下计数"]:::ui
     AIUI["军机复盘牌<br/>AgentPanelView<br/>最高意志 + 决策摘要 + 战区指令 + 命令回执 + 原始 JSON"]:::ui
-    BOARD["地图场景<br/>BoardScene + UnitNode<br/>中文军牌徽记 + 守/退状态"]:::ui
+    BOARD["地图场景<br/>BoardScene + UnitNode<br/>中文军牌徽记 + 势力旗号 + 守/退状态"]:::ui
     MARSHAL["模拟元帅 / MockAI<br/>MarshalAgent + SimulatedMarshalLLMClient"]:::ai
     ZD["战区指令<br/>ZoneDirective<br/>tactic / focus / intensity"]:::command
     WCE["执行解释<br/>WarCommandExecutor<br/>infiltration 限制默认投入"]:::command

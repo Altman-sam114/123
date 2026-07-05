@@ -43,6 +43,25 @@ enum Faction: String, Codable, Equatable, CaseIterable {
         }
     }
 
+    var bannerGlyph: String {
+        switch self {
+        case .germany:
+            return "德"
+        case .allies:
+            return "盟"
+        case .ming:
+            return "明"
+        case .qing:
+            return "清"
+        case .dashun:
+            return "顺"
+        case .daxi:
+            return "西"
+        case .localNeutral:
+            return "乡"
+        }
+    }
+
     static var legacyCases: [Faction] {
         [.germany, .allies]
     }

@@ -52,6 +52,10 @@ private struct UnitCommandHeader: View {
                     RoundedRectangle(cornerRadius: MingDesignTokens.cornerRadius)
                         .stroke(MingDesignTokens.cinnabar.opacity(0.45), lineWidth: 1)
                 }
+                .overlay(alignment: .topTrailing) {
+                    MingFactionFlagBadge(faction: division.faction)
+                        .offset(x: 5, y: -5)
+                }
                 .accessibilityHidden(true)
 
             VStack(alignment: .leading, spacing: 3) {

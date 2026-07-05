@@ -44,7 +44,8 @@ final class UnitNode: SKNode {
             text: division.markerReadinessText,
             y: -height * 0.28,
             fontSize: max(7, layout.hexSize * 0.16),
-            weight: "AvenirNext-Regular"
+            weight: "AvenirNext-Regular",
+            color: SKColor(white: 0.97, alpha: 1)
         )
 
         addSupplyMarker(for: division, layout: layout, bodyWidth: width, bodyHeight: height)
@@ -65,18 +66,27 @@ final class UnitNode: SKNode {
         addChild(topBand)
 
         addLabel(
+            text: division.faction.bannerGlyph,
+            y: height * 0.27,
+            fontSize: max(7, height * 0.18),
+            weight: "PingFangSC-Semibold",
+            color: SKColor(red: 0.20, green: 0.10, blue: 0.05, alpha: 0.96)
+        )
+
+        addLabel(
             text: division.markerEmblemText,
             y: height * 0.02,
             fontSize: max(12, height * 0.38),
-            weight: "PingFangSC-Semibold"
+            weight: "PingFangSC-Semibold",
+            color: SKColor(white: 0.97, alpha: 1)
         )
     }
 
-    private func addLabel(text: String, y: CGFloat, fontSize: CGFloat, weight: String) {
+    private func addLabel(text: String, y: CGFloat, fontSize: CGFloat, weight: String, color: SKColor) {
         let label = SKLabelNode(text: text)
         label.fontName = weight
         label.fontSize = fontSize
-        label.fontColor = SKColor(white: 0.97, alpha: 1)
+        label.fontColor = color
         label.horizontalAlignmentMode = .center
         label.verticalAlignmentMode = .center
         label.position = CGPoint(x: 0, y: y)

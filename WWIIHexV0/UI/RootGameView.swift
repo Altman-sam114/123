@@ -295,6 +295,7 @@ private struct MingMapLegendView: View {
                     MapLegendBadge(text: "关", title: "关隘", tint: MingDesignTokens.cinnabar)
                     MapLegendBadge(text: "粮", title: "粮台", tint: MingDesignTokens.jade)
                     MapLegendBadge(text: "步", title: "军牌", tint: MingDesignTokens.porcelainBlue)
+                    FactionBannerLegendBadge()
                     OperationPlanLegendBadge()
 
                     if showsSupplyRoutes {
@@ -353,6 +354,31 @@ private struct MapLegendBadge: View {
                 .lineLimit(1)
         }
         .padding(.horizontal, 7)
+        .padding(.vertical, 6)
+        .background(MingDesignTokens.sectionBackground.opacity(0.82), in: RoundedRectangle(cornerRadius: MingDesignTokens.cornerRadius))
+        .accessibilityElement(children: .combine)
+    }
+}
+
+private struct FactionBannerLegendBadge: View {
+    var body: some View {
+        HStack(spacing: 8) {
+            HStack(spacing: 3) {
+                MingFactionFlagBadge(faction: .ming)
+                MingFactionFlagBadge(faction: .qing)
+                MingFactionFlagBadge(faction: .dashun)
+            }
+
+            VStack(alignment: .leading, spacing: 1) {
+                Text("势力旗")
+                    .font(.caption.bold())
+                Text("明 / 清 / 顺")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+            }
+        }
+        .padding(.horizontal, 8)
         .padding(.vertical, 6)
         .background(MingDesignTokens.sectionBackground.opacity(0.82), in: RoundedRectangle(cornerRadius: MingDesignTokens.cornerRadius))
         .accessibilityElement(children: .combine)

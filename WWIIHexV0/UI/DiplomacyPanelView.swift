@@ -233,7 +233,7 @@ private struct CountryPowerRow: View {
     var body: some View {
         HStack(alignment: .center, spacing: 8) {
             RoundedRectangle(cornerRadius: 2)
-                .fill(country.faction.diplomacyTint)
+                .fill(country.faction.mingBannerTint)
                 .frame(width: 4, height: 42)
 
             VStack(alignment: .leading, spacing: 4) {
@@ -246,7 +246,7 @@ private struct CountryPowerRow: View {
                     .lineLimit(1)
 
                 ProgressView(value: Double(country.warSupport), total: 100)
-                    .tint(country.faction.diplomacyTint)
+                    .tint(country.faction.mingBannerTint)
             }
 
             Spacer(minLength: 8)
@@ -365,26 +365,5 @@ private struct CourtPressureBadge: View {
         .padding(.vertical, 5)
         .background(MingDesignTokens.panelBackground.opacity(0.45), in: RoundedRectangle(cornerRadius: 6))
         .accessibilityElement(children: .combine)
-    }
-}
-
-private extension Faction {
-    var diplomacyTint: Color {
-        switch self {
-        case .germany:
-            return .gray
-        case .allies:
-            return .blue
-        case .ming:
-            return MingDesignTokens.cinnabar
-        case .qing:
-            return MingDesignTokens.jade
-        case .dashun:
-            return MingDesignTokens.imperialGold
-        case .daxi:
-            return .purple
-        case .localNeutral:
-            return Color.secondary
-        }
     }
 }
