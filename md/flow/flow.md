@@ -1,4 +1,4 @@
-# WWIIHexV0 核心流程文档（明末迁移 v4.6 UI、朝廷项目、朝议争点、朝报令条、军令牌、军机复盘牌、塘报战记、军情牌、州府牌、府库牌、天下急势、地图标识、粮道线路/开关、舆图图例与四线项目分组首片）
+# WWIIHexV0 核心流程文档（明末迁移 v4.6 UI、朝廷项目、朝议争点、朝报令条、军令牌、将印军令/将领名帖、军机复盘牌、塘报战记、军情牌、州府牌、府库牌、天下急势、地图标识、粮道线路/开关、舆图图例与四线项目分组首片）
 
 > 本文是项目当前核心逻辑的接手文档。目标不是复述历史设计，而是按当前代码真实链路说明：数据如何进入游戏，hex / region / theater / front / deploy 如何派生，主游戏和地图编辑器如何共同维护同一套地图语义，AI / 玩家命令如何落到规则系统。
 
@@ -52,10 +52,11 @@ MapEditor / JSON 数据
 - v4.4 治理首片中，`OccupationState.resistance/compliance` 已按民变/行政掌控解释，并对州府钱粮产出做轻量修正；该摘要进入州府面板和 AI 钱粮摘要。
 - v4.4 天下局势首片中，玩家信息面板的外交入口改为“天下”，`DiplomacyPanelView` 显示当前势力、名义主体、战事态势、主要对手、诸方势力、战和关系和朝议/军议。
 - v4.5 朝廷首片中，`CourtStrategySummary` 从钱粮、治理、补给、前线和火器/炮队状态派生政策、经济、科技、军事四线压力；Root 信息面板新增“朝廷”tab，AI 与元帅摘要可读取同一朝议建议。
-- v4.6 UI 首片中，`MingDesignTokens` 提供明末面板色彩/圆角/间距常量；`CourtPanelView` 已从 `RootGameView` 拆出并改为奏疏/印玺风格；主 UI、军令、将领、单位、塘报战记、AI 面板继续中文化；`UnitNode` 地图军牌从 NATO 图形改为中文徽记和守/退状态。
+- v4.6 UI 首片中，`MingDesignTokens` 提供明末面板色彩/圆角/间距常量；`CourtPanelView` 已从 `RootGameView` 拆出并改为奏疏/印玺风格；主 UI、军令、将领名帖、单位、塘报战记、AI 面板继续中文化；`UnitNode` 地图军牌从 NATO 图形改为中文徽记和守/退状态。
 - v4.6 朝报令条首片中，`HUDView` 从普通指标 grid 升级为顶部朝报令条，展示当前势力、回合、胜负、民力、银两、粮草、入账、营造队列和政策/经济/科技/军事四线压力；该片只读 `GameState`、`FactionEconomyLedger` 和 `CourtStrategySummary`，结束回合/新局仍走原回调。
 - v4.6 部队军情牌首片中，`UnitInspectorView` 从字段列表升级为只读军情牌，展示军牌字、兵力条、粮草/退守/行动、攻守行程察指标、兵种编成条和驻防归属；该片只读 `Division` 与 `UnitInspectorStrategicState`，不改变战斗、补给、部署或命令规则。
 - v4.6 军令牌首片中，`CommandPanelView` 从简单标题和按钮列升级为军令牌，展示当前势力/阶段、选中军情、兵力、粮草、退守、行动、固守/退守/补给处置和军令回执；固守、准许退守、就地补给和结束回合仍只调用 `RootGameView` 注入的原有回调，不直接修改 `GameState`。
+- v4.6 将领面板首片中，`GeneralCommandPanelView` 从简单将领列表升级为将印军令，展示防区、压力、战态、主将履历、忠诚、军心、干预、麾下军伍、目标和军令计划；`GeneralProfileView` 升级为将领名帖，展示印信、统兵风格、履历奏记、君臣关系、将略和麾下军伍。该片只读 `GeneralData`、`GeneralAssignment`、`FrontZone`、`Division` 与 `PlayerPlannedOperation`，固守/进取仍走原回调，不直接改规则状态。
 - v4.6 军机复盘牌首片中，`AgentPanelView` 从 LabeledContent 调试列表升级为只读军机复盘牌，展示决策摘要、最高意志、战区指令、命令回执、异常塘报和原始 JSON；该片只读 `AgentDecisionRecord`、`RulerDecisionRecord` 与 `WarDirectiveRecord`，不改变 `MarshalAgent`、`RulerAgent`、`WarCommandExecutor`、`Command` 或 `RuleEngine`。
 - v4.6 塘报战记首片中，`EventLogView` 从简单战报列表升级为只读塘报战记，展示最近塘报数量、战事/粮草/州府/天下分类计数、最新分类、回合/势力/阶段和相关回执；该片只读 `GameLogEntry`，不改变日志 schema、命令执行或规则权威。
 - v4.6 州府牌首片中，`RegionInspectorView` 从字段列表升级为只读州府牌，展示城关粮坊、地方治理、钱粮城防、方面/防区/目标、友敌军和当前格；该片只读 `RegionInspectorState`、`RegionNode` 和 `OccupationState`，不改变 hex 控制、region 聚合、经济结算、前线/部署或命令规则。
@@ -73,7 +74,7 @@ MapEditor / JSON 数据
 - `EconomyState` 是 faction 级经济总账；收入来自受控 region、城市、工厂、基础设施和补给值，但战术占领仍以 hex 为准。
 - 玩家、AI、后续聊天命令最终都必须经过 `Command` / `ZoneDirective -> WarCommandExecutor -> RuleEngine`，不能直接改 `GameState`。
 - v0.5 默认战争 AI 上游是 `MarshalAgent -> TheaterDirective JSON -> TheaterDirectiveDecoder -> TheaterDirectiveCompiler`，下游执行收口到 `ZoneDirective -> WarCommandExecutor -> RuleEngine`。
-- `CourtStrategySummary` 是只读派生摘要，不直接改 `GameState`；`CourtPanelView` 的朝议争点和 `CourtProjectDomain` 只服务四线展示、争点表达和项目分组，可执行朝廷项目必须走 `Command.enactCourtProject -> CommandValidator -> CommandExecutor -> EconomyRules`。`HUDView` 的朝报令条、`CommandPanelView` 的军令牌、`AgentPanelView` 的军机复盘牌、`EventLogView` 的塘报战记、`UnitInspectorView` 的军情牌、`RegionInspectorView` 的州府牌、`EconomyPanelView` 的府库牌、`DiplomacyPanelView` 的天下急势、`AppContainer.showsSupplyRoutes` 和 `MapDisplayLayer` 图例元数据只控制 UI 展示。`RulerAgent` 仍不是默认主链路。
+- `CourtStrategySummary` 是只读派生摘要，不直接改 `GameState`；`CourtPanelView` 的朝议争点和 `CourtProjectDomain` 只服务四线展示、争点表达和项目分组，可执行朝廷项目必须走 `Command.enactCourtProject -> CommandValidator -> CommandExecutor -> EconomyRules`。`HUDView` 的朝报令条、`CommandPanelView` 的军令牌、`GeneralCommandPanelView` 的将印军令、`GeneralProfileView` 的将领名帖、`AgentPanelView` 的军机复盘牌、`EventLogView` 的塘报战记、`UnitInspectorView` 的军情牌、`RegionInspectorView` 的州府牌、`EconomyPanelView` 的府库牌、`DiplomacyPanelView` 的天下急势、`AppContainer.showsSupplyRoutes` 和 `MapDisplayLayer` 图例元数据只控制 UI 展示。`RulerAgent` 仍不是默认主链路。
 
 ---
 
@@ -1979,9 +1980,11 @@ v4.6 首片先做 UI 和 SpriteKit 展示收口；第二片把朝廷面板中的
 MingDesignTokens
   -> HUDView 朝报令条
   -> CommandPanelView 军令牌
+  -> GeneralCommandPanelView 将印军令
+  -> GeneralProfileView 将领名帖
   -> AgentPanelView 军机复盘牌
   -> EventLogView 塘报战记
-  -> RootGameView / GeneralCommandPanelView / GeneralProfileView
+  -> RootGameView
   -> UnitInspectorView / UnitTooltipView
   -> CourtPanelView
   -> UnitInspectorView 军情牌
@@ -1994,6 +1997,18 @@ CommandPanelView 军令牌
   -> onHold / onAllowRetreat / onResupply / onEndTurn
   -> AppContainer 原有回调
   -> Command / RuleEngine
+
+GeneralData + GeneralAssignment + FrontZone
+  -> GeneralCommandPanelView 将印军令
+  -> 防区 / 压力 / 战态 / 主将 / 忠诚 / 军心 / 干预 / 麾下军伍 / 目标 / 军令计划
+  -> onHoldLine / onAttackRegion
+  -> AppContainer 原有回调
+  -> ZoneDirective / WarCommandExecutor / RuleEngine
+
+GeneralData + GeneralAssignment + Division
+  -> GeneralProfileView 将领名帖
+  -> 印信 / 统兵风格 / 履历奏记 / 君臣关系 / 将略 / 麾下军伍
+  -> 只读展示，不修改将领、部署或命令规则
 
 AgentDecisionRecord + RulerDecisionRecord + WarDirectiveRecord
   -> AgentPanelView 军机复盘牌
@@ -2056,10 +2071,12 @@ RegionInspectorState
 当前完成点：
 
 - `CourtPanelView` 独立成文件并加入 iOS/macOS source phase，仍从 `CourtStrategySummary.from(faction:state:)` 只读派生朝议摘要，并按政策、经济、科技、军事四线展示压力值、朝议争点、关注点、项目成本收益和风险。
-- 信息按钮、图层 picker、观战 toggle、新局按钮、军令/将领/单位/塘报战记/AI 面板做明末中文 polish。
+- 信息按钮、图层 picker、观战 toggle、新局按钮、军令/将领名帖/单位/塘报战记/AI 面板做明末中文 polish。
 - `MingDesignTokens` 提供共享设计常量，避免每个面板继续散落不同圆角、padding 和背景色。
 - `HUDView` 以朝报令条展示当前 active faction、回合、胜负、民力/银两/粮草、入账、营造队列和 `CourtStrategySummary` 四线压力；它只负责 SwiftUI 展示，结束回合和新局仍通过 `RootGameView` 注入的 `onEndTurn` / `onNewGame` 执行。
 - `CommandPanelView` 以军令牌展示当前 active faction、phase、选中军情、兵力、粮草、退守、行动、固守/退守/补给处置和最近军令回执；它只负责 SwiftUI 展示，固守、准许退守、就地补给和结束回合仍通过 `RootGameView` 注入的 `AppContainer` 回调进入原命令链。
+- `GeneralCommandPanelView` 以将印军令展示当前防区、压力、战态、主将、忠诚、军心、干预次数、麾下军伍、目标和军令计划；固守防线和进取州府仍通过 `RootGameView` 注入的 `AppContainer` 回调进入原指令链。
+- `GeneralProfileView` 以将领名帖展示 `GeneralData` 的印信、势力、官职、统兵风格、履历奏记、君臣关系、将略和麾下军伍；它只负责 SwiftUI 展示，不写入将领、部署或命令状态。
 - `AgentPanelView` 以军机复盘牌展示 AI 与军机记录，读取 `AgentDecisionRecord` 的主事、来源、意图、局势摘要、legacy command results、错误和 raw JSON；读取 `RulerDecisionRecord` 的最高意志、姿态、重心、目标、攻势阈、留营、天下判断和朱批理由；读取 `WarDirectiveRecord` 的战区、势力、军机、督师、战术、目标、指向、命令成功/驳回数量和 diagnostics。它只负责 SwiftUI 展示，不写入 `GameState`，也不改变 `MarshalAgent`、`RulerAgent`、`WarCommandExecutor`、`Command`、`CommandValidator` 或 `RuleEngine`。
 - `EventLogView` 以塘报战记展示最近 60 条 `GameLogEntry`，顶部用“报”印、候报/有军情/粮情/战局/天下状态和战事/粮草/州府/天下计数组织当前局势；每条塘报保留回合、势力、阶段、分类图标、正文和相关回执。它只负责 SwiftUI 展示，不改变 `GameLogEntry` schema、事件写入点、命令执行或任何规则权威。
 - `UnitInspectorView` 以军情牌展示选中部队，读取 `Division` 的兵力、补给、退守、行动、`effectiveStats` 和兵种组件，以及 `UnitInspectorStrategicState` 的坐标、州府、动态方面、防区、部署和前线归属；它只负责 SwiftUI 展示，不写入任何战术或战略状态。

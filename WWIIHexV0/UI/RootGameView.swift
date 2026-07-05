@@ -272,7 +272,7 @@ private enum CompactInfoPanel: String, CaseIterable, Identifiable {
     case unit = "军队"
     case region = "州府"
     case general = "将领"
-    case log = "战报"
+    case log = "塘报"
     case economy = "钱粮"
     case court = "朝廷"
     case diplomacy = "天下"
