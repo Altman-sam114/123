@@ -462,6 +462,13 @@ private struct AgentDirectiveCard: View {
                 AgentInfoChip(title: "指向", value: commandTargetText, systemImage: "arrow.up.right.circle", tint: MingDesignTokens.imperialGold)
             }
 
+            AgentTextNote(
+                title: "势力军略",
+                systemImage: "seal",
+                text: doctrineText,
+                tint: doctrine.commandStyle.agentPanelTint
+            )
+
             if !directive.diagnostics.isEmpty {
                 AgentTextNote(
                     title: "塘报诊断",
@@ -504,6 +511,18 @@ private struct AgentDirectiveCard: View {
         case .region(let regionId):
             return "州府 \(regionId.rawValue)"
         }
+    }
+
+    private var doctrine: ZoneCommanderDoctrine {
+        ZoneCommanderDoctrine.profile(for: directive.faction)
+    }
+
+    private var doctrineText: String {
+        let skillText = doctrine.skills
+            .map(AgentPanelFormat.doctrineSkillText)
+            .joined(separator: " / ")
+        let biasText = AgentPanelFormat.doctrineTacticBiasText(for: directive.faction)
+        return "\(doctrine.title) · \(doctrine.commandStyle.agentPanelDisplayName)；偏重 \(skillText)；战术偏向 \(biasText)"
     }
 }
 
@@ -679,6 +698,92 @@ private enum AgentPanelFormat {
             return "攻势"
         case .defense:
             return "守势"
+        }
+    }
+
+    static func doctrineSkillText(_ skill: String) -> String {
+        switch skill {
+        case "capital_defense":
+            return "守京畿"
+        case "grain_conservation":
+            return "保粮"
+        case "fortress_coordination":
+            return "城关协防"
+        case "banner_cavalry":
+            return "旗骑"
+        case "encirclement":
+            return "合围"
+        case "relief_route_cutting":
+            return "截援"
+        case "grain_expansion":
+            return "扩粮"
+        case "weak_city_breakthrough":
+            return "破弱城"
+        case "rapid_consolidation":
+            return "巩固中原"
+        case "mobile_raiding":
+            return "流动作战"
+        case "supply_capture":
+            return "夺粮"
+        case "rear_disruption":
+            return "扰后"
+        case "town_security":
+            return "守城镇"
+        case "militia_defense":
+            return "团练自保"
+        case "armored_thrust":
+            return "装甲突击"
+        case "operational_breakthrough":
+            return "纵深突破"
+        case "coalition_coordination":
+            return "联军协同"
+        case "reserve_control":
+            return "预备队管制"
+        default:
+            return skill.replacingOccurrences(of: "_", with: " ")
+        }
+    }
+
+    static func doctrineTacticBiasText(for faction: Faction) -> String {
+        switch faction {
+        case .ming:
+            return "火器压制 / 层层设防"
+        case .qing:
+            return "突骑破阵 / 合围"
+        case .dashun:
+            return "破围 / 正攻"
+        case .daxi:
+            return "流动作战 / 佯攻"
+        case .localNeutral:
+            return "固守 / 团练自保"
+        case .germany:
+            return "疾袭 / 突破"
+        case .allies:
+            return "联军协同 / 预备队"
+        }
+    }
+}
+
+private extension ZoneCommanderAgentConfig.CommandStyle {
+    var agentPanelDisplayName: String {
+        switch self {
+        case .aggressive:
+            return "锐进"
+        case .balanced:
+            return "持重"
+        case .cautious:
+            return "谨守"
+        }
+    }
+
+    var agentPanelTint: Color {
+        switch self {
+        case .aggressive:
+            return MingDesignTokens.cinnabar
+        case .balanced:
+            return MingDesignTokens.porcelainBlue
+        case .cautious:
+            return MingDesignTokens.jade
         }
     }
 }
