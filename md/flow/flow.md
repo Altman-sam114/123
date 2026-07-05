@@ -1,4 +1,4 @@
-# WWIIHexV0 核心流程文档（明末迁移 v4.7 明末胜负链与战役目标面板首片，v4.6 UI、朝廷项目、朝议争点、朝报令条、军令牌、将印军令/将领名帖、军机复盘牌、塘报战记、军情牌、州府牌、府库牌、天下急势、地图标识、粮道线路/开关、军令计划线、势力旗号、舆图图例与四线项目分组首片）
+# WWIIHexV0 核心流程文档（明末迁移 v4.7 剧本胜利条件数据驱动、明末胜负链与战役目标面板首片，v4.6 UI、朝廷项目、朝议争点、朝报令条、军令牌、将印军令/将领名帖、军机复盘牌、塘报战记、军情牌、州府牌、天下急势、地图标识、粮道线路/开关、军令计划线、势力旗号、舆图图例与四线项目分组首片）
 
 > 本文是项目当前核心逻辑的接手文档。目标不是复述历史设计，而是按当前代码真实链路说明：数据如何进入游戏，hex / region / theater / front / deploy 如何派生，主游戏和地图编辑器如何共同维护同一套地图语义，AI / 玩家命令如何落到规则系统。
 
@@ -33,7 +33,7 @@ MapEditor / JSON 数据
   -> WarCommandExecutor
   -> RuleEngine
   -> CommandExecutor
-  -> BattleObjectiveSummary 明末胜负线 / objective points 只读摘要
+  -> BattleObjectiveSummary 从 GameState.victoryConditions 编译明末胜负线 / objective points 只读摘要
   -> VictoryRules 明末胜负链 / legacy 阿登胜负链
   -> StrategicStateSynchronizer
   -> SupplyRules.supplyPath 粮道线路只读派生
@@ -73,7 +73,7 @@ MapEditor / JSON 数据
 - v4.6 舆图图例首片中，`MapDisplayLayer.displayName` 已改为舆图、州府、初划、战局、前线、布防；同一 enum 提供图标、图例标题和说明，`RootGameView` 顶部图例条用“城 / 关 / 粮 / 步”、势力旗和粮道虚线解释当前地图符号。该片只影响 SwiftUI 展示，不改变 layer rawValue、overlay 计算或规则权威。
 - v4.6 军令计划线首片中，`BoardScene.drawPlannedOperations` 只读 `PlayerCommandState.plannedOperations`，把当前回合玩家计划画成朱砂“进”令牌箭头和青绿“守”令牌；`RootGameView` 顶部图例增加“军令计划 / 进取 / 固守”。该片只影响 SpriteKit/SwiftUI 展示，不改变计划记录、`ZoneDirective`、`WarCommandExecutor`、`Command` 或 `RuleEngine`。
 - v4.6 势力旗号首片中，`Faction.bannerGlyph` 为明廷、后金/清、大顺、大西和地方中立提供短旗号；`UnitNode` 在地图军牌顶端显示“明/清/顺/西/乡”等旗号，`UnitInspectorView` 与 `CommandPanelView` 的军牌印面同步显示旗号，`RootGameView` 顶部图例增加“势力旗”。该片只影响 UI/SpriteKit 展示，不改变 `Faction` 控制语义、外交关系、单位状态、命令执行或规则权威。
-- v4.7 明末胜负链首片中，`Objective` 保留 scenario JSON 的 `points`，`MapState` 可按 objective id 查询控制方；`BattleObjectiveSummary` 从 `GameState` 派生清破关入京、大顺据中原秦陕、大西据湖广粮区、明廷守京师关口四条胜负线和 objective points 领先方；`VictoryRules` 对 `chongzhen_1642` 剧本读取同一摘要执行明末条件，legacy 阿登胜负条件保持原路径。`HUDView` 的胜负 badge 只读显示胜负理由短语，`RootGameView` 信息面板新增“目标”tab，用 `BattleObjectivePanelView` 展示当前各城关控制方、进度和终局要冲分。
+- v4.7 明末胜负链首片中，`Objective` 保留 scenario JSON 的 `points`，`DataLoader` 会把 `ScenarioDefinition.victoryConditions` 写入 `GameState.victoryConditions`，`MapState` 可按 objective id 查询控制方；`BattleObjectiveSummary` 优先从 `GameState.victoryConditions` 编译清破关入京、大顺据中原秦陕、大西据湖广粮区、明廷守京师关口四条胜负线和 objective points 领先方，缺失时才回退内置目标；`VictoryRules` 对 `chongzhen_1642` 剧本读取同一摘要执行明末条件，legacy 阿登胜负条件保持原路径。`HUDView` 的胜负 badge 只读显示胜负理由短语，`RootGameView` 信息面板新增“目标”tab，用 `BattleObjectivePanelView` 展示当前各城关控制方、进度和终局要冲分。
 - `GamePhase.allowsHumanCommands` 是玩家可操作阶段的当前 UI/App 判定入口，兼容 `.humanAction` 与 legacy `.alliedPlayer`。
 - `turnOrder`、`humanControlledFactions`、`aiControlledFactions` 是通用回合和控制方配置；旧阿登仍 fallback 为 Germany AI / Allies player。
 - `EconomyState` 是 faction 级经济总账；收入来自受控 region、城市、工厂、基础设施和补给值，但战术占领仍以 hex 为准。
@@ -102,6 +102,7 @@ frontLineState: FrontLineState
 warDeploymentState: WarDeploymentState
 economyState: EconomyState
 diplomacyState: DiplomacyState
+victoryConditions: [VictoryConditionDefinition]
 turnOrder: [Faction]
 humanControlledFactions: [Faction]
 aiControlledFactions: [Faction]
@@ -122,6 +123,7 @@ playerCommandState
 - `economyState` 保存民力、银两、粮草三项兼容资源、生产队列、上回合收入/维护费/补员消耗，不直接改变战术占领权；源码字段名仍是 `manpower/industry/supplies`。
 - `CourtStrategySummary` 不保存进 `GameState`，而是从钱粮、治理、前线、补给和单位组件即时派生，供朝廷面板、AgentContext 和 MarshalBattlefieldSummary 读取；`CourtProjectDomain` / `CourtProjectKind` 也不新增持久政策状态，只描述玩家可施行的一次性项目及四线展示分组、成本、收益和风险。
 - `diplomacyState` 保存国家/集团/关系；v4.1 起 `canAttack`、`isHostile`、`isFriendly`、`canEnterTerritory` 是新敌我判断入口。
+- `victoryConditions` 保存剧本 JSON 的胜利条件；`BattleObjectiveSummary` 优先读取它生成明末目标线，旧存档或缺失条件默认空数组并走兼容 fallback。
 - `turnOrder` 决定多势力轮转；`humanControlledFactions` / `aiControlledFactions` 决定当前 active faction 由玩家还是 AI 控制。
 - `eventLog` 给 UI 和调试看。
 - `warDirectiveRecords` 记录战争指令执行回放，供 v0.36+ 后续接 LLM / 聊天命令审计。
@@ -1199,7 +1201,7 @@ SupplyRules.advanceRetreats
 SupplyRules.applyEncirclementAttrition
 VictoryRules.updateVictoryState
   -> 明末剧本先读取 BattleObjectiveSummary：
-     四条胜负线、城关控制方、objective points 领先方都从 GameState / MapState 派生
+     四条胜负线优先由 GameState.victoryConditions 编译，城关控制方、objective points 领先方都从 GameState / MapState 派生
   -> chongzhen_1642 剧本走明末胜负链：
      清：山海关 + 北京
      大顺：开封 + 洛阳 + 西安

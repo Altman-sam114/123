@@ -143,6 +143,7 @@ struct DataLoader {
             frontLineState: frontLineState,
             warDeploymentState: warDeploymentState,
             diplomacyState: DiplomacyState.initial(from: scenario.factions, turn: turn),
+            victoryConditions: scenario.victoryConditions,
             turnOrder: turnOrder(for: scenario),
             humanControlledFactions: humanControlledFactions(for: scenario),
             aiControlledFactions: aiControlledFactions(for: scenario),

@@ -723,6 +723,25 @@ final class RuleEngineCoreTests: XCTestCase {
         XCTAssertEqual(summary.leadingFaction, .ming)
     }
 
+    func testMingBattleObjectiveSummaryUsesScenarioVictoryConditions() {
+        let state = Self.mingVictoryState(
+            objectiveControllers: [
+                "obj_shanhaiguan": .qing,
+                "obj_beijing": .ming
+            ],
+            victoryConditions: Self.mingVictoryConditions
+        )
+
+        let summary = BattleObjectiveSummary.from(state: state)
+        let tracks = summary.tracks
+        let qingTrack = summary.track(id: .qingPassCapital)
+
+        XCTAssertEqual(tracks.map(\.id), [.mingMandateLine, .qingPassCapital, .dashunCentralPlain, .daxiHuguang])
+        XCTAssertEqual(qingTrack?.subtitle, "清军夺取山海关并打开北京方向。")
+        XCTAssertEqual(qingTrack?.targets.map(\.objectiveId), ["obj_shanhaiguan", "obj_beijing"])
+        XCTAssertEqual(qingTrack?.timing, .immediate)
+    }
+
     func testMingBattleObjectiveSummaryRecognizesDashunCentralPlainTrack() {
         let state = Self.mingVictoryState(
             objectiveControllers: [
@@ -836,7 +855,8 @@ final class RuleEngineCoreTests: XCTestCase {
     private static func mingVictoryState(
         objectiveControllers: [String: Faction],
         turn: Int = 1,
-        maxTurns: Int = 20
+        maxTurns: Int = 20,
+        victoryConditions: [VictoryConditionDefinition] = Self.mingVictoryConditions
     ) -> GameState {
         let objectives: [Objective] = [
             Objective(id: "obj_shanhaiguan", name: "山海关", coord: HexCoord(q: 0, r: 0), type: .fortress, points: 7),
@@ -871,6 +891,7 @@ final class RuleEngineCoreTests: XCTestCase {
                 supplySources: [],
                 objectives: objectives
             ),
+            victoryConditions: victoryConditions,
             turnOrder: [.ming, .qing, .dashun, .daxi],
             humanControlledFactions: [.ming],
             aiControlledFactions: [.qing, .dashun, .daxi],
@@ -880,4 +901,63 @@ final class RuleEngineCoreTests: XCTestCase {
             eventLog: []
         )
     }
+
+    private static let mingVictoryConditions: [VictoryConditionDefinition] = [
+        VictoryConditionDefinition(
+            id: "ming_hold_north",
+            type: "holdObjectives",
+            faction: "ming",
+            objectiveId: nil,
+            objectiveIds: ["obj_beijing", "obj_shanhaiguan", "obj_wuchang"],
+            targetFaction: nil,
+            targetTemplateIds: nil,
+            turns: nil,
+            turn: 20,
+            count: nil,
+            status: "planned",
+            description: "明廷坚持到第 20 回合并守住北京、山海关、武昌。"
+        ),
+        VictoryConditionDefinition(
+            id: "qing_break_pass",
+            type: "controlObjectives",
+            faction: "qing",
+            objectiveId: nil,
+            objectiveIds: ["obj_shanhaiguan", "obj_beijing"],
+            targetFaction: nil,
+            targetTemplateIds: nil,
+            turns: nil,
+            turn: nil,
+            count: nil,
+            status: "planned",
+            description: "清军夺取山海关并打开北京方向。"
+        ),
+        VictoryConditionDefinition(
+            id: "dashun_grain_chain",
+            type: "controlObjectives",
+            faction: "dashun",
+            objectiveId: nil,
+            objectiveIds: ["obj_kaifeng", "obj_luoyang", "obj_xian"],
+            targetFaction: nil,
+            targetTemplateIds: nil,
+            turns: nil,
+            turn: nil,
+            count: nil,
+            status: "planned",
+            description: "大顺控制河南和秦陕粮道核心。"
+        ),
+        VictoryConditionDefinition(
+            id: "daxi_huguang_base",
+            type: "controlObjectives",
+            faction: "daxi",
+            objectiveId: nil,
+            objectiveIds: ["obj_jingzhou", "obj_wuchang"],
+            targetFaction: nil,
+            targetTemplateIds: nil,
+            turns: nil,
+            turn: nil,
+            count: nil,
+            status: "planned",
+            description: "大西夺取湖广粮区立足点。"
+        )
+    ]
 }

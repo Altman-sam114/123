@@ -12,6 +12,7 @@ struct GameState: Codable, Equatable {
     var warDeploymentState: WarDeploymentState
     var economyState: EconomyState
     var diplomacyState: DiplomacyState
+    var victoryConditions: [VictoryConditionDefinition]
     var turnOrder: [Faction]
     var humanControlledFactions: [Faction]
     var aiControlledFactions: [Faction]
@@ -34,6 +35,7 @@ struct GameState: Codable, Equatable {
         warDeploymentState: WarDeploymentState = .empty,
         economyState: EconomyState = .empty,
         diplomacyState: DiplomacyState = .empty,
+        victoryConditions: [VictoryConditionDefinition] = [],
         turnOrder: [Faction] = [.germany, .allies],
         humanControlledFactions: [Faction] = [.allies],
         aiControlledFactions: [Faction] = [.germany],
@@ -55,6 +57,7 @@ struct GameState: Codable, Equatable {
         self.warDeploymentState = warDeploymentState
         self.economyState = economyState
         self.diplomacyState = diplomacyState
+        self.victoryConditions = victoryConditions
         self.turnOrder = Self.normalizedFactionList(turnOrder)
         self.humanControlledFactions = Self.normalizedFactionList(humanControlledFactions)
         self.aiControlledFactions = Self.normalizedFactionList(aiControlledFactions)
@@ -159,6 +162,7 @@ struct GameState: Codable, Equatable {
         case warDeploymentState
         case economyState
         case diplomacyState
+        case victoryConditions
         case turnOrder
         case humanControlledFactions
         case aiControlledFactions
@@ -184,6 +188,7 @@ struct GameState: Codable, Equatable {
             warDeploymentState: try container.decodeIfPresent(WarDeploymentState.self, forKey: .warDeploymentState) ?? .empty,
             economyState: try container.decodeIfPresent(EconomyState.self, forKey: .economyState) ?? .empty,
             diplomacyState: try container.decodeIfPresent(DiplomacyState.self, forKey: .diplomacyState) ?? .empty,
+            victoryConditions: try container.decodeIfPresent([VictoryConditionDefinition].self, forKey: .victoryConditions) ?? [],
             turnOrder: try container.decodeIfPresent([Faction].self, forKey: .turnOrder) ?? [.germany, .allies],
             humanControlledFactions: try container.decodeIfPresent([Faction].self, forKey: .humanControlledFactions) ?? [.allies],
             aiControlledFactions: try container.decodeIfPresent([Faction].self, forKey: .aiControlledFactions) ?? [.germany],

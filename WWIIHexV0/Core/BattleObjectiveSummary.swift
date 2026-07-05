@@ -106,52 +106,12 @@ struct BattleObjectiveSummary: Equatable {
         }
 
         let rows = scoreRows(in: state)
+        let dataDrivenTracks = tracks(from: state)
         return BattleObjectiveSummary(
             title: "崇祯十五年 · 天下目标",
             subtitle: "破关、据中原、控湖广与守京师关口共同构成当前胜负线。",
             isMingScenario: true,
-            tracks: [
-                makeTrack(
-                    id: .qingPassCapital,
-                    title: "破关入京",
-                    subtitle: "后金/清须控制山海关与北京，打开畿辅门户。",
-                    faction: .qing,
-                    reason: .qingBreaksPassAndCapital,
-                    timing: .immediate,
-                    objectiveIds: ["obj_shanhaiguan", "obj_beijing"],
-                    state: state
-                ),
-                makeTrack(
-                    id: .dashunCentralPlain,
-                    title: "据中原秦陕",
-                    subtitle: "大顺须连控开封、洛阳与西安，稳住中原和秦陕。",
-                    faction: .dashun,
-                    reason: .dashunControlsCentralPlain,
-                    timing: .immediate,
-                    objectiveIds: ["obj_kaifeng", "obj_luoyang", "obj_xian"],
-                    state: state
-                ),
-                makeTrack(
-                    id: .daxiHuguang,
-                    title: "据湖广粮区",
-                    subtitle: "大西须控制荆州与武昌，取得湖广粮道根基。",
-                    faction: .daxi,
-                    reason: .daxiControlsHuguangBase,
-                    timing: .immediate,
-                    objectiveIds: ["obj_jingzhou", "obj_wuchang"],
-                    state: state
-                ),
-                makeTrack(
-                    id: .mingMandateLine,
-                    title: "守京师关口",
-                    subtitle: "明廷须在终局守住北京、山海关与武昌，保住京畿、关门和湖广。",
-                    faction: .ming,
-                    reason: .mingHoldsMandateAtFinalTurn,
-                    timing: .finalTurn,
-                    objectiveIds: ["obj_beijing", "obj_shanhaiguan", "obj_wuchang"],
-                    state: state
-                )
-            ],
+            tracks: dataDrivenTracks.isEmpty ? fallbackTracks(from: state) : dataDrivenTracks,
             scoreRows: rows,
             leadingFaction: leadingFaction(from: rows)
         )
@@ -159,6 +119,94 @@ struct BattleObjectiveSummary: Equatable {
 
     func track(id: TrackId) -> Track? {
         tracks.first { $0.id == id }
+    }
+
+    private static func tracks(from state: GameState) -> [Track] {
+        state.victoryConditions.compactMap { condition in
+            guard let metadata = trackMetadata(for: condition),
+                  let faction = Faction(rawValue: condition.faction) else {
+                return nil
+            }
+
+            let objectiveIds = condition.objectiveIds ?? condition.objectiveId.map { [$0] } ?? []
+            guard !objectiveIds.isEmpty else {
+                return nil
+            }
+
+            return makeTrack(
+                id: metadata.id,
+                title: metadata.title,
+                subtitle: condition.description,
+                faction: faction,
+                reason: metadata.reason,
+                timing: metadata.timing,
+                objectiveIds: objectiveIds,
+                state: state
+            )
+        }
+    }
+
+    private static func fallbackTracks(from state: GameState) -> [Track] {
+        [
+            makeTrack(
+                id: .qingPassCapital,
+                title: "破关入京",
+                subtitle: "后金/清须控制山海关与北京，打开畿辅门户。",
+                faction: .qing,
+                reason: .qingBreaksPassAndCapital,
+                timing: .immediate,
+                objectiveIds: ["obj_shanhaiguan", "obj_beijing"],
+                state: state
+            ),
+            makeTrack(
+                id: .dashunCentralPlain,
+                title: "据中原秦陕",
+                subtitle: "大顺须连控开封、洛阳与西安，稳住中原和秦陕。",
+                faction: .dashun,
+                reason: .dashunControlsCentralPlain,
+                timing: .immediate,
+                objectiveIds: ["obj_kaifeng", "obj_luoyang", "obj_xian"],
+                state: state
+            ),
+            makeTrack(
+                id: .daxiHuguang,
+                title: "据湖广粮区",
+                subtitle: "大西须控制荆州与武昌，取得湖广粮道根基。",
+                faction: .daxi,
+                reason: .daxiControlsHuguangBase,
+                timing: .immediate,
+                objectiveIds: ["obj_jingzhou", "obj_wuchang"],
+                state: state
+            ),
+            makeTrack(
+                id: .mingMandateLine,
+                title: "守京师关口",
+                subtitle: "明廷须在终局守住北京、山海关与武昌，保住京畿、关门和湖广。",
+                faction: .ming,
+                reason: .mingHoldsMandateAtFinalTurn,
+                timing: .finalTurn,
+                objectiveIds: ["obj_beijing", "obj_shanhaiguan", "obj_wuchang"],
+                state: state
+            )
+        ]
+    }
+
+    private static func trackMetadata(
+        for condition: VictoryConditionDefinition
+    ) -> (id: TrackId, title: String, reason: VictoryReason, timing: Timing)? {
+        let timing: Timing = condition.type == "holdObjectives" ? .finalTurn : .immediate
+        switch condition.id {
+        case "qing_break_pass":
+            return (.qingPassCapital, "破关入京", .qingBreaksPassAndCapital, timing)
+        case "dashun_grain_chain":
+            return (.dashunCentralPlain, "据中原秦陕", .dashunControlsCentralPlain, timing)
+        case "daxi_huguang_base":
+            return (.daxiHuguang, "据湖广粮区", .daxiControlsHuguangBase, timing)
+        case "ming_hold_north":
+            return (.mingMandateLine, "守京师关口", .mingHoldsMandateAtFinalTurn, .finalTurn)
+        default:
+            return nil
+        }
     }
 
     private static func makeTrack(
