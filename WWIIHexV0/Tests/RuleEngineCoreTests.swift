@@ -911,6 +911,35 @@ final class RuleEngineCoreTests: XCTestCase {
         XCTAssertTrue(summary.rationale.contains("破关入京线已动"))
     }
 
+    func testLocalGentryPressureInfluencesCourtFocus() {
+        let state = Self.mingLocalGentryState()
+
+        let summary = CourtStrategySummary.from(faction: .ming, state: state)
+
+        XCTAssertEqual(summary.recommendedFocus, .appeaseGentry)
+        XCTAssertTrue(summary.rationale.contains("乡绅"))
+        XCTAssertEqual(CourtProjectKind.appeaseGentry.displayName, "招抚乡绅")
+        XCTAssertTrue(CourtProjectKind.appeaseGentry.domains.contains(.policy))
+    }
+
+    func testAppeaseGentryCourtProjectImprovesLocalGovernance() {
+        let state = Self.mingLocalGentryState()
+        let result = RuleEngine().execute(.enactCourtProject(kind: .appeaseGentry), in: state)
+        let region = result.state.map.region(id: "region_weihui_gentry")
+        let stockpile = result.state.economyState.ledger(for: .ming).stockpile
+
+        XCTAssertTrue(result.succeeded)
+        XCTAssertEqual(region?.controller, .ming)
+        XCTAssertEqual(region?.owner, .localNeutral)
+        XCTAssertEqual(region?.occupationState?.resistance, 32)
+        XCTAssertEqual(region?.occupationState?.compliance, 47)
+        XCTAssertEqual(stockpile.manpower, 40)
+        XCTAssertEqual(stockpile.industry, 50)
+        XCTAssertEqual(stockpile.supplies, 40)
+        XCTAssertTrue(result.state.eventLog.last?.message.contains("招抚乡绅") == true)
+        XCTAssertTrue(result.state.eventLog.last?.message.contains("乡绅归附") == true)
+    }
+
     func testMingBattleObjectiveSummaryShowsCurrentTaskChain() {
         let state = Self.mingVictoryState(objectiveControllers: [:])
 
@@ -1162,6 +1191,52 @@ final class RuleEngineCoreTests: XCTestCase {
             humanControlledFactions: [.ming],
             aiControlledFactions: [.qing, .dashun, .daxi],
             divisions: divisions,
+            victoryState: .ongoing,
+            selectedUnitSummary: nil,
+            eventLog: []
+        )
+    }
+
+    private static func mingLocalGentryState() -> GameState {
+        let coord = HexCoord(q: 0, r: 0)
+        let regionId = RegionId("region_weihui_gentry")
+        var map = basicMap(width: 2, height: 1, supplySources: [])
+        var tile = map.tiles[coord] ?? HexTile(coord: coord)
+        tile.controller = .ming
+        map.tiles[coord] = tile
+        map.hexToRegion[coord] = regionId
+        map.regions[regionId] = RegionNode(
+            id: regionId,
+            name: "卫辉乡绅",
+            owner: .localNeutral,
+            controller: .ming,
+            terrain: .plain,
+            neighbors: [],
+            displayHexes: [coord],
+            representativeHex: coord,
+            occupationState: OccupationState(resistance: 42, compliance: 35)
+        )
+
+        var economyState = EconomyState()
+        economyState.updateLedger(
+            FactionEconomyLedger(
+                faction: .ming,
+                stockpile: EconomyResources(manpower: 50, industry: 80, supplies: 60)
+            )
+        )
+
+        return GameState(
+            scenarioId: "chongzhen_1642_collapse",
+            turn: 1,
+            maxTurns: 20,
+            activeFaction: .ming,
+            phase: .humanAction,
+            map: map,
+            economyState: economyState,
+            turnOrder: [.ming],
+            humanControlledFactions: [.ming],
+            aiControlledFactions: [],
+            divisions: [],
             victoryState: .ongoing,
             selectedUnitSummary: nil,
             eventLog: []

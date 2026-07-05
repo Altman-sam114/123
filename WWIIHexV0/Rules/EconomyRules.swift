@@ -243,6 +243,9 @@ struct EconomyRules {
                 state: &state
             )
             return affected.isEmpty ? "未找到可赈州府" : "\(affected.joined(separator: "、")) 民变下降"
+        case .appeaseGentry:
+            let affected = appeaseLocalGentry(faction: faction, limit: 3, state: &state)
+            return affected.isEmpty ? "未找到可招抚州府" : "\(affected.joined(separator: "、")) 乡绅归附，行政恢复"
         case .fortify:
             let affected = fortifyControlledRegions(faction: faction, limit: 2, state: &state)
             return affected.isEmpty ? "未找到可修城州府" : "\(affected.joined(separator: "、")) 城防和粮道提升"
@@ -314,6 +317,52 @@ struct EconomyRules {
             names.append(current.name)
         }
         return names
+    }
+
+    private func appeaseLocalGentry(
+        faction: Faction,
+        limit: Int,
+        state: inout GameState
+    ) -> [String] {
+        let regions = controlledRegions(for: faction, in: state)
+            .filter { region in
+                let occupation = region.occupationState ?? .stable
+                return region.owner == .localNeutral ||
+                    (!region.coreOf.isEmpty && !region.coreOf.contains(faction)) ||
+                    occupation.resistance >= 15 ||
+                    occupation.compliance < 70
+            }
+            .sorted {
+                let lhsScore = pacificationScore(for: $0, faction: faction)
+                let rhsScore = pacificationScore(for: $1, faction: faction)
+                if lhsScore != rhsScore {
+                    return lhsScore > rhsScore
+                }
+                return $0.id.rawValue < $1.id.rawValue
+            }
+            .prefix(limit)
+
+        var names: [String] = []
+        for region in regions {
+            guard var current = state.map.regions[region.id] else {
+                continue
+            }
+            let occupation = current.occupationState ?? .stable
+            current.occupationState = OccupationState(
+                resistance: occupation.resistance - 10,
+                compliance: occupation.compliance + 12
+            )
+            state.map.regions[region.id] = current
+            names.append(current.name)
+        }
+        return names
+    }
+
+    private func pacificationScore(for region: RegionNode, faction: Faction) -> Int {
+        let occupation = region.occupationState ?? .stable
+        let localBonus = region.owner == .localNeutral ? 40 : 0
+        let nonCoreBonus = !region.coreOf.isEmpty && !region.coreOf.contains(faction) ? 20 : 0
+        return localBonus + nonCoreBonus + occupation.resistance + max(0, 70 - occupation.compliance)
     }
 
     private func fortifyControlledRegions(
