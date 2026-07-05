@@ -86,11 +86,11 @@ struct DiplomacyPanelView: View {
                 .font(.subheadline.weight(.semibold))
 
             ForEach(diplomacyState.blocs) { bloc in
-                LabeledContent(bloc.name) {
-                    Text("\(bloc.memberCountryIds.count) 方")
-                        .foregroundStyle(bloc.faction == activeFaction ? .primary : .secondary)
-                }
-                .font(.caption)
+                BlocMandateRow(
+                    bloc: bloc,
+                    memberNames: bloc.memberCountryIds.map { countryName(for: $0) },
+                    isActive: bloc.faction == activeFaction
+                )
             }
         }
     }
@@ -106,20 +106,13 @@ struct DiplomacyPanelView: View {
                     .foregroundStyle(.secondary)
             } else {
                 ForEach(diplomacyState.relations) { relation in
-                    HStack {
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text("\(countryName(for: relation.firstCountryId)) - \(countryName(for: relation.secondCountryId))")
-                                .font(.caption.weight(.semibold))
-                                .lineLimit(1)
-                            Text("张力 \(relation.tension) / 第 \(relation.sinceTurn) 回合起")
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                        }
-                        Spacer()
-                        Text(relation.status.displayName)
-                            .font(.caption.weight(.semibold))
-                            .foregroundStyle(statusColor(for: relation.status))
-                    }
+                    DiplomaticRelationRow(
+                        relation: relation,
+                        firstCountry: country(for: relation.firstCountryId),
+                        secondCountry: country(for: relation.secondCountryId),
+                        isActive: relation.containsActiveCountry(activeCountryIds),
+                        statusTint: statusColor(for: relation.status)
+                    )
                 }
             }
         }
@@ -209,6 +202,10 @@ struct DiplomacyPanelView: View {
         diplomacyState.countries.first { $0.id == countryId }?.name ?? countryId.rawValue
     }
 
+    private func country(for countryId: CountryId) -> CountryProfile? {
+        diplomacyState.countries.first { $0.id == countryId }
+    }
+
     private func blocName(for blocId: DiplomaticBlocId) -> String {
         diplomacyState.blocs.first { $0.id == blocId }?.name ?? blocId.rawValue
     }
@@ -232,14 +229,22 @@ private struct CountryPowerRow: View {
 
     var body: some View {
         HStack(alignment: .center, spacing: 8) {
-            RoundedRectangle(cornerRadius: 2)
-                .fill(country.faction.mingBannerTint)
-                .frame(width: 4, height: 42)
+            MingFactionFlagBadge(faction: country.faction)
 
             VStack(alignment: .leading, spacing: 4) {
-                Text(country.name)
-                    .font(.caption.weight(.semibold))
-                    .lineLimit(1)
+                HStack(spacing: 6) {
+                    Text(country.name)
+                        .font(.caption.weight(.semibold))
+                        .lineLimit(1)
+
+                    if country.isPrimaryBelligerent {
+                        Label("主战", systemImage: "flag.fill")
+                            .font(.caption2.bold())
+                            .foregroundStyle(country.faction.mingBannerTint)
+                            .lineLimit(1)
+                    }
+                }
+
                 Text("\(country.faction.displayName) / \(blocName)")
                     .font(.caption2)
                     .foregroundStyle(.secondary)
@@ -247,6 +252,12 @@ private struct CountryPowerRow: View {
 
                 ProgressView(value: Double(country.warSupport), total: 100)
                     .tint(country.faction.mingBannerTint)
+
+                if country.surrenderProgress > 0 {
+                    Text("离散 \(country.surrenderProgress)")
+                        .font(.caption2.monospacedDigit())
+                        .foregroundStyle(MingDesignTokens.cinnabar)
+                }
             }
 
             Spacer(minLength: 8)
@@ -263,6 +274,134 @@ private struct CountryPowerRow: View {
         .padding(.horizontal, MingDesignTokens.compactSpacing)
         .background(isActive ? MingDesignTokens.subtleSeal : MingDesignTokens.sectionBackground.opacity(0.56), in: RoundedRectangle(cornerRadius: MingDesignTokens.cornerRadius))
         .accessibilityElement(children: .combine)
+    }
+}
+
+private struct DiplomaticRelationRow: View {
+    let relation: DiplomaticRelation
+    let firstCountry: CountryProfile?
+    let secondCountry: CountryProfile?
+    let isActive: Bool
+    let statusTint: Color
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            HStack(alignment: .center, spacing: 8) {
+                relationSide(country: firstCountry, fallback: relation.firstCountryId.rawValue)
+
+                Image(systemName: relation.status.isHostile ? "bolt.horizontal.fill" : "arrow.left.arrow.right")
+                    .font(.caption.bold())
+                    .foregroundStyle(statusTint)
+                    .frame(width: 20)
+                    .accessibilityHidden(true)
+
+                relationSide(country: secondCountry, fallback: relation.secondCountryId.rawValue)
+
+                Spacer(minLength: 8)
+
+                Text(relation.status.displayName)
+                    .font(.caption.bold())
+                    .foregroundStyle(statusTint)
+                    .lineLimit(1)
+                    .padding(.horizontal, 7)
+                    .padding(.vertical, 4)
+                    .background(statusTint.opacity(0.12), in: RoundedRectangle(cornerRadius: 6))
+            }
+
+            HStack(spacing: 8) {
+                Text("张力 \(relation.tension)")
+                    .font(.caption2.monospacedDigit())
+                    .foregroundStyle(.secondary)
+                    .frame(width: 54, alignment: .leading)
+
+                ProgressView(value: Double(relation.tension), total: 100)
+                    .tint(statusTint)
+
+                Text("第 \(relation.sinceTurn) 回合")
+                    .font(.caption2.monospacedDigit())
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+            }
+        }
+        .padding(.horizontal, MingDesignTokens.compactSpacing)
+        .padding(.vertical, 7)
+        .background(isActive ? MingDesignTokens.subtleSeal : MingDesignTokens.sectionBackground.opacity(0.56), in: RoundedRectangle(cornerRadius: MingDesignTokens.cornerRadius))
+        .overlay {
+            RoundedRectangle(cornerRadius: MingDesignTokens.cornerRadius)
+                .stroke(statusTint.opacity(relation.status.isHostile ? 0.38 : 0.18), lineWidth: 1)
+        }
+        .accessibilityElement(children: .combine)
+    }
+
+    private func relationSide(country: CountryProfile?, fallback: String) -> some View {
+        HStack(spacing: 5) {
+            if let country {
+                MingFactionFlagBadge(faction: country.faction)
+                Text(country.name)
+                    .font(.caption.bold())
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.78)
+            } else {
+                Text(fallback)
+                    .font(.caption.bold())
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.78)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+}
+
+private struct BlocMandateRow: View {
+    let bloc: DiplomaticBloc
+    let memberNames: [String]
+    let isActive: Bool
+
+    var body: some View {
+        HStack(alignment: .center, spacing: 8) {
+            MingFactionFlagBadge(faction: bloc.faction)
+
+            VStack(alignment: .leading, spacing: 3) {
+                HStack(spacing: 6) {
+                    Text(bloc.name)
+                        .font(.caption.bold())
+                        .lineLimit(1)
+
+                    if isActive {
+                        Text("当前")
+                            .font(.caption2.bold())
+                            .foregroundStyle(bloc.faction.mingBannerTint)
+                            .lineLimit(1)
+                    }
+                }
+
+                Text(memberSummary)
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(2)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+
+            Spacer(minLength: 8)
+
+            Text("\(bloc.memberCountryIds.count) 方")
+                .font(.caption.monospacedDigit().bold())
+                .foregroundStyle(isActive ? bloc.faction.mingBannerTint : .secondary)
+        }
+        .padding(.horizontal, MingDesignTokens.compactSpacing)
+        .padding(.vertical, 7)
+        .background(isActive ? MingDesignTokens.subtleSeal : MingDesignTokens.sectionBackground.opacity(0.56), in: RoundedRectangle(cornerRadius: MingDesignTokens.cornerRadius))
+        .accessibilityElement(children: .combine)
+    }
+
+    private var memberSummary: String {
+        memberNames.isEmpty ? "未登记成员" : memberNames.joined(separator: "、")
+    }
+}
+
+private extension DiplomaticRelation {
+    func containsActiveCountry(_ activeCountryIds: Set<CountryId>) -> Bool {
+        activeCountryIds.contains(firstCountryId) || activeCountryIds.contains(secondCountryId)
     }
 }
 

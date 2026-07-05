@@ -2140,7 +2140,7 @@ RegionInspectorState
 - `UnitInspectorView` 以军情牌展示选中部队，读取 `Division` 的兵力、补给、退守、行动、`effectiveStats` 和兵种组件，以及 `UnitInspectorStrategicState` 的坐标、州府、动态方面、防区、部署和前线归属；它只负责 SwiftUI 展示，不写入任何战术或战略状态。
 - `RegionInspectorView` 以州府牌展示选中州府，读取 `RegionInspectorState` 的州府、治理、钱粮产出、目标、友敌军、方面/防区和当前 hex 归属；它只负责 SwiftUI 展示，不写入 hex、region、economy、front、deployment 或命令状态。
 - `EconomyPanelView` 以府库牌展示当前 active faction 的 `FactionEconomyLedger`，读取库存、入账、维护、补员、生产成本和 `ProductionOrder` 进度；生产入口仍只调用 `onQueueProduction -> AppContainer.queueProduction -> Command.queueProduction`，不直接写入 `EconomyState`。
-- `DiplomacyPanelView` 的“天下急势”读取当前势力外交关系、主要对手、战意和朝议四线压力；诸方势力列表用势力色和战意条增强中华世界局势可读性，不改变外交状态。
+- `DiplomacyPanelView` 的“天下急势”读取当前势力外交关系、主要对手、战意和朝议四线压力；诸方势力列表用势力旗号、主战标记、战意条和离散值增强中华世界局势可读性；战和关系列表用双方旗号、关系状态、张力条和起始回合展示当前冲突线；阵营名义用旗号、成员和当前阵营高亮展示，不改变外交状态、朝议压力、AI 决策或规则权威。
 - `UnitNode` 改用中文军牌徽记，移除默认主地图上的 NATO 风格兵牌；军牌顶端读取 `Faction.bannerGlyph` 显示明/清/顺/西/乡等势力旗号。
 - `BaseTerrain.displayName` 改为平原、林地、山地、丘陵、城池、关隘/堡寨；`HexNode` 增加“城 / 关 / 粮”badge，并把粮台和关城标识中文化。
 - `SupplyRules` 新增只读 `supplyPath` helper，复用既有补给成本和通行规则返回 hex 路径；`BoardScene` 在 hex 图层绘制粮道虚线，选中单位路线优先显示。
