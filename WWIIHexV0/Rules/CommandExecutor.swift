@@ -183,6 +183,7 @@ struct CommandExecutor {
         supplyRules.applyEncirclementAttrition(in: &state)
         victoryRules.updateVictoryState(in: &state)
         appendBattleCueEvents(in: &state)
+        appendBattleTaskEvents(in: &state)
 
         let turnOrder = state.resolvedTurnOrder
         if let currentIndex = turnOrder.firstIndex(of: state.activeFaction), !turnOrder.isEmpty {
@@ -219,6 +220,36 @@ struct CommandExecutor {
             state.appendEvent(
                 cue.eventMessage,
                 category: cue.eventCategory,
+                relatedRecordId: recordId
+            )
+        }
+    }
+
+    private func appendBattleTaskEvents(in state: inout GameState) {
+        let summary = BattleObjectiveSummary.from(state: state)
+        guard summary.isMingScenario else {
+            return
+        }
+
+        let reportTasks = summary.tasks
+            .filter { $0.priority != .watch }
+            .sorted { lhs, rhs in
+                if lhs.priority.sortRank == rhs.priority.sortRank {
+                    return lhs.id < rhs.id
+                }
+                return lhs.priority.sortRank < rhs.priority.sortRank
+            }
+            .prefix(3)
+
+        for task in reportTasks {
+            let recordId = "battle-task-\(state.turn)-\(state.activeFaction.rawValue)-\(task.id)"
+            guard !state.eventLog.contains(where: { $0.relatedRecordId == recordId }) else {
+                continue
+            }
+
+            state.appendEvent(
+                "本旬任务：\(task.eventMessage)",
+                category: task.eventCategory,
                 relatedRecordId: recordId
             )
         }

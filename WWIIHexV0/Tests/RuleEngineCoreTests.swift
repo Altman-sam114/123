@@ -897,6 +897,34 @@ final class RuleEngineCoreTests: XCTestCase {
         })
     }
 
+    func testMingEndTurnRecordsBattleTasksAsReports() {
+        let state = Self.mingVictoryState(
+            objectiveControllers: [
+                "obj_shanhaiguan": .qing,
+                "obj_kaifeng": .dashun,
+                "obj_luoyang": .dashun
+            ]
+        )
+
+        let result = RuleEngine().execute(.endTurn, in: state)
+
+        XCTAssertTrue(result.succeeded)
+        XCTAssertTrue(result.state.eventLog.contains {
+            $0.category == .frontChange
+                && $0.relatedRecordId == "battle-task-1-ming-hold_pass_capital"
+                && $0.message.contains("堵住破关入京")
+                && $0.message.contains("急务")
+        })
+        XCTAssertTrue(result.state.eventLog.contains {
+            $0.category == .supply
+                && $0.relatedRecordId == "battle-task-1-ming-block_central_plain_grain_chain"
+                && $0.message.contains("截断河南秦陕粮链")
+        })
+        XCTAssertFalse(result.state.eventLog.contains {
+            $0.relatedRecordId == "battle-task-1-ming-ready_firearms_forts"
+        })
+    }
+
     func testMingObjectiveCaptureRecordsControlChangeReport() {
         var state = Self.mingVictoryState(
             objectiveControllers: [

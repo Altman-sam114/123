@@ -172,6 +172,17 @@ struct BattleObjectiveSummary: Equatable {
                 }
             }
 
+            var sortRank: Int {
+                switch self {
+                case .urgent:
+                    return 0
+                case .main:
+                    return 1
+                case .watch:
+                    return 2
+                }
+            }
+
             var systemImage: String {
                 switch self {
                 case .urgent:
@@ -190,6 +201,23 @@ struct BattleObjectiveSummary: Equatable {
         let title: String
         let detail: String
         let targetObjectiveId: String?
+
+        var eventMessage: String {
+            "\(line.displayName) · \(priority.displayName) · \(title)：\(detail)"
+        }
+
+        var eventCategory: GameLogCategory {
+            switch line {
+            case .economy:
+                return .supply
+            case .military:
+                return .frontChange
+            case .world,
+                 .policy,
+                 .technology:
+                return .event
+            }
+        }
     }
 
     struct Cue: Equatable, Identifiable {
