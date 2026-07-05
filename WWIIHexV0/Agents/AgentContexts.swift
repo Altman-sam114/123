@@ -193,7 +193,7 @@ enum CourtPolicyFocus: String, Codable, Equatable, CaseIterable, Identifiable {
         case .redCannonMaintenance:
             return "红衣炮维护"
         case .grainTransport:
-            return "粮台转运"
+            return "粮台驿道"
         }
     }
 
@@ -214,7 +214,7 @@ enum CourtPolicyFocus: String, Codable, Equatable, CaseIterable, Identifiable {
         case .redCannonMaintenance:
             return "科技/军事"
         case .grainTransport:
-            return "经济/军事"
+            return "经济/科技/军事"
         }
     }
 
@@ -237,7 +237,7 @@ enum CourtPolicyFocus: String, Codable, Equatable, CaseIterable, Identifiable {
         case .redCannonMaintenance:
             return "校修红衣炮和攻城炮队，稳住城关火力。"
         case .grainTransport:
-            return "优先保障粮道，缓解缺粮和被围风险。"
+            return "优先保障粮道，整修驿道并缓解缺粮和被围风险。"
         }
     }
 
@@ -260,7 +260,7 @@ enum CourtPolicyFocus: String, Codable, Equatable, CaseIterable, Identifiable {
         case .redCannonMaintenance:
             return "耗银耗粮，必须依托现有炮队或军械工坊。"
         case .grainTransport:
-            return "后方资源向前线倾斜，其他方向可能缺口扩大。"
+            return "后方资源向粮台驿道倾斜，其他方向可能缺口扩大。"
         }
     }
 
@@ -341,10 +341,13 @@ struct CourtStrategySummary: Codable, Equatable {
                 economy.grainShortfall * 8 +
                 (ledger.stockpile.industry < 10 ? 25 : 0)
         )
-        let technologyPressure = technologyNeed(
-            friendlyCount: friendlyDivisions.count,
-            fireSupportCount: fireSupportCount,
-            activeFrontCount: activeFrontZones.count
+        let routeRepairNeed = supplyRouteRepairNeed(for: faction, state: state)
+        let technologyPressure = clamp(
+            technologyNeed(
+                friendlyCount: friendlyDivisions.count,
+                fireSupportCount: fireSupportCount,
+                activeFrontCount: activeFrontZones.count
+            ) + routeRepairNeed * 10
         )
         let militaryPressure = clamp(
             averagePressure * 18 +
@@ -355,7 +358,8 @@ struct CourtStrategySummary: Codable, Equatable {
         let grainTransportPressure = clamp(
             economy.grainShortfall * 10 +
                 lowSupplyCount * 18 +
-                encircledCount * 25
+                encircledCount * 25 +
+                routeRepairNeed * 32
         )
         let agrarianPressure = clamp(
             economy.grainShortfall * 6 +
@@ -487,7 +491,7 @@ struct CourtStrategySummary: Codable, Equatable {
         case .redCannonMaintenance:
             return "红衣炮和攻城炮队受损，需先校修火力支点。"
         case .grainTransport:
-            return "粮草缺口 \(economy.grainShortfall)，缺粮 \(lowSupplyCount)，被围 \(encircledCount)，需优先保粮道。"
+            return "粮草缺口 \(economy.grainShortfall)，缺粮 \(lowSupplyCount)，被围 \(encircledCount)，需优先保粮道与整修驿道。"
         }
     }
 
@@ -512,6 +516,41 @@ struct CourtStrategySummary: Codable, Equatable {
                 region.isPassable &&
                 (region.supplyValue < 3 || region.infrastructure < 2)
         }.count
+    }
+
+    private static func supplyRouteRepairNeed(for faction: Faction, state: GameState) -> Int {
+        state.map.regions.values.filter { region in
+            region.controller == faction &&
+                region.isPassable &&
+                region.infrastructure < 2 &&
+                regionHasControlledHex(region, faction: faction, map: state.map) &&
+                isSupplyRouteRegion(region, map: state.map)
+        }.count
+    }
+
+    private static func regionHasControlledHex(
+        _ region: RegionNode,
+        faction: Faction,
+        map: MapState
+    ) -> Bool {
+        regionHexes(for: region).contains { coord in
+            map.tile(at: coord)?.controller == faction
+        }
+    }
+
+    private static func isSupplyRouteRegion(_ region: RegionNode, map: MapState) -> Bool {
+        let hexes = Set(regionHexes(for: region))
+        return region.supplyValue > 0 ||
+            region.city != nil ||
+            map.supplySources.contains { hexes.contains($0.coord) } ||
+            map.objectives.contains { hexes.contains($0.coord) } ||
+            hexes.contains { coord in
+                map.tile(at: coord)?.hasRoad == true
+            }
+    }
+
+    private static func regionHexes(for region: RegionNode) -> [HexCoord] {
+        Array(Set([region.representativeHex] + region.displayHexes))
     }
 
     private struct CampaignPolicyPressure {

@@ -30,7 +30,7 @@ enum CourtProjectDomain: String, Codable, Equatable, CaseIterable, Identifiable 
         case .economy:
             return "银两、民力、粮草"
         case .technology:
-            return "火器、炮队、军械"
+            return "火器、炮队、驿道"
         case .military:
             return "城防、团练、粮道"
         }
@@ -84,7 +84,7 @@ enum CourtProjectKind: String, Codable, Equatable, CaseIterable, Identifiable {
         case .redCannonMaintenance:
             return "红衣炮维护"
         case .grainTransport:
-            return "粮台转运"
+            return "粮台驿道"
         }
     }
 
@@ -114,7 +114,7 @@ enum CourtProjectKind: String, Codable, Equatable, CaseIterable, Identifiable {
         case .redCannonMaintenance:
             return [.technology, .military]
         case .grainTransport:
-            return [.economy, .military]
+            return [.economy, .technology, .military]
         }
     }
 
@@ -137,7 +137,7 @@ enum CourtProjectKind: String, Codable, Equatable, CaseIterable, Identifiable {
         case .redCannonMaintenance:
             return "校修红衣炮与攻城炮队，恢复守城和攻城火力。"
         case .grainTransport:
-            return "补粮并优先缓解缺粮部队。"
+            return "转运粮草并整修驿道，优先缓解缺粮部队。"
         }
     }
 
@@ -160,7 +160,7 @@ enum CourtProjectKind: String, Codable, Equatable, CaseIterable, Identifiable {
         case .redCannonMaintenance:
             return "耗银耗粮，见效依赖现有炮队或军械工坊。"
         case .grainTransport:
-            return "银两转为粮草，其他项目延后。"
+            return "银两转为粮草与役力，其他项目延后。"
         }
     }
 

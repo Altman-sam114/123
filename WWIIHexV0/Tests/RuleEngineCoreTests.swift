@@ -974,6 +974,38 @@ final class RuleEngineCoreTests: XCTestCase {
         XCTAssertTrue(result.state.eventLog.last?.message.contains("屯田水利兴修") == true)
     }
 
+    func testWeakPostRoadsInfluenceCourtFocus() {
+        let state = Self.mingSupplyRouteState()
+
+        let summary = CourtStrategySummary.from(faction: .ming, state: state)
+
+        XCTAssertEqual(summary.recommendedFocus, .grainTransport)
+        XCTAssertTrue(summary.rationale.contains("驿道"))
+        XCTAssertEqual(CourtProjectKind.grainTransport.displayName, "粮台驿道")
+        XCTAssertTrue(CourtProjectKind.grainTransport.domains.contains(.economy))
+        XCTAssertTrue(CourtProjectKind.grainTransport.domains.contains(.technology))
+        XCTAssertTrue(CourtProjectKind.grainTransport.domains.contains(.military))
+    }
+
+    func testGrainTransportRepairsSupplyRouteRegions() {
+        let state = Self.mingSupplyRouteState()
+        let result = RuleEngine().execute(.enactCourtProject(kind: .grainTransport), in: state)
+        let kaifeng = result.state.map.region(id: "region_kaifeng_post_road")
+        let huaiqing = result.state.map.region(id: "region_huaiqing_post_road")
+        let stockpile = result.state.economyState.ledger(for: .ming).stockpile
+
+        XCTAssertTrue(result.succeeded)
+        XCTAssertEqual(kaifeng?.infrastructure, 2)
+        XCTAssertEqual(kaifeng?.supplyValue, 5)
+        XCTAssertEqual(huaiqing?.infrastructure, 3)
+        XCTAssertEqual(huaiqing?.supplyValue, 4)
+        XCTAssertEqual(stockpile.manpower, 70)
+        XCTAssertEqual(stockpile.industry, 55)
+        XCTAssertEqual(stockpile.supplies, 120)
+        XCTAssertTrue(result.state.eventLog.last?.message.contains("粮台驿道") == true)
+        XCTAssertTrue(result.state.eventLog.last?.message.contains("驿道整修") == true)
+    }
+
     func testDamagedRedCannonsInfluenceCourtFocus() {
         let state = Self.mingRedCannonState()
 
@@ -1354,6 +1386,83 @@ final class RuleEngineCoreTests: XCTestCase {
             FactionEconomyLedger(
                 faction: .ming,
                 stockpile: EconomyResources(manpower: 80, industry: 80, supplies: 50)
+            )
+        )
+
+        return GameState(
+            scenarioId: "chongzhen_1642_collapse",
+            turn: 1,
+            maxTurns: 20,
+            activeFaction: .ming,
+            phase: .humanAction,
+            map: map,
+            economyState: economyState,
+            turnOrder: [.ming],
+            humanControlledFactions: [.ming],
+            aiControlledFactions: [],
+            divisions: [],
+            victoryState: .ongoing,
+            selectedUnitSummary: nil,
+            eventLog: []
+        )
+    }
+
+    private static func mingSupplyRouteState() -> GameState {
+        let kaifengCoord = HexCoord(q: 0, r: 0)
+        let huaiqingCoord = HexCoord(q: 1, r: 0)
+        let kaifengId = RegionId("region_kaifeng_post_road")
+        let huaiqingId = RegionId("region_huaiqing_post_road")
+        var map = basicMap(
+            width: 2,
+            height: 1,
+            supplySources: [
+                SupplySource(id: "ming_kaifeng_grain_hub", faction: .ming, coord: kaifengCoord)
+            ]
+        )
+        var kaifengTile = map.tiles[kaifengCoord] ?? HexTile(coord: kaifengCoord)
+        kaifengTile.controller = .ming
+        kaifengTile.hasRoad = true
+        map.tiles[kaifengCoord] = kaifengTile
+        map.hexToRegion[kaifengCoord] = kaifengId
+        map.regions[kaifengId] = RegionNode(
+            id: kaifengId,
+            name: "开封粮道",
+            owner: .ming,
+            controller: .ming,
+            terrain: .city,
+            neighbors: [huaiqingId],
+            displayHexes: [kaifengCoord],
+            representativeHex: kaifengCoord,
+            city: CityInfo(name: "开封", victoryPoints: 6),
+            infrastructure: 0,
+            supplyValue: 4,
+            coreOf: [.ming]
+        )
+
+        var huaiqingTile = map.tiles[huaiqingCoord] ?? HexTile(coord: huaiqingCoord)
+        huaiqingTile.controller = .ming
+        huaiqingTile.hasRoad = true
+        map.tiles[huaiqingCoord] = huaiqingTile
+        map.hexToRegion[huaiqingCoord] = huaiqingId
+        map.regions[huaiqingId] = RegionNode(
+            id: huaiqingId,
+            name: "怀庆驿道",
+            owner: .ming,
+            controller: .ming,
+            terrain: .plain,
+            neighbors: [kaifengId],
+            displayHexes: [huaiqingCoord],
+            representativeHex: huaiqingCoord,
+            infrastructure: 1,
+            supplyValue: 3,
+            coreOf: [.ming]
+        )
+
+        var economyState = EconomyState()
+        economyState.updateLedger(
+            FactionEconomyLedger(
+                faction: .ming,
+                stockpile: EconomyResources(manpower: 70, industry: 90, supplies: 30)
             )
         )
 

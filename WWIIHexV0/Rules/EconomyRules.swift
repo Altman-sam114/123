@@ -295,8 +295,10 @@ struct EconomyRules {
             return "军械工坊校铸红衣炮，1 回合后可部署"
         case .grainTransport:
             let supplied = restoreLowSupplyUnits(faction: faction, limit: 3, state: &state)
+            let repaired = repairSupplyRouteRegions(faction: faction, limit: 2, state: &state)
             let supplyText = supplied > 0 ? "，\(supplied) 支缺粮部队恢复有粮" : ""
-            return "粮草 +\(kind.resourceGain.supplies)\(supplyText)"
+            let routeText = repaired.isEmpty ? "" : "，\(repaired.joined(separator: "、")) 驿道整修"
+            return "粮草 +\(kind.resourceGain.supplies)\(supplyText)\(routeText)"
         }
     }
 
@@ -467,6 +469,52 @@ struct EconomyRules {
             names.append(current.name)
         }
         return names
+    }
+
+    private func repairSupplyRouteRegions(
+        faction: Faction,
+        limit: Int,
+        state: inout GameState
+    ) -> [String] {
+        let regions = controlledRegions(for: faction, in: state)
+            .filter {
+                ($0.infrastructure < 3 || $0.supplyValue < 4) &&
+                    supplyRouteScore($0, map: state.map) > 0
+            }
+            .sorted {
+                let lhsScore = supplyRouteScore($0, map: state.map)
+                let rhsScore = supplyRouteScore($1, map: state.map)
+                if lhsScore != rhsScore {
+                    return lhsScore > rhsScore
+                }
+                return $0.id.rawValue < $1.id.rawValue
+            }
+            .prefix(limit)
+
+        var names: [String] = []
+        for region in regions {
+            guard var current = state.map.regions[region.id] else {
+                continue
+            }
+            current.infrastructure += 2
+            current.supplyValue += 1
+            state.map.regions[region.id] = current
+            names.append(current.name)
+        }
+        return names
+    }
+
+    private func supplyRouteScore(_ region: RegionNode, map: MapState) -> Int {
+        let hexes = Set(regionHexes(for: region))
+        let roadBonus = hexes.contains { coord in
+            map.tile(at: coord)?.hasRoad == true
+        } ? 36 : 0
+        let supplySourceBonus = map.supplySources.contains { hexes.contains($0.coord) } ? 30 : 0
+        let objectiveBonus = map.objectives.contains { hexes.contains($0.coord) } ? 18 : 0
+        let cityBonus = region.city == nil ? 0 : 14
+        let supplyNeed = max(0, 4 - region.supplyValue) * 8
+        let infrastructureNeed = max(0, 3 - region.infrastructure) * 12
+        return roadBonus + supplySourceBonus + objectiveBonus + cityBonus + supplyNeed + infrastructureNeed
     }
 
     private func restoreFireSupportUnits(
