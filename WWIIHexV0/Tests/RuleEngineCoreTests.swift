@@ -644,6 +644,65 @@ final class RuleEngineCoreTests: XCTestCase {
         XCTAssertEqual(state.victoryState.reason, .germanArmorUnsupplied)
     }
 
+    func testMingScenarioQingWinsByBreakingPassAndCapital() {
+        var state = Self.mingVictoryState(
+            objectiveControllers: [
+                "obj_shanhaiguan": .qing,
+                "obj_beijing": .qing
+            ]
+        )
+
+        VictoryRules().updateVictoryState(in: &state)
+
+        XCTAssertEqual(state.victoryState.winner, .qing)
+        XCTAssertEqual(state.victoryState.reason, .qingBreaksPassAndCapital)
+    }
+
+    func testMingScenarioDashunWinsByCentralPlainChain() {
+        var state = Self.mingVictoryState(
+            objectiveControllers: [
+                "obj_kaifeng": .dashun,
+                "obj_luoyang": .dashun,
+                "obj_xian": .dashun
+            ]
+        )
+
+        VictoryRules().updateVictoryState(in: &state)
+
+        XCTAssertEqual(state.victoryState.winner, .dashun)
+        XCTAssertEqual(state.victoryState.reason, .dashunControlsCentralPlain)
+    }
+
+    func testMingScenarioDaxiWinsByHuguangBase() {
+        var state = Self.mingVictoryState(
+            objectiveControllers: [
+                "obj_jingzhou": .daxi,
+                "obj_wuchang": .daxi
+            ]
+        )
+
+        VictoryRules().updateVictoryState(in: &state)
+
+        XCTAssertEqual(state.victoryState.winner, .daxi)
+        XCTAssertEqual(state.victoryState.reason, .daxiControlsHuguangBase)
+    }
+
+    func testMingScenarioMingWinsAtFinalTurnByHoldingMandateLine() {
+        var state = Self.mingVictoryState(
+            objectiveControllers: [
+                "obj_beijing": .ming,
+                "obj_shanhaiguan": .ming,
+                "obj_wuchang": .ming
+            ],
+            turn: 20
+        )
+
+        VictoryRules().updateVictoryState(in: &state)
+
+        XCTAssertEqual(state.victoryState.winner, .ming)
+        XCTAssertEqual(state.victoryState.reason, .mingHoldsMandateAtFinalTurn)
+    }
+
     func testInvalidCommandDoesNotModifyGameState() {
         let state = Self.testState(
             activeFaction: .allies,
@@ -734,6 +793,54 @@ final class RuleEngineCoreTests: XCTestCase {
                 SupplySource(id: "german_supply", faction: .germany, coord: HexCoord(q: width - 1, r: height - 1))
             ],
             objectives: []
+        )
+    }
+
+    private static func mingVictoryState(
+        objectiveControllers: [String: Faction],
+        turn: Int = 1,
+        maxTurns: Int = 20
+    ) -> GameState {
+        let objectives: [Objective] = [
+            Objective(id: "obj_shanhaiguan", name: "山海关", coord: HexCoord(q: 0, r: 0), type: .fortress, points: 7),
+            Objective(id: "obj_beijing", name: "北京", coord: HexCoord(q: 1, r: 0), type: .city, points: 9),
+            Objective(id: "obj_kaifeng", name: "开封", coord: HexCoord(q: 2, r: 0), type: .city, points: 6),
+            Objective(id: "obj_luoyang", name: "洛阳", coord: HexCoord(q: 3, r: 0), type: .city, points: 5),
+            Objective(id: "obj_xian", name: "西安", coord: HexCoord(q: 4, r: 0), type: .city, points: 6),
+            Objective(id: "obj_jingzhou", name: "荆州", coord: HexCoord(q: 5, r: 0), type: .city, points: 4),
+            Objective(id: "obj_wuchang", name: "武昌", coord: HexCoord(q: 6, r: 0), type: .city, points: 5)
+        ]
+        let tiles = Dictionary(uniqueKeysWithValues: objectives.map { objective in
+            (
+                objective.coord,
+                HexTile(
+                    coord: objective.coord,
+                    baseTerrain: objective.type == .fortress ? .fortress : .city,
+                    controller: objectiveControllers[objective.id] ?? .ming
+                )
+            )
+        })
+
+        return GameState(
+            scenarioId: "chongzhen_1642_collapse",
+            turn: turn,
+            maxTurns: maxTurns,
+            activeFaction: .ming,
+            phase: .humanAction,
+            map: MapState(
+                width: 7,
+                height: 1,
+                tiles: tiles,
+                supplySources: [],
+                objectives: objectives
+            ),
+            turnOrder: [.ming, .qing, .dashun, .daxi],
+            humanControlledFactions: [.ming],
+            aiControlledFactions: [.qing, .dashun, .daxi],
+            divisions: [],
+            victoryState: .ongoing,
+            selectedUnitSummary: nil,
+            eventLog: []
         )
     }
 }

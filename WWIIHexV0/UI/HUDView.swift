@@ -86,7 +86,10 @@ struct HUDView: View {
         guard let winner = gameState.victoryState.winner else {
             return "未决"
         }
-        return "\(winner.displayName) 胜"
+        guard let reason = gameState.victoryState.reason else {
+            return "\(winner.displayName) 胜"
+        }
+        return "\(winner.displayName)胜 · \(reason.displayName)"
     }
 
     private var victoryIconName: String {

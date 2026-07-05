@@ -468,7 +468,8 @@ struct DataLoader {
                     id: objectiveDefinition.id,
                     name: objectiveDefinition.name,
                     coord: HexCoord(q: objectiveDefinition.coord.q, r: objectiveDefinition.coord.r),
-                    type: type
+                    type: type,
+                    points: objectiveDefinition.points
                 )
             )
         }

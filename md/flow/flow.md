@@ -1,4 +1,4 @@
-# WWIIHexV0 核心流程文档（明末迁移 v4.6 UI、朝廷项目、朝议争点、朝报令条、军令牌、将印军令/将领名帖、军机复盘牌、塘报战记、军情牌、州府牌、府库牌、天下急势、地图标识、粮道线路/开关、军令计划线、势力旗号、舆图图例与四线项目分组首片）
+# WWIIHexV0 核心流程文档（明末迁移 v4.7 明末胜负链首片，v4.6 UI、朝廷项目、朝议争点、朝报令条、军令牌、将印军令/将领名帖、军机复盘牌、塘报战记、军情牌、州府牌、府库牌、天下急势、地图标识、粮道线路/开关、军令计划线、势力旗号、舆图图例与四线项目分组首片）
 
 > 本文是项目当前核心逻辑的接手文档。目标不是复述历史设计，而是按当前代码真实链路说明：数据如何进入游戏，hex / region / theater / front / deploy 如何派生，主游戏和地图编辑器如何共同维护同一套地图语义，AI / 玩家命令如何落到规则系统。
 
@@ -33,6 +33,7 @@ MapEditor / JSON 数据
   -> WarCommandExecutor
   -> RuleEngine
   -> CommandExecutor
+  -> VictoryRules 明末胜负链 / legacy 阿登胜负链
   -> StrategicStateSynchronizer
   -> SupplyRules.supplyPath 粮道线路只读派生
   -> BoardRenderState.showsSupplyRoutes / PlayerCommandState 军令计划线 / MapDisplayLayer 舆图图例 / UI overlay / 塘报战记 / WarDirectiveRecord
@@ -71,6 +72,7 @@ MapEditor / JSON 数据
 - v4.6 舆图图例首片中，`MapDisplayLayer.displayName` 已改为舆图、州府、初划、战局、前线、布防；同一 enum 提供图标、图例标题和说明，`RootGameView` 顶部图例条用“城 / 关 / 粮 / 步”、势力旗和粮道虚线解释当前地图符号。该片只影响 SwiftUI 展示，不改变 layer rawValue、overlay 计算或规则权威。
 - v4.6 军令计划线首片中，`BoardScene.drawPlannedOperations` 只读 `PlayerCommandState.plannedOperations`，把当前回合玩家计划画成朱砂“进”令牌箭头和青绿“守”令牌；`RootGameView` 顶部图例增加“军令计划 / 进取 / 固守”。该片只影响 SpriteKit/SwiftUI 展示，不改变计划记录、`ZoneDirective`、`WarCommandExecutor`、`Command` 或 `RuleEngine`。
 - v4.6 势力旗号首片中，`Faction.bannerGlyph` 为明廷、后金/清、大顺、大西和地方中立提供短旗号；`UnitNode` 在地图军牌顶端显示“明/清/顺/西/乡”等旗号，`UnitInspectorView` 与 `CommandPanelView` 的军牌印面同步显示旗号，`RootGameView` 顶部图例增加“势力旗”。该片只影响 UI/SpriteKit 展示，不改变 `Faction` 控制语义、外交关系、单位状态、命令执行或规则权威。
+- v4.7 明末胜负链首片中，`Objective` 保留 scenario JSON 的 `points`，`MapState` 可按 objective id 查询控制方；`VictoryRules` 对 `chongzhen_1642` 剧本改走明末条件：清军控制山海关和北京即胜，大顺控制开封/洛阳/西安即胜，大西控制荆州/武昌即胜，明廷在最终回合守住北京/山海关/武昌即胜，否则按 objective points 给最终归属；legacy 阿登胜负条件保持原路径。`HUDView` 的胜负 badge 只读显示胜负理由短语。
 - `GamePhase.allowsHumanCommands` 是玩家可操作阶段的当前 UI/App 判定入口，兼容 `.humanAction` 与 legacy `.alliedPlayer`。
 - `turnOrder`、`humanControlledFactions`、`aiControlledFactions` 是通用回合和控制方配置；旧阿登仍 fallback 为 Germany AI / Allies player。
 - `EconomyState` 是 faction 级经济总账；收入来自受控 region、城市、工厂、基础设施和补给值，但战术占领仍以 hex 为准。
@@ -1195,6 +1197,13 @@ EconomyRules.resolveFactionTurn(for: activeFaction)
 SupplyRules.advanceRetreats
 SupplyRules.applyEncirclementAttrition
 VictoryRules.updateVictoryState
+  -> chongzhen_1642 剧本走明末胜负链：
+     清：山海关 + 北京
+     大顺：开封 + 洛阳 + 西安
+     大西：荆州 + 武昌
+     明：最终回合守住北京 + 山海关 + 武昌
+     最终未触发明确条件时按 objective points 判定
+  -> legacy 其他剧本保留阿登巴斯托涅 / St. Vith / 单位毁灭 / 装甲断补条件
 
 activeFaction:
   按 GameState.resolvedTurnOrder 找到下一个 faction

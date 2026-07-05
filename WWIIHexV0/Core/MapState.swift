@@ -17,6 +17,34 @@ struct Objective: Codable, Equatable, Identifiable {
     let name: String
     let coord: HexCoord
     let type: ObjectiveType
+    let points: Int
+
+    init(id: String, name: String, coord: HexCoord, type: ObjectiveType, points: Int = 0) {
+        self.id = id
+        self.name = name
+        self.coord = coord
+        self.type = type
+        self.points = max(0, points)
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case id
+        case name
+        case coord
+        case type
+        case points
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        self.init(
+            id: try container.decode(String.self, forKey: .id),
+            name: try container.decode(String.self, forKey: .name),
+            coord: try container.decode(HexCoord.self, forKey: .coord),
+            type: try container.decode(ObjectiveType.self, forKey: .type),
+            points: try container.decodeIfPresent(Int.self, forKey: .points) ?? 0
+        )
+    }
 }
 
 struct MapState: Codable, Equatable {
@@ -86,8 +114,19 @@ struct MapState: Codable, Equatable {
         objectives.first { $0.name == name }
     }
 
+    func objective(id: String) -> Objective? {
+        objectives.first { $0.id == id }
+    }
+
     func controllerOfObjective(named name: String) -> Faction? {
         guard let coord = objective(named: name)?.coord else {
+            return nil
+        }
+        return tile(at: coord)?.controller
+    }
+
+    func controllerOfObjective(id: String) -> Faction? {
+        guard let coord = objective(id: id)?.coord else {
             return nil
         }
         return tile(at: coord)?.controller

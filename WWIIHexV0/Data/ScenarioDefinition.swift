@@ -75,6 +75,33 @@ struct ObjectiveDefinition: Codable, Equatable {
     let kind: String
     let coord: HexCoordDefinition
     let points: Int
+
+    init(id: String, name: String, kind: String, coord: HexCoordDefinition, points: Int = 0) {
+        self.id = id
+        self.name = name
+        self.kind = kind
+        self.coord = coord
+        self.points = max(0, points)
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case id
+        case name
+        case kind
+        case coord
+        case points
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        self.init(
+            id: try container.decode(String.self, forKey: .id),
+            name: try container.decode(String.self, forKey: .name),
+            kind: try container.decode(String.self, forKey: .kind),
+            coord: try container.decode(HexCoordDefinition.self, forKey: .coord),
+            points: try container.decodeIfPresent(Int.self, forKey: .points) ?? 0
+        )
+    }
 }
 
 struct InitialUnitDefinition: Codable, Equatable {
