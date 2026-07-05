@@ -245,6 +245,8 @@ struct RootGameView: View {
                         observerModeEnabled: container.observerModeEnabled,
                         onEnactProject: container.enactCourtProject
                     )
+                case .objective:
+                    BattleObjectivePanelView(gameState: container.gameState)
                 case .diplomacy:
                     DiplomacyPanelView(
                         diplomacyState: container.gameState.diplomacyState,
@@ -275,6 +277,7 @@ private enum CompactInfoPanel: String, CaseIterable, Identifiable {
     case log = "塘报"
     case economy = "钱粮"
     case court = "朝廷"
+    case objective = "目标"
     case diplomacy = "天下"
     case agent = "AI"
 

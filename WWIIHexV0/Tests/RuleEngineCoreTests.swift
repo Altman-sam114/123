@@ -703,6 +703,43 @@ final class RuleEngineCoreTests: XCTestCase {
         XCTAssertEqual(state.victoryState.reason, .mingHoldsMandateAtFinalTurn)
     }
 
+    func testMingBattleObjectiveSummaryTracksPassAndCapitalProgress() {
+        let state = Self.mingVictoryState(
+            objectiveControllers: [
+                "obj_shanhaiguan": .qing,
+                "obj_beijing": .ming
+            ]
+        )
+
+        let summary = BattleObjectiveSummary.from(state: state)
+        let qingTrack = summary.track(id: .qingPassCapital)
+
+        XCTAssertTrue(summary.isMingScenario)
+        XCTAssertEqual(qingTrack?.controlledCount, 1)
+        XCTAssertEqual(qingTrack?.requiredCount, 2)
+        XCTAssertEqual(qingTrack?.isSatisfied, false)
+        XCTAssertEqual(qingTrack?.targets.first { $0.objectiveId == "obj_shanhaiguan" }?.controller, .qing)
+        XCTAssertEqual(qingTrack?.targets.first { $0.objectiveId == "obj_beijing" }?.controller, .ming)
+        XCTAssertEqual(summary.leadingFaction, .ming)
+    }
+
+    func testMingBattleObjectiveSummaryRecognizesDashunCentralPlainTrack() {
+        let state = Self.mingVictoryState(
+            objectiveControllers: [
+                "obj_kaifeng": .dashun,
+                "obj_luoyang": .dashun,
+                "obj_xian": .dashun
+            ]
+        )
+
+        let summary = BattleObjectiveSummary.from(state: state)
+        let dashunTrack = summary.track(id: .dashunCentralPlain)
+
+        XCTAssertEqual(dashunTrack?.isSatisfied, true)
+        XCTAssertEqual(dashunTrack?.reason, .dashunControlsCentralPlain)
+        XCTAssertEqual(dashunTrack?.statusText, "据中原秦陕已成")
+    }
+
     func testInvalidCommandDoesNotModifyGameState() {
         let state = Self.testState(
             activeFaction: .allies,

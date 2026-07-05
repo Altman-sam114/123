@@ -18,7 +18,7 @@
   -> v4.5 朝廷首片把政策、经济、科技、军事四线压力派生为 CourtStrategySummary，并进入 UI / AI 摘要
   -> v4.6 UI 首片用 MingDesignTokens、独立 CourtPanelView、朝议争点、朝报令条、军令牌、将印军令、将领名帖、军机复盘牌、塘报战记、部队军情牌、州府牌、府库牌、天下急势、中文军牌、势力旗号、城/关/粮 badge、粮道虚线/开关、军令计划线、舆图图例和四线项目分组 polish 主界面、地图部队和朝廷/将领/军令/AI 面板
   -> v4.6 朝廷项目首片把六类主议/备议落到 Command.enactCourtProject 和 EconomyRules
-  -> v4.7 明末胜负链首片让清破关入京、大顺据中原秦陕、大西据湖广粮区、明廷守住京师关口等条件进入 VictoryRules
+  -> v4.7 明末胜负链首片让清破关入京、大顺据中原秦陕、大西据湖广粮区、明廷守住京师关口等条件进入 BattleObjectiveSummary / VictoryRules，并在“目标”面板显示进度
   -> v0.5 元帅层是战略意图层，不替代战术权威
   -> 玩家和 AI 都必须把命令交给 RuleEngine
   -> 命令执行后再同步刷新战略层和 UI
@@ -57,6 +57,7 @@ flowchart TD
     COURT["朝廷摘要<br/>CourtStrategySummary<br/>政策、经济、科技、军事四线压力和议题建议"]:::economy
     COURTDEBATE["朝议争点<br/>CourtPanelView / CourtDebateSection<br/>安民与征饷、火器与团练、粮道与城防只读展示"]:::ui
     COURTPROJ["朝廷四线项目<br/>CourtProjectDomain + CourtProjectKind / Command.enactCourtProject<br/>政策、经济、科技、军事分组；征饷、赈济、修城、团练、火器、粮台"]:::command
+    OBJINFO["战役目标<br/>BattleObjectiveSummary + BattleObjectivePanelView<br/>四条胜负线、城关控制方和终局要冲分只读展示"]:::ui
     PLAYER["玩家输入<br/>点击地图、移动、攻击、结束回合"]:::input
     AI["AI 元帅系统<br/>MarshalAgent + TheaterDirective JSON<br/>读取前线、补给、钱粮和朝议摘要"]:::input
     DEC["元帅 JSON 解码<br/>TheaterDirectiveDecoder<br/>提取 fenced JSON、校验 id 与 schema"]:::command
@@ -99,6 +100,7 @@ flowchart TD
     DEPLOY --> COURT
     COURT --> COURTDEBATE
     COURT --> HUDINFO
+    GS --> OBJINFO
 
     TURN --> PLAYER
     TURN --> AI
@@ -128,6 +130,7 @@ flowchart TD
     SUPPLYVIEW --> SUPPLYTOGGLE --> UI
     PLAYER --> PLANLINE --> UI
     HUDINFO --> UI
+    OBJINFO --> UI
     COMMANDINFO --> UI
     GENERALINFO --> UI
     UNITINFO --> UI
