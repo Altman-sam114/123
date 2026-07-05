@@ -16,7 +16,7 @@
   -> v4.3 默认明末单位使用明末 template，战术展示名开始明末化
   -> v4.4 钱粮、治理与天下局势首片把 economy 展示为民力、银两、粮草，民变/行政掌控影响收入，天下面板展示战和关系，并进入 AI 摘要
   -> v4.5 朝廷首片把政策、经济、科技、军事四线压力派生为 CourtStrategySummary，并进入 UI / AI 摘要
-  -> v4.6 UI 首片用 MingDesignTokens、独立 CourtPanelView、朝议争点、部队军情牌、州府牌、府库牌、天下急势、中文军牌、城/关/粮 badge、粮道虚线/开关、舆图图例和四线项目分组 polish 主界面、地图部队和朝廷/军令/AI 面板
+  -> v4.6 UI 首片用 MingDesignTokens、独立 CourtPanelView、朝议争点、朝报令条、部队军情牌、州府牌、府库牌、天下急势、中文军牌、城/关/粮 badge、粮道虚线/开关、舆图图例和四线项目分组 polish 主界面、地图部队和朝廷/军令/AI 面板
   -> v4.6 朝廷项目首片把六类主议/备议落到 Command.enactCourtProject 和 EconomyRules
   -> v0.5 元帅层是战略意图层，不替代战术权威
   -> 玩家和 AI 都必须把命令交给 RuleEngine
@@ -51,6 +51,7 @@ flowchart TD
     TURN["通用回合控制<br/>turnOrder + human/AI factions<br/>决定 active faction 和行动 phase"]:::state
     DIP["天下局势 / 外交关系<br/>DiplomacyState<br/>canAttack / isHostile / canEnterTerritory"]:::state
     ECO["钱粮总账<br/>EconomyState / EconomyRules<br/>民力、银两、粮草、治理修正、生产队列、自动补员"]:::economy
+    HUDINFO["朝报令条<br/>HUDView<br/>回合、势力、胜负、钱粮、入账、营造和四线压力"]:::ui
     ECONINFO["府库牌<br/>EconomyPanelView<br/>库存、入账、维护、补员、募兵筹粮和营造队列"]:::ui
     COURT["朝廷摘要<br/>CourtStrategySummary<br/>政策、经济、科技、军事四线压力和议题建议"]:::economy
     COURTDEBATE["朝议争点<br/>CourtPanelView / CourtDebateSection<br/>安民与征饷、火器与团练、粮道与城防只读展示"]:::ui
@@ -69,7 +70,7 @@ flowchart TD
     SUPPLYTOGGLE["粮道显示状态<br/>AppContainer.showsSupplyRoutes / BoardRenderState<br/>只控制绘制和图例，不改补给判定"]:::ui
     UNITINFO["部队军情牌<br/>UnitInspectorView<br/>兵力、粮草、攻守行程察、兵种编成和驻防归属只读展示"]:::ui
     REGIONINFO["州府牌<br/>RegionInspectorView<br/>城关粮坊、治理、钱粮城防、战局归属和当前格只读展示"]:::ui
-    UI["地图和面板显示<br/>SpriteKit / SwiftUI Overlay<br/>v4.6 明末舆图、天下急势、朝议争点、部队军情牌、州府牌、府库牌、中文图层名、城/关/粮/步图例、粮道虚线/开关、中文军牌、朝廷四线项目、军令/AI 面板 polish"]:::ui
+    UI["地图和面板显示<br/>SpriteKit / SwiftUI Overlay<br/>v4.6 明末舆图、朝报令条、天下急势、朝议争点、部队军情牌、州府牌、府库牌、中文图层名、城/关/粮/步图例、粮道虚线/开关、中文军牌、朝廷四线项目、军令/AI 面板 polish"]:::ui
     LOG["日志和复盘记录<br/>EventLog / WarDirectiveRecord / AgentDecisionRecord / RulerDecisionRecord<br/>用于 UI 展示和后续调试"]:::ui
 
     ME --> JSON --> DL --> GS
@@ -85,12 +86,15 @@ flowchart TD
     GS --> TURN
     GS --> DIP
     GS --> ECO
+    GS --> HUDINFO
     ECO --> ECONINFO
     ECO --> COURT
+    ECO --> HUDINFO
     DIP --> COURT
     FRONT --> COURT
     DEPLOY --> COURT
     COURT --> COURTDEBATE
+    COURT --> HUDINFO
 
     TURN --> PLAYER
     TURN --> AI
@@ -113,6 +117,7 @@ flowchart TD
     REGION --> REGIONINFO
     HEX --> SUPPLYVIEW
     SUPPLYVIEW --> SUPPLYTOGGLE --> UI
+    HUDINFO --> UI
     UNITINFO --> UI
     REGIONINFO --> UI
     ECONINFO --> UI
