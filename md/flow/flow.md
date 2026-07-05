@@ -1,4 +1,4 @@
-# WWIIHexV0 核心流程文档（明末迁移 v4.7 剧本胜利条件数据驱动、明末胜负链、战役目标面板、天下五线态势、本旬任务链/任务塘报、开封围城压力提示、AI doctrine、目标定位舆图反馈、目标换手塘报与阶段战局链首片，v4.6 UI、朝廷项目、整训团练地方驻防、朝议争点、朝报令条、军令牌、将印军令/将领名帖、军机复盘牌、塘报战记、军情牌、州府牌、天下急势、地图标识、粮道线路/开关、军令计划线、势力旗号、舆图图例与四线项目分组首片）
+# WWIIHexV0 核心流程文档（明末迁移 v4.7 剧本胜利条件数据驱动、明末胜负链、战役目标面板、天下五线态势、朝廷五线态势、本旬任务链/任务塘报、开封围城压力提示、AI doctrine、目标定位舆图反馈、目标换手塘报与阶段战局链首片，v4.6 UI、朝廷项目、整训团练地方驻防、朝议争点、朝报令条、军令牌、将印军令/将领名帖、军机复盘牌、塘报战记、军情牌、州府牌、天下急势、地图标识、粮道线路/开关、军令计划线、势力旗号、舆图图例与四线项目分组首片）
 
 > 本文是项目当前核心逻辑的接手文档。目标不是复述历史设计，而是按当前代码真实链路说明：数据如何进入游戏，hex / region / theater / front / deploy 如何派生，主游戏和地图编辑器如何共同维护同一套地图语义，AI / 玩家命令如何落到规则系统。
 
@@ -21,7 +21,7 @@ MapEditor / JSON 数据
   -> Region 聚合
   -> EconomyState 收入 / 生产 / 补员
   -> CourtStrategySummary 政策 / 经济 / 科技 / 军事摘要（可读取战役线压力加权主议）
-  -> CourtPanelView 朝议争点只读展示
+  -> CourtPanelView 朝议争点 / 天下五线态势只读展示
   -> CourtProjectDomain / CourtProjectKind / Command.enactCourtProject 朝廷四线项目
   -> Initial Theater snapshot + runtime hexToTheater
   -> FrontLine 动态 hex 接触
@@ -34,6 +34,7 @@ MapEditor / JSON 数据
   -> RuleEngine
   -> CommandExecutor
   -> BattleObjectiveSummary 从 GameState.victoryConditions 编译明末胜负线 / objective points / 战役提示 / 开封围城压力 / 天下五线态势 / 本旬任务链 / 阶段战局链只读摘要
+  -> CourtPanelView 复用 CampaignLineBrief 展示朝廷五线态势
   -> CampaignAISummary 转成 Agent / 元帅可读的五线态势
   -> VictoryRules 明末胜负链 / legacy 阿登胜负链
   -> CommandExecutor.appendBattleCueEvents 战役提示入塘报
@@ -72,21 +73,21 @@ MapEditor / JSON 数据
 - v4.6 天下急势首片中，`DiplomacyPanelView` 从 `DiplomacyState` 和只读 `CourtStrategySummary` 派生顶部“天下急势”、势力战意条、主要对手和政策/经济/科技/军事四线压力；该片只影响 SwiftUI 展示，不改变外交关系、朝廷项目或规则执行。
 - v4.6 朝廷项目首片中，`CourtProjectKind` 将征饷、赈济安民、招抚乡绅、农政屯田、修城固守、整训团练、火器整备、红衣炮维护、粮台驿道收口为一次性项目；玩家从朝廷面板触发 `Command.enactCourtProject(kind:)`，再经 `CommandValidator` 与 `EconomyRules` 执行；招抚乡绅只改善己控地方州府的民变/行政，不直接改变 hex/region 控制或外交关系；农政屯田只提升己控州府粮草与基础设施，不直接补现粮或新增科技树；整训团练作为政策/军事兼线项目，只轻量稳定最多 2 个己控不稳州府并追加 1 回合地方守备队列，不新增持久驻防层或改变控制权；红衣炮维护只校修受损攻城炮队或转入造炮队队列，不新增持久科技树或改变战斗规则权威；粮台驿道只补粮、恢复缺粮部队并整修己控粮道州府基础，不改变 hex 补给路径判定或新增持久科技树。
 - v4.6 四线项目分组首片中，`CourtProjectDomain` 将朝廷项目归入政策、经济、科技、军事四线；`CourtPanelView` 按四线展示压力值、关注点、项目成本收益和风险，后续增强改为读取 `CourtProjectKind.domains`，让农政屯田、红衣炮维护、粮台驿道等交叉项目出现在全部相关线组并以“兼线”标注，不新增持久政策/科技状态。
-- v4.6 朝议争点首片中，`CourtPanelView` 继续只读 `CourtStrategySummary`，把安民与征饷、火器与团练、粮道与城防三组冲突做成紧凑摘要，让玩家看到政策、经济、科技、军事之间的取舍；该片不新增朝廷状态、不改变项目执行链。
+- v4.6 朝议争点首片中，`CourtPanelView` 继续只读 `CourtStrategySummary`，把安民与征饷、火器与团练、粮道与城防三组冲突做成紧凑摘要，让玩家看到政策、经济、科技、军事之间的取舍；后续增强又复用 `BattleObjectiveSummary.CampaignLineBrief` 增加只读“天下五线态势”区，让朝议同时扫读天下、政策、经济、科技、军事五线告急状态、压力和急务数量；该片不新增朝廷状态、不改变项目执行链。
 - v4.6 地图标识首片中，`BaseTerrain.displayName` 已切为明末中文地形名；`HexNode` 用“城 / 关 / 粮”badge 标识城池、关隘/堡寨和粮台，并把旧主地图 `FORT`、`SUP A/G` 标记改为“关隘”“粮台”。该变化只影响 SpriteKit 展示，不改补给、占领、战区或经济规则。
 - v4.6 粮道线路首片中，`SupplyRules.supplyPath` 在既有补给通行/成本规则上返回只读 hex 路线；`BoardScene` 仅在默认 hex 图层为玩家势力有有效补给线的军队绘制粮道虚线，路线位于战争迷雾下方，不新增粮道状态、不改变补给判定。
 - v4.6 粮道开关首片中，`AppContainer.showsSupplyRoutes` 只作为 UI/渲染状态进入 `BoardRenderState`；`RootGameView` 顶部显示“粮道”按钮和图例，关闭后 `BoardScene.drawSupplyRoutes` 直接跳过绘制，不影响 `SupplyRules` 判定。
 - v4.6 舆图图例首片中，`MapDisplayLayer.displayName` 已改为舆图、州府、初划、战局、前线、布防；同一 enum 提供图标、图例标题和说明，`RootGameView` 顶部图例条用“城 / 关 / 粮”、步/骑/火/城/旗兵种军牌、粮草与堆叠、势力旗、军令计划和粮道虚线解释当前地图符号。该片只影响 SwiftUI 展示，不改变 layer rawValue、overlay 计算或规则权威。
 - v4.6 军令计划线首片中，`BoardScene.drawPlannedOperations` 只读 `PlayerCommandState.plannedOperations`，把当前回合玩家计划画成朱砂“进”令牌箭头和青绿“守”令牌；`RootGameView` 顶部图例增加“军令计划 / 进取 / 固守”。该片只影响 SpriteKit/SwiftUI 展示，不改变计划记录、`ZoneDirective`、`WarCommandExecutor`、`Command` 或 `RuleEngine`。
 - v4.6 势力旗号首片中，`Faction.bannerGlyph` 为明廷、后金/清、大顺、大西和地方中立提供短旗号；`UnitNode` 在地图军牌顶端显示“明/清/顺/西/乡”等旗号，并用旗色侧条、兵种印面和兵力小签底板强化地图军牌可读性；`UnitInspectorView` 与 `CommandPanelView` 的军牌印面同步显示旗号，`RootGameView` 顶部图例增加“势力旗”。该片只影响 UI/SpriteKit 展示，不改变 `Faction` 控制语义、外交关系、单位状态、命令执行或规则权威。
-- v4.7 明末胜负链首片中，`Objective` 保留 scenario JSON 的 `points`，`DataLoader` 会把 `ScenarioDefinition.victoryConditions` 写入 `GameState.victoryConditions`，`MapState` 可按 objective id 查询控制方；`BattleObjectiveSummary` 优先从 `GameState.victoryConditions` 编译清破关入京、大顺据中原秦陕、大西据湖广粮区、明廷守京师关口四条胜负线和 objective points 领先方，缺失时才回退内置目标；同一摘要还只读派生松锦余波、催饷安民、粮道告急、军机复盘、开封围城压力和目标线压力等战役提示，按当前压力派生军事守关、救援开封压力、政策征饷安民、经济粮链、科技火器修城和终局名分等本旬任务链，以及山海关屏障、河南秦陕粮链、湖广粮道、朝廷四线取舍、火器修城、终局名分线等阶段战局链，并把阶段链和任务链聚合为只读天下五线态势，显示天下、政策、经济、科技、军事各自压力、告急状态和当前摘要，服务 v4.7 教程/历史代入感首片，不新增事件执行器或持久状态；`CampaignAISummary` 复用同一摘要，把五线态势、领先势力和急务/主线任务转成 Codable AI 摘要，进入 `AgentContext`、`AgentPromptBuilder`、`TurnManager.contextSummary` 和 `MarshalBattlefieldSummary.campaignSummary`，元帅摘要 `schemaVersion` 升到 9，让 legacy Agent 与默认元帅链路都能读取中华世界局势、名分、粮链、火器修城和军政压力；`CourtStrategySummary` 也会读取同一摘要，把破关入京线、河南秦陕粮链、湖广粮道和终局名分线转成修城固守、粮台驿道、火器整备、红衣炮维护、赈济安民和征饷等主议/备议权重，并额外把己控粮道州府的低驿道基础计入粮台驿道压力，但仍只生成朝议建议，不执行项目；`CommandExecutor` 结束回合时会将当前摘要 cue 用 `battle-cue-<turn>-<faction>-<cue id>` 去重写入 `eventLog`，让提示进入塘报战记，并将急务/主线任务最多 3 条用 `battle-task-<turn>-<faction>-<task id>` 去重写入任务塘报，帮助复盘当旬军政钱粮火器重点；明末 objective hex 经合法移动占领换手时，`CommandExecutor.appendObjectiveControlEventIfNeeded` 根据占领前后 `HexTile.controller` 追加目标换手塘报，记录原控制方、新控制方和要冲分，只追加日志不执行事件效果；`VictoryRules` 对 `chongzhen_1642` 剧本读取同一摘要执行明末条件，legacy 阿登胜负条件保持原路径。`HUDView` 的胜负 badge 只读显示胜负理由短语，`RootGameView` 信息面板新增“目标”tab，用 `BattleObjectivePanelView` 展示当前各城关控制方、进度、战役提示、天下五线态势、本旬任务链、阶段战局链和终局要冲分；目标 chip 与任务定位按钮可通过 `AppContainer.focusObjective(_:)` 定位目标 hex 和州府牌，它只更新 UI 选择、高亮、`focusedObjectiveId` 和交互日志，不提交命令、不改变 `GameState` 权威状态；`BoardScene.drawFocusedObjective` 只读 `focusedObjectiveId`、`BattleObjectiveSummary` 和 `MapState.objective(id:)`，在舆图上绘制“标”令牌、脉冲圈、目标名、当前控制方和同胜负线城关连线，顶部舆图图例同步说明“目标定位 / 胜负线城关”。
+- v4.7 明末胜负链首片中，`Objective` 保留 scenario JSON 的 `points`，`DataLoader` 会把 `ScenarioDefinition.victoryConditions` 写入 `GameState.victoryConditions`，`MapState` 可按 objective id 查询控制方；`BattleObjectiveSummary` 优先从 `GameState.victoryConditions` 编译清破关入京、大顺据中原秦陕、大西据湖广粮区、明廷守京师关口四条胜负线和 objective points 领先方，缺失时才回退内置目标；同一摘要还只读派生松锦余波、催饷安民、粮道告急、军机复盘、开封围城压力和目标线压力等战役提示，按当前压力派生军事守关、救援开封压力、政策征饷安民、经济粮链、科技火器修城和终局名分等本旬任务链，以及山海关屏障、河南秦陕粮链、湖广粮道、朝廷四线取舍、火器修城、终局名分线等阶段战局链，并把阶段链和任务链聚合为只读天下五线态势，显示天下、政策、经济、科技、军事各自压力、告急状态和当前摘要，服务 v4.7 教程/历史代入感首片，不新增事件执行器或持久状态；`CourtPanelView` 也会在明末剧本中复用同一 `CampaignLineBrief` 显示朝廷五线态势，让主议、四线压力、朝议争点和战役线告急来源放在同一朝廷 tab 内扫读；`CampaignAISummary` 复用同一摘要，把五线态势、领先势力和急务/主线任务转成 Codable AI 摘要，进入 `AgentContext`、`AgentPromptBuilder`、`TurnManager.contextSummary` 和 `MarshalBattlefieldSummary.campaignSummary`，元帅摘要 `schemaVersion` 升到 9，让 legacy Agent 与默认元帅链路都能读取中华世界局势、名分、粮链、火器修城和军政压力；`CourtStrategySummary` 也会读取同一摘要，把破关入京线、河南秦陕粮链、湖广粮道和终局名分线转成修城固守、粮台驿道、火器整备、红衣炮维护、赈济安民和征饷等主议/备议权重，并额外把己控粮道州府的低驿道基础计入粮台驿道压力，但仍只生成朝议建议，不执行项目；`CommandExecutor` 结束回合时会将当前摘要 cue 用 `battle-cue-<turn>-<faction>-<cue id>` 去重写入 `eventLog`，让提示进入塘报战记，并将急务/主线任务最多 3 条用 `battle-task-<turn>-<faction>-<task id>` 去重写入任务塘报，帮助复盘当旬军政钱粮火器重点；明末 objective hex 经合法移动占领换手时，`CommandExecutor.appendObjectiveControlEventIfNeeded` 根据占领前后 `HexTile.controller` 追加目标换手塘报，记录原控制方、新控制方和要冲分，只追加日志不执行事件效果；`VictoryRules` 对 `chongzhen_1642` 剧本读取同一摘要执行明末条件，legacy 阿登胜负条件保持原路径。`HUDView` 的胜负 badge 只读显示胜负理由短语，`RootGameView` 信息面板新增“目标”tab，用 `BattleObjectivePanelView` 展示当前各城关控制方、进度、战役提示、天下五线态势、本旬任务链、阶段战局链和终局要冲分；目标 chip 与任务定位按钮可通过 `AppContainer.focusObjective(_:)` 定位目标 hex 和州府牌，它只更新 UI 选择、高亮、`focusedObjectiveId` 和交互日志，不提交命令、不改变 `GameState` 权威状态；`BoardScene.drawFocusedObjective` 只读 `focusedObjectiveId`、`BattleObjectiveSummary` 和 `MapState.objective(id:)`，在舆图上绘制“标”令牌、脉冲圈、目标名、当前控制方和同胜负线城关连线，顶部舆图图例同步说明“目标定位 / 胜负线城关”。
 - v4.7 明末 AI doctrine 首片中，`ZoneCommanderDoctrine` 按势力生成默认 `ZoneCommanderAgentConfig`：明廷谨慎并偏防京畿/保粮/守城，清方进取并偏旗骑/合围/截援，大顺进取并偏扩粮/破弱城，大西进取并偏流动作战/夺粮，地方中立谨慎自保；`TheaterCommanderPool` fallback、`AppContainer` 空将领 registry fallback、显式 `.zoneDirective` 路径、`MockAICommander` 和 `SimulatedMarshalLLMClient` 都共用同一 doctrine 口径，影响 `BinaryTacticClassifier` 攻守边界、技能标签和默认元帅 JSON 上游 tactic；`ZoneCommanderAgent` 与模拟元帅会按 doctrine 把同态进攻映射为明廷火器压制、清方突骑破阵/合围、大顺破围、大西流动作战，但不新增 AI 管线，不直接下发底层 `Command`，不改变 `WarCommandExecutor` 或 `RuleEngine` 权威。
 - `GamePhase.allowsHumanCommands` 是玩家可操作阶段的当前 UI/App 判定入口，兼容 `.humanAction` 与 legacy `.alliedPlayer`。
 - `turnOrder`、`humanControlledFactions`、`aiControlledFactions` 是通用回合和控制方配置；旧阿登仍 fallback 为 Germany AI / Allies player。
 - `EconomyState` 是 faction 级经济总账；收入来自受控 region、城市、工厂、基础设施和补给值，但战术占领仍以 hex 为准。
 - 玩家、AI、后续聊天命令最终都必须经过 `Command` / `ZoneDirective -> WarCommandExecutor -> RuleEngine`，不能直接改 `GameState`。
 - v0.5 默认战争 AI 上游是 `MarshalAgent -> TheaterDirective JSON -> TheaterDirectiveDecoder -> TheaterDirectiveCompiler`，下游执行收口到 `ZoneDirective -> WarCommandExecutor -> RuleEngine`。
-- `CourtStrategySummary`、`BattleObjectiveSummary` 与 `CampaignAISummary` 都是只读派生摘要，不直接改 `GameState`；`BattleObjectiveSummary.Cue` 用于目标面板的历史/教程提示和回合末塘报入册，不执行事件效果；开封围城压力 cue 只读 objective 控制方，不新增真实 siege state、城防损耗或事件执行器；`BattleObjectiveSummary.CampaignTask` 只把当前胜负线压力、回合、开封压力和明廷火器支点翻译成目标面板的本旬任务链，并可由 `appendBattleTaskEvents` 将急务/主线任务写入塘报，不保存持久任务进度，不执行政策/经济/科技/军事效果；`BattleObjectiveSummary.CampaignLineBrief` 只把既有阶段链和任务链聚合为天下、政策、经济、科技、军事五线扫读摘要，不新增政策或科技状态；`CampaignAISummary` 只把这些五线摘要转成 Agent/元帅可读文本和结构化字段，不下发命令；`ZoneCommanderDoctrine` 只改变默认 commander、MockAI 与模拟元帅 JSON 上游的风格、技能标签和 tactic 偏置，最终仍必须产出 `TheaterDirective` 或 `ZoneDirective` 并进入统一执行链；`CourtStrategySummary` 只把战役线、地方中立/非核心州府、低粮田水利和治理压力加权进主议/备议排序与理由，不执行朝廷项目；目标换手塘报只记录已经发生的 objective hex 控制变化，不替代 `VictoryRules` 或 `BattleObjectiveSummary`；`CourtPanelView` 的朝议争点和 `CourtProjectDomain` 只服务四线展示、争点表达和项目分组，可执行朝廷项目必须走 `Command.enactCourtProject -> CommandValidator -> CommandExecutor -> EconomyRules`。`HUDView` 的朝报令条、`BattleObjectivePanelView` 的目标面板与目标定位、`CommandPanelView` 的军令牌、`GeneralCommandPanelView` 的将印军令、`GeneralProfileView` 的将领名帖、`AgentPanelView` 的军机复盘牌、`EventLogView` 的塘报战记、`UnitInspectorView` 的军情牌、`RegionInspectorView` 的州府牌、`EconomyPanelView` 的府库牌、`DiplomacyPanelView` 的天下急势、`BoardScene.drawFocusedObjective` 的目标定位令牌与胜负线城关连线、`BoardScene.drawPlannedOperations` 的军令计划线、`UnitNode` / `MingFactionFlagBadge` 的势力旗号、`AppContainer.showsSupplyRoutes` 和 `MapDisplayLayer` 图例元数据只控制 UI 展示。`RulerAgent` 仍不是默认主链路。
+- `CourtStrategySummary`、`BattleObjectiveSummary` 与 `CampaignAISummary` 都是只读派生摘要，不直接改 `GameState`；`BattleObjectiveSummary.Cue` 用于目标面板的历史/教程提示和回合末塘报入册，不执行事件效果；开封围城压力 cue 只读 objective 控制方，不新增真实 siege state、城防损耗或事件执行器；`BattleObjectiveSummary.CampaignTask` 只把当前胜负线压力、回合、开封压力和明廷火器支点翻译成目标面板的本旬任务链，并可由 `appendBattleTaskEvents` 将急务/主线任务写入塘报，不保存持久任务进度，不执行政策/经济/科技/军事效果；`BattleObjectiveSummary.CampaignLineBrief` 只把既有阶段链和任务链聚合为天下、政策、经济、科技、军事五线扫读摘要，不新增政策或科技状态；`CourtPanelView` 的“天下五线态势”只读取该摘要并在非明末剧本隐藏，不触发项目、不写塘报、不改变 `CourtStrategySummary` 的四线排序；`CampaignAISummary` 只把这些五线摘要转成 Agent/元帅可读文本和结构化字段，不下发命令；`ZoneCommanderDoctrine` 只改变默认 commander、MockAI 与模拟元帅 JSON 上游的风格、技能标签和 tactic 偏置，最终仍必须产出 `TheaterDirective` 或 `ZoneDirective` 并进入统一执行链；`CourtStrategySummary` 只把战役线、地方中立/非核心州府、低粮田水利和治理压力加权进主议/备议排序与理由，不执行朝廷项目；目标换手塘报只记录已经发生的 objective hex 控制变化，不替代 `VictoryRules` 或 `BattleObjectiveSummary`；`CourtPanelView` 的朝议争点和 `CourtProjectDomain` 只服务四线展示、争点表达和项目分组，可执行朝廷项目必须走 `Command.enactCourtProject -> CommandValidator -> CommandExecutor -> EconomyRules`。`HUDView` 的朝报令条、`BattleObjectivePanelView` 的目标面板与目标定位、`CommandPanelView` 的军令牌、`GeneralCommandPanelView` 的将印军令、`GeneralProfileView` 的将领名帖、`AgentPanelView` 的军机复盘牌、`EventLogView` 的塘报战记、`UnitInspectorView` 的军情牌、`RegionInspectorView` 的州府牌、`EconomyPanelView` 的府库牌、`DiplomacyPanelView` 的天下急势、`BoardScene.drawFocusedObjective` 的目标定位令牌与胜负线城关连线、`BoardScene.drawPlannedOperations` 的军令计划线、`UnitNode` / `MingFactionFlagBadge` 的势力旗号、`AppContainer.showsSupplyRoutes` 和 `MapDisplayLayer` 图例元数据只控制 UI 展示。`RulerAgent` 仍不是默认主链路。
 
 ---
 
@@ -2069,6 +2070,12 @@ CourtStrategySummary
   -> HUDView 朝报令条
   -> 政策 / 经济 / 科技 / 军事四线压力
 
+BattleObjectiveSummary.CampaignLineBrief
+  -> CourtPanelView 天下五线态势
+  -> 明末剧本显示天下 / 政策 / 经济 / 科技 / 军事压力、告急状态和急务数
+  -> 非明末剧本隐藏
+  -> 只读展示，不改变朝议排序、任务、塘报或规则权威
+
 CourtProjectDomain + CourtProjectKind
   -> CourtPanelView 朝议争点
   -> CourtPanelView 四线项目分组
@@ -2119,7 +2126,7 @@ RegionInspectorState
 
 当前完成点：
 
-- `CourtPanelView` 独立成文件并加入 iOS/macOS source phase，仍从 `CourtStrategySummary.from(faction:state:)` 只读派生朝议摘要，并按政策、经济、科技、军事四线展示压力值、朝议争点、关注点、项目成本收益和风险。
+- `CourtPanelView` 独立成文件并加入 iOS/macOS source phase，仍从 `CourtStrategySummary.from(faction:state:)` 只读派生朝议摘要，并按政策、经济、科技、军事四线展示压力值、朝议争点、关注点、项目成本收益和风险；明末剧本下还会复用 `BattleObjectiveSummary.from(state:).lineBriefs` 展示“天下五线态势”，让朝廷 tab 同时看到天下、政策、经济、科技、军事五线的战役压力、告急状态和急务数量。
 - 信息按钮、图层 picker、观战 toggle、新局按钮、军令/将领名帖/单位/塘报战记/AI 面板做明末中文 polish。
 - `MingDesignTokens` 提供共享设计常量，避免每个面板继续散落不同圆角、padding 和背景色。
 - `HUDView` 以朝报令条展示当前 active faction、回合、胜负、民力/银两/粮草、入账、营造队列和 `CourtStrategySummary` 四线压力；它只负责 SwiftUI 展示，结束回合和新局仍通过 `RootGameView` 注入的 `onEndTurn` / `onNewGame` 执行。
@@ -2139,6 +2146,7 @@ RegionInspectorState
 - `BoardScene.drawPlannedOperations` 读取 `PlayerCommandState.plannedOperations` 并只显示当前回合、当前 viewer faction 的计划，进取计划显示朱砂箭头和“进”令牌，固守计划显示青绿“守”令牌；它不修改 `PlayerCommandState`，也不触发 `ZoneDirective` 或 `WarCommandExecutor`。
 - `MapDisplayLayer.displayName` 改为舆图、州府、初划、战局、前线、布防；顶部图例条按当前 layer 展示图标、说明和城/关/粮/步/军令计划/粮道符号，只作 SwiftUI 说明，不改变底层 rawValue 或 overlay 计算。
 - `CourtProjectDomain` 目前包含政策、经济、科技、军事四类，`CourtProjectKind` 目前包含征饷、赈济安民、招抚乡绅、农政屯田、修城固守、整训团练、火器整备、红衣炮维护、粮台驿道九项；`CourtPanelView` 按 `CourtProjectKind.domains` 多线展示项目，整训团练显示为政策/军事交叉项目，农政屯田显示为经济/科技交叉项目，红衣炮维护显示为科技/军事交叉项目，粮台驿道显示为经济/科技/军事交叉项目，并在说明中以“兼线”提示这是同一项目的多领域归属。
+- `CourtCampaignLineSection` 只在明末剧本中读取 `BattleObjectiveSummary.CampaignLineBrief`，展示天下、政策、经济、科技、军事五线压力和当前摘要，不保存状态、不执行任务、不写塘报，也不影响 `CourtStrategySummary` 的主议/备议排序。
 - `CourtDebateSection` 只在朝廷面板中读取现有压力值、州府数、火器/炮队数和前线数，展示安民与征饷、火器与团练、粮道与城防三组争点，不写入 `GameState`，也不影响 `CourtProjectKind` 的执行可用性。
 - `Command.enactCourtProject(kind:)` 与生产命令同级，`actingDivisionId` 为 nil；校验只允许可行动 phase 且资源足够时执行。
 - `EconomyRules.enactCourtProject` 会扣除项目成本、追加即时资源收益，并按项目轻量调整地方治理、州府 infrastructure/supplyValue、生产队列、火器/炮队兵力或缺粮部队状态；农政屯田优先选择己控低粮草/低基础设施州府，提升后续粮草基础，不直接改变库存、控制权或外交关系；整训团练会保留 1 回合地方守备/募营兵队列，并优先对最多 2 个己控不稳州府做地方驻防，轻量降低民变、提高行政掌控，不新增独立治安资源或真实驻防层；红衣炮维护优先给己方受损攻城炮队恢复兵力，没有候选时只追加 1 回合造炮队订单。

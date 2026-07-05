@@ -8,10 +8,14 @@ struct CourtPanelView: View {
 
     var body: some View {
         let summary = CourtStrategySummary.from(faction: gameState.activeFaction, state: gameState)
+        let objectiveSummary = BattleObjectiveSummary.from(state: gameState)
 
         VStack(alignment: .leading, spacing: MingDesignTokens.sectionSpacing) {
             CourtHeaderView(faction: gameState.activeFaction, focus: summary.recommendedFocus)
             CourtRationaleView(summary: summary)
+            CourtCampaignLineSection(
+                briefs: objectiveSummary.isMingScenario ? objectiveSummary.lineBriefs : []
+            )
             CourtPressureSection(summary: summary)
             CourtDebateSection(summary: summary)
             CourtProjectSection(
@@ -86,6 +90,119 @@ private struct CourtRationaleView: View {
         .padding(MingDesignTokens.panelPadding)
         .background(MingDesignTokens.sectionBackground)
         .clipShape(RoundedRectangle(cornerRadius: MingDesignTokens.cornerRadius))
+    }
+}
+
+private struct CourtCampaignLineSection: View {
+    let briefs: [BattleObjectiveSummary.CampaignLineBrief]
+
+    var body: some View {
+        if !briefs.isEmpty {
+            VStack(alignment: .leading, spacing: MingDesignTokens.compactSpacing) {
+                HStack(alignment: .firstTextBaseline) {
+                    Text("天下五线态势")
+                        .font(.subheadline.bold())
+                        .foregroundStyle(MingDesignTokens.ink)
+                    Spacer(minLength: 8)
+                    Text("战役来源")
+                        .font(.caption.bold())
+                        .foregroundStyle(.secondary)
+                }
+
+                LazyVGrid(columns: [GridItem(.adaptive(minimum: 128), spacing: 8)], alignment: .leading, spacing: 8) {
+                    ForEach(briefs) { brief in
+                        CourtCampaignLineCard(brief: brief)
+                    }
+                }
+            }
+            .padding(MingDesignTokens.compactSpacing)
+            .background(MingDesignTokens.sectionBackground, in: RoundedRectangle(cornerRadius: MingDesignTokens.cornerRadius))
+        }
+    }
+}
+
+private struct CourtCampaignLineCard: View {
+    let brief: BattleObjectiveSummary.CampaignLineBrief
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            HStack(alignment: .center, spacing: 6) {
+                Label(brief.line.displayName, systemImage: brief.line.systemImage)
+                    .font(.caption.bold())
+                    .foregroundStyle(tint)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.82)
+
+                Spacer(minLength: 4)
+
+                Label(brief.status.displayName, systemImage: statusSystemImage)
+                    .font(.caption.bold())
+                    .foregroundStyle(tint)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.8)
+            }
+
+            ProgressView(value: Double(brief.pressure), total: 100)
+                .tint(tint)
+
+            HStack(spacing: 6) {
+                Text("势 \(brief.pressure)")
+                    .font(.caption.monospacedDigit())
+                    .foregroundStyle(.secondary)
+
+                if brief.urgentTaskCount > 0 {
+                    Text("急 \(brief.urgentTaskCount)")
+                        .font(.caption.bold())
+                        .foregroundStyle(MingDesignTokens.cinnabar)
+                } else if brief.activeTaskCount > 0 {
+                    Text("事 \(brief.activeTaskCount)")
+                        .font(.caption.bold())
+                        .foregroundStyle(tint)
+                }
+            }
+
+            Text(brief.detail)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .lineLimit(2)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .padding(8)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(MingDesignTokens.panelBackground.opacity(0.52), in: RoundedRectangle(cornerRadius: 6))
+        .overlay {
+            RoundedRectangle(cornerRadius: 6)
+                .stroke(tint.opacity(brief.status == .warning ? 0.45 : 0.18), lineWidth: 1)
+        }
+        .accessibilityElement(children: .combine)
+    }
+
+    private var statusSystemImage: String {
+        switch brief.status {
+        case .warning:
+            return "exclamationmark.triangle"
+        case .focus:
+            return "scope"
+        case .achieved:
+            return "checkmark.seal"
+        case .watch:
+            return "eye"
+        }
+    }
+
+    private var tint: Color {
+        switch brief.line {
+        case .world:
+            return MingDesignTokens.cinnabar
+        case .policy:
+            return MingDesignTokens.jade
+        case .economy:
+            return MingDesignTokens.imperialGold
+        case .technology:
+            return MingDesignTokens.porcelainBlue
+        case .military:
+            return MingDesignTokens.ink
+        }
     }
 }
 
