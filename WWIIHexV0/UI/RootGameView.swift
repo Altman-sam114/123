@@ -295,6 +295,7 @@ private struct MingMapLegendView: View {
                     MapLegendBadge(text: "关", title: "关隘", tint: MingDesignTokens.cinnabar)
                     MapLegendBadge(text: "粮", title: "粮台", tint: MingDesignTokens.jade)
                     MapLegendBadge(text: "步", title: "军牌", tint: MingDesignTokens.porcelainBlue)
+                    OperationPlanLegendBadge()
 
                     if showsSupplyRoutes {
                         SupplyRouteLegendBadge()
@@ -375,6 +376,46 @@ private struct SupplyRouteLegendBadge: View {
         .padding(.vertical, 6)
         .background(MingDesignTokens.sectionBackground.opacity(0.82), in: RoundedRectangle(cornerRadius: MingDesignTokens.cornerRadius))
         .accessibilityElement(children: .combine)
+    }
+}
+
+private struct OperationPlanLegendBadge: View {
+    var body: some View {
+        HStack(spacing: 8) {
+            OperationPlanSwatch()
+            VStack(alignment: .leading, spacing: 1) {
+                Text("军令计划")
+                    .font(.caption.bold())
+                Text("进取 / 固守")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+            }
+            Spacer(minLength: 0)
+        }
+        .padding(.horizontal, 8)
+        .padding(.vertical, 6)
+        .background(MingDesignTokens.sectionBackground.opacity(0.82), in: RoundedRectangle(cornerRadius: MingDesignTokens.cornerRadius))
+        .accessibilityElement(children: .combine)
+    }
+}
+
+private struct OperationPlanSwatch: View {
+    var body: some View {
+        HStack(spacing: 3) {
+            Text("进")
+                .font(.caption.bold())
+                .foregroundStyle(.white)
+                .frame(width: 19, height: 17)
+                .background(MingDesignTokens.cinnabar, in: RoundedRectangle(cornerRadius: 4))
+
+            Text("守")
+                .font(.caption.bold())
+                .foregroundStyle(.white)
+                .frame(width: 19, height: 17)
+                .background(MingDesignTokens.jade, in: RoundedRectangle(cornerRadius: 4))
+        }
+        .accessibilityHidden(true)
     }
 }
 

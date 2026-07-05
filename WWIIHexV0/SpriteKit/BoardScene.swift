@@ -498,19 +498,28 @@ final class BoardScene: SKScene {
     }
 
     private func drawOperationArrow(from start: CGPoint, to end: CGPoint, type: DirectiveType) {
+        let color = operationColor(for: type)
         let path = CGMutablePath()
         path.move(to: start)
         path.addLine(to: end)
 
+        let glow = SKShapeNode(path: path)
+        glow.strokeColor = operationGlowColor(for: type)
+        glow.lineWidth = 9
+        glow.lineCap = .round
+        glow.zPosition = 25.5
+        addChild(glow)
+
         let line = SKShapeNode(path: path)
-        line.strokeColor = operationColor(for: type)
-        line.lineWidth = 4
+        line.strokeColor = color
+        line.lineWidth = 3.4
         line.lineCap = .round
+        line.lineJoin = .round
         line.zPosition = 26
         addChild(line)
 
         let angle = atan2(end.y - start.y, end.x - start.x)
-        let arrowLength: CGFloat = 14
+        let arrowLength: CGFloat = 16
         let spread: CGFloat = .pi / 7
         let left = CGPoint(
             x: end.x - cos(angle - spread) * arrowLength,
@@ -527,29 +536,82 @@ final class BoardScene: SKScene {
         headPath.addLine(to: right)
 
         let head = SKShapeNode(path: headPath)
-        head.strokeColor = operationColor(for: type)
-        head.lineWidth = 4
+        head.strokeColor = color
+        head.lineWidth = 3.4
         head.lineCap = .round
         head.zPosition = 27
         addChild(head)
+
+        drawOperationSeal(
+            text: type == .attack ? "进" : "守",
+            at: operationSealPoint(from: start, to: end),
+            color: color
+        )
     }
 
     private func drawOperationHoldMarker(at point: CGPoint) {
+        let glow = SKShapeNode(circleOfRadius: 24)
+        glow.position = point
+        glow.strokeColor = operationGlowColor(for: .defend)
+        glow.fillColor = operationGlowColor(for: .defend)
+        glow.lineWidth = 2
+        glow.zPosition = 25.5
+        addChild(glow)
+
         let marker = SKShapeNode(circleOfRadius: 18)
         marker.position = point
         marker.strokeColor = operationColor(for: .defend)
         marker.fillColor = operationColor(for: .defend).withAlphaComponent(0.16)
-        marker.lineWidth = 4
+        marker.lineWidth = 3.4
         marker.zPosition = 26
         addChild(marker)
+
+        drawOperationSeal(text: "守", at: point, color: operationColor(for: .defend))
+    }
+
+    private func drawOperationSeal(text: String, at point: CGPoint, color: SKColor) {
+        let seal = SKShapeNode(rectOf: CGSize(width: 24, height: 22), cornerRadius: 5)
+        seal.position = point
+        seal.fillColor = color.withAlphaComponent(0.92)
+        seal.strokeColor = SKColor(red: 0.24, green: 0.12, blue: 0.06, alpha: 0.88)
+        seal.lineWidth = 1.2
+        seal.zPosition = 28
+        addChild(seal)
+
+        let label = SKLabelNode(text: text)
+        label.fontName = "PingFangSC-Semibold"
+        label.fontSize = 13
+        label.fontColor = SKColor(white: 0.98, alpha: 1)
+        label.verticalAlignmentMode = .center
+        label.horizontalAlignmentMode = .center
+        label.position = point
+        label.zPosition = 29
+        addChild(label)
+    }
+
+    private func operationSealPoint(from start: CGPoint, to end: CGPoint) -> CGPoint {
+        let mid = CGPoint(x: (start.x + end.x) * 0.5, y: (start.y + end.y) * 0.5)
+        let dx = end.x - start.x
+        let dy = end.y - start.y
+        let length = max(1, hypot(dx, dy))
+        return CGPoint(x: mid.x - dy / length * 14, y: mid.y + dx / length * 14)
     }
 
     private func operationColor(for type: DirectiveType) -> SKColor {
         switch type {
         case .attack:
-            return SKColor(red: 0.95, green: 0.32, blue: 0.20, alpha: 0.85)
+            return SKColor(red: 0.86, green: 0.18, blue: 0.12, alpha: 0.92)
         case .defend:
-            return SKColor(red: 0.18, green: 0.64, blue: 0.38, alpha: 0.85)
+            return SKColor(red: 0.16, green: 0.54, blue: 0.34, alpha: 0.92)
+        }
+    }
+
+    private func operationGlowColor(for type: DirectiveType) -> SKColor {
+        switch type {
+        case .attack:
+            return SKColor(red: 0.36, green: 0.08, blue: 0.04, alpha: 0.34)
+        case .defend:
+            return SKColor(red: 0.04, green: 0.18, blue: 0.12, alpha: 0.34)
         }
     }
 
