@@ -840,6 +840,29 @@ final class RuleEngineCoreTests: XCTestCase {
         XCTAssertTrue(summary.stages.first { $0.id == "central_plain_grain_chain" }?.detail.contains("大顺已取得部分") == true)
     }
 
+    func testMingBattleObjectiveSummaryShowsFiveLineBriefs() {
+        let state = Self.mingVictoryState(
+            objectiveControllers: [
+                "obj_shanhaiguan": .qing,
+                "obj_kaifeng": .dashun,
+                "obj_luoyang": .dashun
+            ]
+        )
+
+        let summary = BattleObjectiveSummary.from(state: state)
+        let militaryBrief = summary.lineBriefs.first { $0.line == .military }
+        let economyBrief = summary.lineBriefs.first { $0.line == .economy }
+
+        XCTAssertEqual(summary.lineBriefs.map(\.line), [.world, .policy, .economy, .technology, .military])
+        XCTAssertEqual(militaryBrief?.status, .warning)
+        XCTAssertGreaterThanOrEqual(militaryBrief?.pressure ?? 0, 90)
+        XCTAssertEqual(militaryBrief?.urgentTaskCount, 1)
+        XCTAssertTrue(militaryBrief?.detail.contains("破关入京") == true)
+        XCTAssertEqual(economyBrief?.status, .warning)
+        XCTAssertGreaterThanOrEqual(economyBrief?.pressure ?? 0, 90)
+        XCTAssertTrue(economyBrief?.detail.contains("河南秦陕粮链") == true)
+    }
+
     func testMingBattleObjectiveSummaryShowsCurrentTaskChain() {
         let state = Self.mingVictoryState(objectiveControllers: [:])
 

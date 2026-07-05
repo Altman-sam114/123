@@ -155,6 +155,20 @@ struct BattleObjectiveSummary: Equatable {
         let progress: Double
     }
 
+    struct CampaignLineBrief: Equatable, Identifiable {
+        let line: CampaignLine
+        let status: CampaignStageStatus
+        let pressure: Int
+        let title: String
+        let detail: String
+        let activeTaskCount: Int
+        let urgentTaskCount: Int
+
+        var id: String {
+            line.rawValue
+        }
+    }
+
     struct CampaignTask: Equatable, Identifiable {
         enum Priority: String, Equatable {
             case urgent
@@ -288,6 +302,7 @@ struct BattleObjectiveSummary: Equatable {
     let tracks: [Track]
     let scoreRows: [ScoreRow]
     let leadingFaction: Faction?
+    let lineBriefs: [CampaignLineBrief]
     let stages: [CampaignStage]
     let tasks: [CampaignTask]
     let cues: [Cue]
@@ -301,6 +316,7 @@ struct BattleObjectiveSummary: Equatable {
                 tracks: [],
                 scoreRows: [],
                 leadingFaction: nil,
+                lineBriefs: [],
                 stages: [],
                 tasks: [],
                 cues: []
@@ -311,6 +327,8 @@ struct BattleObjectiveSummary: Equatable {
         let dataDrivenTracks = tracks(from: state)
         let tracks = dataDrivenTracks.isEmpty ? fallbackTracks(from: state) : dataDrivenTracks
         let leader = leadingFaction(from: rows)
+        let stages = campaignStages(from: state, tracks: tracks, leadingFaction: leader)
+        let tasks = campaignTasks(from: state, tracks: tracks, leadingFaction: leader)
         return BattleObjectiveSummary(
             title: "崇祯十五年 · 天下目标",
             subtitle: "破关、据中原、控湖广与守京师关口共同构成当前胜负线。",
@@ -318,8 +336,9 @@ struct BattleObjectiveSummary: Equatable {
             tracks: tracks,
             scoreRows: rows,
             leadingFaction: leader,
-            stages: campaignStages(from: state, tracks: tracks, leadingFaction: leader),
-            tasks: campaignTasks(from: state, tracks: tracks, leadingFaction: leader),
+            lineBriefs: campaignLineBriefs(stages: stages, tasks: tasks, leadingFaction: leader),
+            stages: stages,
+            tasks: tasks,
             cues: cues(from: state, tracks: tracks)
         )
     }
@@ -630,6 +649,115 @@ struct BattleObjectiveSummary: Equatable {
             return "\(leaderText)；开局应先看天下、朝廷、府库和粮道，再决定征饷、赈济、修城或整训。"
         }
         return "\(leaderText)；后续朝议要把民变、银两、粮草、火器和方面军令连成同一条决策链。"
+    }
+
+    private static func campaignLineBriefs(
+        stages: [CampaignStage],
+        tasks: [CampaignTask],
+        leadingFaction: Faction?
+    ) -> [CampaignLineBrief] {
+        let lines: [CampaignLine] = [.world, .policy, .economy, .technology, .military]
+        return lines.map { line in
+            let lineStages = stages.filter { $0.line == line }
+            let lineTasks = tasks.filter { $0.line == line }
+            let activeTasks = lineTasks.filter { $0.priority != .watch }
+            let urgentTasks = lineTasks.filter { $0.priority == .urgent }
+            let status = lineBriefStatus(stages: lineStages, tasks: lineTasks)
+            let pressure = lineBriefPressure(stages: lineStages, tasks: lineTasks)
+
+            return CampaignLineBrief(
+                line: line,
+                status: status,
+                pressure: pressure,
+                title: "\(line.displayName)线",
+                detail: lineBriefDetail(
+                    line: line,
+                    stages: lineStages,
+                    tasks: lineTasks,
+                    leadingFaction: leadingFaction
+                ),
+                activeTaskCount: activeTasks.count,
+                urgentTaskCount: urgentTasks.count
+            )
+        }
+    }
+
+    private static func lineBriefStatus(
+        stages: [CampaignStage],
+        tasks: [CampaignTask]
+    ) -> CampaignStageStatus {
+        if tasks.contains(where: { $0.priority == .urgent }) ||
+            stages.contains(where: { $0.status == .warning }) {
+            return .warning
+        }
+
+        if tasks.contains(where: { $0.priority == .main }) ||
+            stages.contains(where: { $0.status == .focus }) {
+            return .focus
+        }
+
+        if !stages.isEmpty && stages.allSatisfy({ $0.status == .achieved }) {
+            return .achieved
+        }
+
+        return .watch
+    }
+
+    private static func lineBriefPressure(
+        stages: [CampaignStage],
+        tasks: [CampaignTask]
+    ) -> Int {
+        let taskPressure = tasks.map { task in
+            switch task.priority {
+            case .urgent:
+                return 94
+            case .main:
+                return 72
+            case .watch:
+                return 34
+            }
+        }.max() ?? 0
+
+        let stagePressure = stages.map { stage in
+            switch stage.status {
+            case .warning:
+                return max(82, Int(stage.progress * 100))
+            case .focus:
+                return max(62, Int(stage.progress * 80))
+            case .achieved:
+                return 40
+            case .watch:
+                return max(22, Int(stage.progress * 50))
+            }
+        }.max() ?? 0
+
+        return max(0, min(100, max(taskPressure, stagePressure)))
+    }
+
+    private static func lineBriefDetail(
+        line: CampaignLine,
+        stages: [CampaignStage],
+        tasks: [CampaignTask],
+        leadingFaction: Faction?
+    ) -> String {
+        if let urgentTask = tasks.first(where: { $0.priority == .urgent }) {
+            return "急务：\(urgentTask.title)。\(urgentTask.detail)"
+        }
+
+        if let mainTask = tasks.first(where: { $0.priority == .main }) {
+            return "主线：\(mainTask.title)。\(mainTask.detail)"
+        }
+
+        if let stage = stages.first(where: { $0.status == .warning || $0.status == .focus }) ?? stages.first {
+            return "\(stage.title)：\(stage.summary)；\(stage.detail)"
+        }
+
+        if line == .world {
+            return leadingFaction.map { "当前要冲分暂由 \($0.displayName) 领先，仍需同时盯住名分、战和和终局城关。" }
+                ?? "天下要冲分尚未拉开，仍需观察各方战和、名分和城关变化。"
+        }
+
+        return "暂无突出告急项，维持观察。"
     }
 
     private static func campaignTasks(

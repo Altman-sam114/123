@@ -17,6 +17,7 @@ struct BattleObjectivePanelView: View {
 
             if summary.isMingScenario {
                 BattleObjectiveScoreboard(summary: summary)
+                BattleObjectiveLineBriefBoard(briefs: summary.lineBriefs)
                 BattleObjectiveCueBoard(cues: summary.cues)
                 BattleObjectiveTaskBoard(tasks: summary.tasks, onFocusObjective: onFocusObjective)
                 BattleObjectiveStageBoard(stages: summary.stages)
@@ -103,6 +104,98 @@ private struct BattleObjectiveHeader: View {
         }
         .padding(MingDesignTokens.compactSpacing)
         .background(MingDesignTokens.sectionBackground, in: RoundedRectangle(cornerRadius: MingDesignTokens.cornerRadius))
+    }
+}
+
+private struct BattleObjectiveLineBriefBoard: View {
+    let briefs: [BattleObjectiveSummary.CampaignLineBrief]
+
+    var body: some View {
+        if !briefs.isEmpty {
+            VStack(alignment: .leading, spacing: MingDesignTokens.compactSpacing) {
+                Text("天下五线态势")
+                    .font(.subheadline.bold())
+                    .foregroundStyle(MingDesignTokens.ink)
+
+                LazyVGrid(columns: [GridItem(.adaptive(minimum: 136), spacing: 8)], alignment: .leading, spacing: 8) {
+                    ForEach(briefs) { brief in
+                        BattleObjectiveLineBriefCard(brief: brief)
+                    }
+                }
+            }
+            .padding(MingDesignTokens.compactSpacing)
+            .background(MingDesignTokens.sectionBackground, in: RoundedRectangle(cornerRadius: MingDesignTokens.cornerRadius))
+        }
+    }
+}
+
+private struct BattleObjectiveLineBriefCard: View {
+    let brief: BattleObjectiveSummary.CampaignLineBrief
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 7) {
+            HStack(alignment: .center, spacing: 6) {
+                Label(brief.title, systemImage: brief.line.systemImage)
+                    .font(.caption.bold())
+                    .foregroundStyle(tint)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.78)
+
+                Spacer(minLength: 6)
+
+                Text(brief.status.displayName)
+                    .font(.caption.bold())
+                    .foregroundStyle(tint)
+                    .lineLimit(1)
+            }
+
+            ProgressView(value: Double(brief.pressure), total: 100)
+                .tint(tint)
+
+            HStack(spacing: 6) {
+                Text("势 \(brief.pressure)")
+                    .font(.caption.monospacedDigit())
+                    .foregroundStyle(.secondary)
+                if brief.urgentTaskCount > 0 {
+                    Text("急 \(brief.urgentTaskCount)")
+                        .font(.caption.bold())
+                        .foregroundStyle(MingDesignTokens.cinnabar)
+                } else if brief.activeTaskCount > 0 {
+                    Text("事 \(brief.activeTaskCount)")
+                        .font(.caption.bold())
+                        .foregroundStyle(tint)
+                }
+            }
+
+            Text(brief.detail)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .lineLimit(3)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .padding(8)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(MingDesignTokens.panelBackground.opacity(0.58), in: RoundedRectangle(cornerRadius: 6))
+        .overlay {
+            RoundedRectangle(cornerRadius: 6)
+                .stroke(tint.opacity(brief.status == .warning ? 0.42 : 0.18), lineWidth: 1)
+        }
+        .accessibilityElement(children: .combine)
+    }
+
+    private var tint: Color {
+        switch brief.line {
+        case .world:
+            return MingDesignTokens.cinnabar
+        case .policy:
+            return MingDesignTokens.porcelainBlue
+        case .economy:
+            return MingDesignTokens.jade
+        case .technology:
+            return MingDesignTokens.imperialGold
+        case .military:
+            return MingDesignTokens.ink
+        }
     }
 }
 
