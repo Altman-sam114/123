@@ -64,18 +64,46 @@ private struct RegionMandateHeader: View {
                     .lineLimit(2)
                     .fixedSize(horizontal: false, vertical: true)
 
-                Text("\(state.region.controller.displayName) / \(state.region.terrain.displayName)")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.78)
+                HStack(spacing: 6) {
+                    MingFactionFlagBadge(faction: state.region.controller)
+                    Text("\(state.region.controller.displayName) / \(state.region.terrain.displayName)")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.78)
+                }
             }
 
             Spacer(minLength: 8)
 
-            RegionBadge(title: "城级", value: state.cityLevel.displayName, tint: state.region.statusTint)
+            VStack(alignment: .trailing, spacing: 5) {
+                RegionBadge(title: "城级", value: state.cityLevel.displayName, tint: state.region.statusTint)
+                    .frame(width: 88)
+                RegionMandateBadge(region: state.region)
+                    .frame(width: 88)
+            }
         }
         .accessibilityElement(children: .combine)
+    }
+}
+
+private struct RegionMandateBadge: View {
+    let region: RegionNode
+
+    var body: some View {
+        Text(mandateText)
+            .font(.caption2.bold())
+            .foregroundStyle(region.controller.mingBannerTint)
+            .lineLimit(1)
+            .minimumScaleFactor(0.72)
+            .padding(.horizontal, 7)
+            .padding(.vertical, 4)
+            .background(region.controller.mingBannerTint.opacity(0.12), in: RoundedRectangle(cornerRadius: 6))
+            .accessibilityLabel("州府归属\(mandateText)")
+    }
+
+    private var mandateText: String {
+        region.owner == region.controller ? "原属稳固" : "原属 \(region.owner.bannerGlyph)"
     }
 }
 
@@ -239,7 +267,12 @@ private struct SelectedHexSection: View {
 
             Grid(alignment: .leading, horizontalSpacing: 10, verticalSpacing: 5) {
                 RegionInfoRow(label: "坐标", value: "\(selectedHex.q),\(selectedHex.r)")
-                RegionInfoRow(label: "控制", value: controller?.displayName ?? "无")
+                GridRow {
+                    Text("控制")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    HexControllerValue(controller: controller)
+                }
                 RegionInfoRow(label: "方面", value: dynamicTheaterId?.rawValue ?? "无")
                 RegionInfoRow(label: "防区", value: frontZoneId?.rawValue ?? "无")
             }
@@ -247,6 +280,28 @@ private struct SelectedHexSection: View {
         .padding(MingDesignTokens.compactSpacing)
         .background(MingDesignTokens.sectionBackground)
         .clipShape(RoundedRectangle(cornerRadius: MingDesignTokens.cornerRadius))
+    }
+}
+
+private struct HexControllerValue: View {
+    let controller: Faction?
+
+    var body: some View {
+        HStack(spacing: 5) {
+            if let controller {
+                MingFactionFlagBadge(faction: controller)
+                Text(controller.displayName)
+                    .font(.caption.bold())
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.72)
+            } else {
+                Text("无")
+                    .font(.caption.bold())
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+            }
+        }
+        .accessibilityElement(children: .combine)
     }
 }
 
