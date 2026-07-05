@@ -5,76 +5,300 @@ struct UnitTooltipView: View {
 
     var body: some View {
         if let division {
-            VStack(alignment: .leading, spacing: 6) {
-                Text(division.name)
-                    .font(.subheadline.weight(.semibold))
-                    .lineLimit(2)
+            VStack(alignment: .leading, spacing: MingDesignTokens.compactSpacing) {
+                UnitTooltipHeader(division: division)
+                UnitTooltipStrengthBar(division: division)
 
-                Grid(alignment: .leading, horizontalSpacing: 10, verticalSpacing: 4) {
-                    GridRow {
-                        label("类型")
-                        value(division.tooltipTypeCode)
-                    }
-                    GridRow {
-                        label("兵力")
-                        value("\(division.strength)/\(division.maxStrength)")
-                    }
-                    GridRow {
-                        label("粮草")
-                        value(division.supplyState.tooltipDisplayName)
-                    }
-                    GridRow {
-                        label("退守")
-                        value(division.retreatMode.tooltipDisplayName)
-                    }
-                    GridRow {
-                        label("行动")
-                        value(division.hasActed ? "是" : "否")
-                    }
+                HStack(spacing: 6) {
+                    UnitTooltipStatusChip(title: "粮草", value: division.supplyState.tooltipDisplayName, tint: division.supplyState.tooltipTint)
+                    UnitTooltipStatusChip(title: "行动", value: division.tooltipActionText, tint: division.canAct ? MingDesignTokens.jade : .secondary)
+                    UnitTooltipStatusChip(title: "退守", value: division.tooltipRetreatText, tint: division.tooltipRetreatTint)
                 }
+
+                UnitTooltipStatsRow(stats: division.effectiveStats)
+                UnitTooltipComponentStrip(components: division.components)
             }
-            .padding(10)
-            .frame(width: 220, alignment: .leading)
-            .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 8))
+            .padding(MingDesignTokens.compactSpacing)
+            .frame(width: 276, alignment: .leading)
+            .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: MingDesignTokens.cornerRadius))
             .overlay {
-                RoundedRectangle(cornerRadius: 8)
-                    .stroke(.secondary.opacity(0.35), lineWidth: 1)
+                RoundedRectangle(cornerRadius: MingDesignTokens.cornerRadius)
+                    .stroke(division.faction.mingBannerTint.opacity(0.48), lineWidth: 1)
             }
             .padding(10)
             .accessibilityElement(children: .combine)
-            .accessibilityLabel("\(division.name)，\(division.tooltipTypeCode)，兵力 \(division.strength) / \(division.maxStrength)")
+            .accessibilityLabel(division.tooltipAccessibilityLabel)
         }
     }
+}
 
-    private func label(_ text: String) -> some View {
-        Text(text)
-            .font(.caption)
-            .foregroundStyle(.secondary)
+private struct UnitTooltipHeader: View {
+    let division: Division
+
+    var body: some View {
+        HStack(alignment: .top, spacing: 8) {
+            ZStack(alignment: .topTrailing) {
+                Text(division.tooltipGlyph)
+                    .font(.title3.bold())
+                    .foregroundStyle(division.faction.mingBannerTint)
+                    .frame(width: 38, height: 38)
+                    .background(MingDesignTokens.subtleSeal, in: RoundedRectangle(cornerRadius: MingDesignTokens.cornerRadius))
+                    .overlay {
+                        RoundedRectangle(cornerRadius: MingDesignTokens.cornerRadius)
+                            .stroke(division.faction.mingBannerTint.opacity(0.34), lineWidth: 1)
+                    }
+
+                MingFactionFlagBadge(faction: division.faction)
+                    .offset(x: 5, y: -5)
+            }
+            .accessibilityHidden(true)
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text(division.name)
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(.primary)
+                    .lineLimit(2)
+                    .fixedSize(horizontal: false, vertical: true)
+
+                Text("\(division.faction.displayName) · \(division.tooltipPostureText)")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.78)
+            }
+
+            Spacer(minLength: 0)
+        }
     }
+}
 
-    private func value(_ text: String) -> some View {
-        Text(text)
-            .font(.caption.weight(.semibold))
-            .lineLimit(1)
-            .minimumScaleFactor(0.75)
+private struct UnitTooltipStrengthBar: View {
+    let division: Division
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            HStack {
+                Text("兵力")
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+
+                Spacer(minLength: 8)
+
+                Text("\(division.strength)/\(division.maxStrength)")
+                    .font(.caption2.monospacedDigit())
+                    .foregroundStyle(.secondary)
+            }
+
+            ProgressView(value: division.tooltipStrengthRatio, total: 1)
+                .tint(division.tooltipStrengthTint)
+        }
+    }
+}
+
+private struct UnitTooltipStatusChip: View {
+    let title: String
+    let value: String
+    let tint: Color
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 2) {
+            Text(title)
+                .font(.caption2)
+                .foregroundStyle(.secondary)
+                .lineLimit(1)
+
+            Text(value)
+                .font(.caption.bold())
+                .foregroundStyle(tint)
+                .lineLimit(1)
+                .minimumScaleFactor(0.72)
+        }
+        .padding(.horizontal, 6)
+        .padding(.vertical, 5)
+        .frame(maxWidth: .infinity, minHeight: 42, alignment: .leading)
+        .background(MingDesignTokens.panelBackground.opacity(0.58), in: RoundedRectangle(cornerRadius: 6))
+    }
+}
+
+private struct UnitTooltipStatsRow: View {
+    let stats: EffectiveStats
+
+    private let columns = [
+        GridItem(.flexible(minimum: 38), spacing: 5),
+        GridItem(.flexible(minimum: 38), spacing: 5),
+        GridItem(.flexible(minimum: 38), spacing: 5),
+        GridItem(.flexible(minimum: 38), spacing: 5),
+        GridItem(.flexible(minimum: 38), spacing: 5)
+    ]
+
+    var body: some View {
+        LazyVGrid(columns: columns, spacing: 5) {
+            UnitTooltipStatChip(title: "攻", value: stats.attack, tint: MingDesignTokens.cinnabar)
+            UnitTooltipStatChip(title: "守", value: stats.defense, tint: MingDesignTokens.jade)
+            UnitTooltipStatChip(title: "行", value: stats.movement, tint: MingDesignTokens.imperialGold)
+            UnitTooltipStatChip(title: "程", value: stats.range, tint: MingDesignTokens.porcelainBlue)
+            UnitTooltipStatChip(title: "察", value: stats.vision, tint: .secondary)
+        }
+    }
+}
+
+private struct UnitTooltipStatChip: View {
+    let title: String
+    let value: Int
+    let tint: Color
+
+    var body: some View {
+        VStack(spacing: 1) {
+            Text(title)
+                .font(.caption2)
+                .foregroundStyle(.secondary)
+                .lineLimit(1)
+
+            Text("\(value)")
+                .font(.caption.bold().monospacedDigit())
+                .foregroundStyle(tint)
+                .lineLimit(1)
+        }
+        .frame(maxWidth: .infinity, minHeight: 34)
+        .background(MingDesignTokens.sectionBackground.opacity(0.72), in: RoundedRectangle(cornerRadius: 6))
+    }
+}
+
+private struct UnitTooltipComponentStrip: View {
+    let components: [DivisionComponent]
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 5) {
+            Text("兵种")
+                .font(.caption2)
+                .foregroundStyle(.secondary)
+
+            LazyVGrid(columns: [GridItem(.adaptive(minimum: 76), spacing: 5)], alignment: .leading, spacing: 5) {
+                ForEach(Array(components.enumerated()), id: \.offset) { _, component in
+                    UnitTooltipComponentChip(component: component)
+                }
+            }
+        }
+    }
+}
+
+private struct UnitTooltipComponentChip: View {
+    let component: DivisionComponent
+
+    var body: some View {
+        HStack(spacing: 4) {
+            Text(component.type.tooltipGlyph)
+                .font(.caption.bold())
+                .foregroundStyle(component.type.tooltipTint)
+                .lineLimit(1)
+
+            Text(component.type.tooltipDisplayName)
+                .font(.caption2)
+                .foregroundStyle(.primary)
+                .lineLimit(1)
+                .minimumScaleFactor(0.78)
+
+            Spacer(minLength: 2)
+
+            Text(component.tooltipWeightText)
+                .font(.caption2.monospacedDigit())
+                .foregroundStyle(.secondary)
+                .lineLimit(1)
+        }
+        .padding(.horizontal, 6)
+        .padding(.vertical, 4)
+        .background(component.type.tooltipTint.opacity(0.12), in: RoundedRectangle(cornerRadius: 6))
+        .overlay {
+            RoundedRectangle(cornerRadius: 6)
+                .stroke(component.type.tooltipTint.opacity(0.22), lineWidth: 1)
+        }
     }
 }
 
 private extension Division {
-    var tooltipTypeCode: String {
+    var tooltipStrengthRatio: Double {
+        guard maxStrength > 0 else {
+            return 0
+        }
+        return min(max(Double(strength) / Double(maxStrength), 0), 1)
+    }
+
+    var tooltipStrengthTint: Color {
+        if tooltipStrengthRatio >= 0.75 {
+            return MingDesignTokens.jade
+        }
+        if tooltipStrengthRatio >= 0.45 {
+            return MingDesignTokens.imperialGold
+        }
+        return MingDesignTokens.cinnabar
+    }
+
+    var tooltipGlyph: String {
         if isSiegeCapable {
-            return "攻城"
+            return "城"
         }
         if isArmor {
-            return "旗骑"
+            return "骑"
         }
         if hasFireSupport {
-            return "火器"
+            return "火"
         }
         if isMobileUnit {
-            return "骑兵"
+            return "驰"
         }
-        return "步军"
+        return "军"
+    }
+
+    var tooltipPostureText: String {
+        "\(tooltipRoleName) · \(tooltipCoordText)"
+    }
+
+    var tooltipRoleName: String {
+        if isSiegeCapable {
+            return "攻城营"
+        }
+        if isArmor {
+            return "旗骑突击"
+        }
+        if hasFireSupport {
+            return "火器压阵"
+        }
+        if isMobileUnit {
+            return "游骑机动"
+        }
+        return "步军守线"
+    }
+
+    var tooltipCoordText: String {
+        "舆图 \(coord.q),\(coord.r)"
+    }
+
+    var tooltipActionText: String {
+        if isDestroyed {
+            return "已溃"
+        }
+        if isRetreating {
+            return "退中"
+        }
+        return canAct ? "待令" : "已行"
+    }
+
+    var tooltipRetreatText: String {
+        if isRetreating {
+            return "退守\(retreatTurnsRemaining)"
+        }
+        return retreatMode.tooltipDisplayName
+    }
+
+    var tooltipRetreatTint: Color {
+        if isRetreating {
+            return MingDesignTokens.cinnabar
+        }
+        return retreatMode.tooltipTint
+    }
+
+    var tooltipAccessibilityLabel: String {
+        "\(name)，\(faction.displayName)，\(tooltipRoleName)，兵力 \(strength) / \(maxStrength)，\(supplyState.tooltipDisplayName)，\(tooltipActionText)，\(tooltipRetreatText)"
     }
 }
 
@@ -85,6 +309,15 @@ private extension RetreatMode {
             return "可退守"
         case .hold:
             return "固守"
+        }
+    }
+
+    var tooltipTint: Color {
+        switch self {
+        case .retreatable:
+            return MingDesignTokens.imperialGold
+        case .hold:
+            return MingDesignTokens.cinnabar
         }
     }
 }
@@ -99,5 +332,93 @@ private extension SupplyState {
         case .encircled:
             return "被围"
         }
+    }
+
+    var tooltipTint: Color {
+        switch self {
+        case .supplied:
+            return MingDesignTokens.jade
+        case .lowSupply:
+            return MingDesignTokens.imperialGold
+        case .encircled:
+            return MingDesignTokens.cinnabar
+        }
+    }
+}
+
+private extension ComponentType {
+    var tooltipGlyph: String {
+        switch self {
+        case .tank:
+            return "甲"
+        case .motorizedInfantry:
+            return "车"
+        case .infantry:
+            return "步"
+        case .artillery:
+            return "炮"
+        case .cavalry:
+            return "骑"
+        case .firearm:
+            return "火"
+        case .bannerCavalry:
+            return "旗"
+        case .militia:
+            return "练"
+        case .siegeEngine:
+            return "城"
+        }
+    }
+
+    var tooltipDisplayName: String {
+        switch self {
+        case .tank:
+            return "甲"
+        case .motorizedInfantry:
+            return "车"
+        case .infantry:
+            return "步"
+        case .artillery:
+            return "炮"
+        case .cavalry:
+            return "骑"
+        case .firearm:
+            return "火"
+        case .bannerCavalry:
+            return "旗骑"
+        case .militia:
+            return "团"
+        case .siegeEngine:
+            return "城"
+        }
+    }
+
+    var tooltipTint: Color {
+        switch self {
+        case .tank:
+            return .gray
+        case .motorizedInfantry:
+            return MingDesignTokens.imperialGold
+        case .infantry:
+            return MingDesignTokens.jade
+        case .artillery:
+            return MingDesignTokens.porcelainBlue
+        case .cavalry:
+            return MingDesignTokens.imperialGold
+        case .firearm:
+            return MingDesignTokens.porcelainBlue
+        case .bannerCavalry:
+            return MingDesignTokens.cinnabar
+        case .militia:
+            return .secondary
+        case .siegeEngine:
+            return MingDesignTokens.cinnabar
+        }
+    }
+}
+
+private extension DivisionComponent {
+    var tooltipWeightText: String {
+        "\(Int((weight * 100).rounded()))%"
     }
 }
