@@ -54,6 +54,7 @@ enum CourtProjectKind: String, Codable, Equatable, CaseIterable, Identifiable {
     case raiseTax
     case relief
     case appeaseGentry
+    case agrarianReform
     case fortify
     case trainMilitia
     case firearmReform
@@ -71,6 +72,8 @@ enum CourtProjectKind: String, Codable, Equatable, CaseIterable, Identifiable {
             return "赈济安民"
         case .appeaseGentry:
             return "招抚乡绅"
+        case .agrarianReform:
+            return "农政屯田"
         case .fortify:
             return "修城固守"
         case .trainMilitia:
@@ -98,6 +101,8 @@ enum CourtProjectKind: String, Codable, Equatable, CaseIterable, Identifiable {
             return [.policy]
         case .appeaseGentry:
             return [.policy]
+        case .agrarianReform:
+            return [.economy, .technology]
         case .fortify,
              .trainMilitia:
             return [.military]
@@ -116,6 +121,8 @@ enum CourtProjectKind: String, Codable, Equatable, CaseIterable, Identifiable {
             return "压低民变，恢复地方行政。"
         case .appeaseGentry:
             return "安抚地方中立和乡绅团练，恢复行政掌控。"
+        case .agrarianReform:
+            return "整饬屯田水利，提升州府粮草和基础设施。"
         case .fortify:
             return "加固重点州府，提升后续补给和防务。"
         case .trainMilitia:
@@ -135,6 +142,8 @@ enum CourtProjectKind: String, Codable, Equatable, CaseIterable, Identifiable {
             return "消耗银两与粮草。"
         case .appeaseGentry:
             return "消耗银两粮草，见效限于己控地方。"
+        case .agrarianReform:
+            return "短期不补现粮，见效依赖己控州府。"
         case .fortify:
             return "消耗民力、银两与粮草。"
         case .trainMilitia:
@@ -154,6 +163,8 @@ enum CourtProjectKind: String, Codable, Equatable, CaseIterable, Identifiable {
             return "leaf"
         case .appeaseGentry:
             return "person.crop.circle.badge.checkmark"
+        case .agrarianReform:
+            return "sprout"
         case .fortify:
             return "shield"
         case .trainMilitia:
@@ -173,6 +184,8 @@ enum CourtProjectKind: String, Codable, Equatable, CaseIterable, Identifiable {
             return EconomyResources(manpower: 0, industry: 45, supplies: 35)
         case .appeaseGentry:
             return EconomyResources(manpower: 10, industry: 30, supplies: 20)
+        case .agrarianReform:
+            return EconomyResources(manpower: 25, industry: 35, supplies: 10)
         case .fortify:
             return EconomyResources(manpower: 30, industry: 45, supplies: 15)
         case .trainMilitia:
@@ -192,6 +205,7 @@ enum CourtProjectKind: String, Codable, Equatable, CaseIterable, Identifiable {
             return EconomyResources(supplies: 90)
         case .relief,
              .appeaseGentry,
+             .agrarianReform,
              .fortify,
              .trainMilitia,
              .firearmReform:

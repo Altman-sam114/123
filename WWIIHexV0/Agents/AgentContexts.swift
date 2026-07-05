@@ -163,6 +163,7 @@ enum CourtPolicyFocus: String, Codable, Equatable, CaseIterable, Identifiable {
     case raiseTax
     case relief
     case appeaseGentry
+    case agrarianReform
     case fortify
     case trainMilitia
     case firearmReform
@@ -180,6 +181,8 @@ enum CourtPolicyFocus: String, Codable, Equatable, CaseIterable, Identifiable {
             return "赈济安民"
         case .appeaseGentry:
             return "招抚乡绅"
+        case .agrarianReform:
+            return "农政屯田"
         case .fortify:
             return "修城固守"
         case .trainMilitia:
@@ -199,6 +202,8 @@ enum CourtPolicyFocus: String, Codable, Equatable, CaseIterable, Identifiable {
             return "政策"
         case .appeaseGentry:
             return "政策"
+        case .agrarianReform:
+            return "经济/科技"
         case .fortify, .trainMilitia:
             return "军事"
         case .firearmReform:
@@ -216,6 +221,8 @@ enum CourtPolicyFocus: String, Codable, Equatable, CaseIterable, Identifiable {
             return "压低民变，恢复行政掌控。"
         case .appeaseGentry:
             return "安抚地方中立、乡绅团练和新附州府。"
+        case .agrarianReform:
+            return "修水利、清屯田，提高后续粮草恢复。"
         case .fortify:
             return "提高城关承压能力，稳住要冲。"
         case .trainMilitia:
@@ -235,6 +242,8 @@ enum CourtPolicyFocus: String, Codable, Equatable, CaseIterable, Identifiable {
             return "消耗银两/粮草，短期军费更紧。"
         case .appeaseGentry:
             return "见效依赖地方基础，不能直接改变归属。"
+        case .agrarianReform:
+            return "短期占用民力和银两，不能立刻解缺粮。"
         case .fortify:
             return "占用工坊与银两，进攻节奏放缓。"
         case .trainMilitia:
@@ -254,6 +263,8 @@ enum CourtPolicyFocus: String, Codable, Equatable, CaseIterable, Identifiable {
             return "leaf"
         case .appeaseGentry:
             return "person.crop.circle.badge.checkmark"
+        case .agrarianReform:
+            return "sprout"
         case .fortify:
             return "shield"
         case .trainMilitia:
@@ -332,6 +343,10 @@ struct CourtStrategySummary: Codable, Equatable {
                 lowSupplyCount * 18 +
                 encircledCount * 25
         )
+        let agrarianPressure = clamp(
+            economy.grainShortfall * 6 +
+                lowAgrarianNeed(for: faction, state: state) * 24
+        )
         let localPacificationPressure = governance.controlledRegions == 0
             ? 0
             : clamp(
@@ -346,6 +361,7 @@ struct CourtStrategySummary: Codable, Equatable {
             (CourtPolicyFocus.grainTransport, clamp(grainTransportPressure + campaignPressure.grainTransport)),
             (.relief, clamp(policyPressure + campaignPressure.relief)),
             (.appeaseGentry, clamp(localPacificationPressure + campaignPressure.appeaseGentry)),
+            (.agrarianReform, clamp(agrarianPressure + campaignPressure.agrarianReform)),
             (.fortify, clamp(militaryPressure + campaignPressure.fortify)),
             (.raiseTax, clamp(economyPressure + campaignPressure.raiseTax)),
             (.firearmReform, clamp(technologyPressure + campaignPressure.firearmReform)),
@@ -444,6 +460,8 @@ struct CourtStrategySummary: Codable, Equatable {
             return "不稳州府 \(governance.unstableRegions)，平均民变 \(governance.averageResistance)，需安抚地方。"
         case .appeaseGentry:
             return "平均行政 \(governance.averageCompliance)，地方中立和新附州府需招抚稳住。"
+        case .agrarianReform:
+            return "粮草缺口 \(economy.grainShortfall)，己控州府粮田水利不足，需清屯兴修。"
         case .fortify:
             return "前线均压 \(averagePressure)，缺粮 \(lowSupplyCount)，被围 \(encircledCount)，需守住城关。"
         case .trainMilitia:
@@ -470,10 +488,19 @@ struct CourtStrategySummary: Codable, Equatable {
         }.count
     }
 
+    private static func lowAgrarianNeed(for faction: Faction, state: GameState) -> Int {
+        state.map.regions.values.filter { region in
+            region.controller == faction &&
+                region.isPassable &&
+                (region.supplyValue < 3 || region.infrastructure < 2)
+        }.count
+    }
+
     private struct CampaignPolicyPressure {
         var grainTransport: Int = 0
         var relief: Int = 0
         var appeaseGentry: Int = 0
+        var agrarianReform: Int = 0
         var fortify: Int = 0
         var raiseTax: Int = 0
         var firearmReform: Int = 0
@@ -483,6 +510,7 @@ struct CourtStrategySummary: Codable, Equatable {
             grainTransport > 0 ||
                 relief > 0 ||
                 appeaseGentry > 0 ||
+                agrarianReform > 0 ||
                 fortify > 0 ||
                 raiseTax > 0 ||
                 firearmReform > 0
@@ -512,6 +540,7 @@ struct CourtStrategySummary: Codable, Equatable {
             pressure.grainTransport += bonus
             pressure.relief += 18
             pressure.appeaseGentry += 14
+            pressure.agrarianReform += 12
             pressure.raiseTax += 12
             reasons.append("河南秦陕粮链承压")
         }
@@ -521,6 +550,7 @@ struct CourtStrategySummary: Codable, Equatable {
             pressure.grainTransport += daxiTrack.progress >= 0.5 ? 32 : 20
             pressure.fortify += 14
             pressure.appeaseGentry += 12
+            pressure.agrarianReform += 10
             reasons.append("湖广粮道承压")
         }
 

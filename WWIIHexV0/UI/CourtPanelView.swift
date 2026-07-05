@@ -518,6 +518,8 @@ private extension CourtProjectKind {
             self = .relief
         case .appeaseGentry:
             self = .appeaseGentry
+        case .agrarianReform:
+            self = .agrarianReform
         case .fortify:
             self = .fortify
         case .trainMilitia:

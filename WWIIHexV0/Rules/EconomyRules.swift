@@ -246,6 +246,9 @@ struct EconomyRules {
         case .appeaseGentry:
             let affected = appeaseLocalGentry(faction: faction, limit: 3, state: &state)
             return affected.isEmpty ? "未找到可招抚州府" : "\(affected.joined(separator: "、")) 乡绅归附，行政恢复"
+        case .agrarianReform:
+            let affected = cultivateControlledRegions(faction: faction, limit: 2, state: &state)
+            return affected.isEmpty ? "未找到可屯田州府" : "\(affected.joined(separator: "、")) 屯田水利兴修，粮草产出提升"
         case .fortify:
             let affected = fortifyControlledRegions(faction: faction, limit: 2, state: &state)
             return affected.isEmpty ? "未找到可修城州府" : "\(affected.joined(separator: "、")) 城防和粮道提升"
@@ -363,6 +366,63 @@ struct EconomyRules {
         let localBonus = region.owner == .localNeutral ? 40 : 0
         let nonCoreBonus = !region.coreOf.isEmpty && !region.coreOf.contains(faction) ? 20 : 0
         return localBonus + nonCoreBonus + occupation.resistance + max(0, 70 - occupation.compliance)
+    }
+
+    private func cultivateControlledRegions(
+        faction: Faction,
+        limit: Int,
+        state: inout GameState
+    ) -> [String] {
+        let regions = controlledRegions(for: faction, in: state)
+            .filter { $0.supplyValue < 4 || $0.infrastructure < 3 }
+            .sorted {
+                let lhsScore = agrarianScore(for: $0)
+                let rhsScore = agrarianScore(for: $1)
+                if lhsScore != rhsScore {
+                    return lhsScore > rhsScore
+                }
+                return $0.id.rawValue < $1.id.rawValue
+            }
+            .prefix(limit)
+
+        var names: [String] = []
+        for region in regions {
+            guard var current = state.map.regions[region.id] else {
+                continue
+            }
+            current.supplyValue += 2
+            current.infrastructure += 1
+            if let occupation = current.occupationState {
+                current.occupationState = OccupationState(
+                    resistance: occupation.resistance,
+                    compliance: occupation.compliance + 3
+                )
+            }
+            state.map.regions[region.id] = current
+            names.append(current.name)
+        }
+        return names
+    }
+
+    private func agrarianScore(for region: RegionNode) -> Int {
+        let terrainBonus: Int
+        switch region.terrain {
+        case .plain:
+            terrainBonus = 40
+        case .city:
+            terrainBonus = 24
+        case .hill:
+            terrainBonus = 20
+        case .forest:
+            terrainBonus = 12
+        case .fortress:
+            terrainBonus = 8
+        case .mountain:
+            terrainBonus = 4
+        }
+        let supplyNeed = max(0, 4 - region.supplyValue) * 12
+        let infrastructureNeed = max(0, 3 - region.infrastructure) * 8
+        return terrainBonus + supplyNeed + infrastructureNeed
     }
 
     private func fortifyControlledRegions(

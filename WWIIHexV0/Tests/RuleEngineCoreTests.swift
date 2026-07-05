@@ -940,6 +940,40 @@ final class RuleEngineCoreTests: XCTestCase {
         XCTAssertTrue(result.state.eventLog.last?.message.contains("乡绅归附") == true)
     }
 
+    func testLowAgrarianBaseInfluencesCourtFocus() {
+        let state = Self.mingAgrarianState()
+
+        let summary = CourtStrategySummary.from(faction: .ming, state: state)
+
+        XCTAssertEqual(summary.recommendedFocus, .agrarianReform)
+        XCTAssertTrue(summary.rationale.contains("屯田"))
+        XCTAssertEqual(CourtProjectKind.agrarianReform.displayName, "农政屯田")
+        XCTAssertTrue(CourtProjectKind.agrarianReform.domains.contains(.economy))
+        XCTAssertTrue(CourtProjectKind.agrarianReform.domains.contains(.technology))
+    }
+
+    func testAgrarianCourtProjectImprovesFutureGrainBase() {
+        let state = Self.mingAgrarianState()
+        let result = RuleEngine().execute(.enactCourtProject(kind: .agrarianReform), in: state)
+        let huaiqing = result.state.map.region(id: "region_huaiqing_tuntian")
+        let weihui = result.state.map.region(id: "region_weihui_tuntian")
+        let stockpile = result.state.economyState.ledger(for: .ming).stockpile
+
+        XCTAssertTrue(result.succeeded)
+        XCTAssertEqual(huaiqing?.controller, .ming)
+        XCTAssertEqual(weihui?.controller, .ming)
+        XCTAssertEqual(huaiqing?.supplyValue, 3)
+        XCTAssertEqual(huaiqing?.infrastructure, 2)
+        XCTAssertEqual(huaiqing?.occupationState?.compliance, 68)
+        XCTAssertEqual(weihui?.supplyValue, 2)
+        XCTAssertEqual(weihui?.infrastructure, 1)
+        XCTAssertEqual(stockpile.manpower, 55)
+        XCTAssertEqual(stockpile.industry, 45)
+        XCTAssertEqual(stockpile.supplies, 40)
+        XCTAssertTrue(result.state.eventLog.last?.message.contains("农政屯田") == true)
+        XCTAssertTrue(result.state.eventLog.last?.message.contains("屯田水利兴修") == true)
+    }
+
     func testMingBattleObjectiveSummaryShowsCurrentTaskChain() {
         let state = Self.mingVictoryState(objectiveControllers: [:])
 
@@ -1222,6 +1256,75 @@ final class RuleEngineCoreTests: XCTestCase {
             FactionEconomyLedger(
                 faction: .ming,
                 stockpile: EconomyResources(manpower: 50, industry: 80, supplies: 60)
+            )
+        )
+
+        return GameState(
+            scenarioId: "chongzhen_1642_collapse",
+            turn: 1,
+            maxTurns: 20,
+            activeFaction: .ming,
+            phase: .humanAction,
+            map: map,
+            economyState: economyState,
+            turnOrder: [.ming],
+            humanControlledFactions: [.ming],
+            aiControlledFactions: [],
+            divisions: [],
+            victoryState: .ongoing,
+            selectedUnitSummary: nil,
+            eventLog: []
+        )
+    }
+
+    private static func mingAgrarianState() -> GameState {
+        let huaiqingCoord = HexCoord(q: 0, r: 0)
+        let weihuiCoord = HexCoord(q: 1, r: 0)
+        let huaiqingId = RegionId("region_huaiqing_tuntian")
+        let weihuiId = RegionId("region_weihui_tuntian")
+        var map = basicMap(width: 2, height: 1, supplySources: [])
+        var huaiqingTile = map.tiles[huaiqingCoord] ?? HexTile(coord: huaiqingCoord)
+        huaiqingTile.controller = .ming
+        map.tiles[huaiqingCoord] = huaiqingTile
+        map.hexToRegion[huaiqingCoord] = huaiqingId
+        map.regions[huaiqingId] = RegionNode(
+            id: huaiqingId,
+            name: "怀庆屯田",
+            owner: .ming,
+            controller: .ming,
+            terrain: .plain,
+            neighbors: [weihuiId],
+            displayHexes: [huaiqingCoord],
+            representativeHex: huaiqingCoord,
+            infrastructure: 1,
+            supplyValue: 1,
+            coreOf: [.ming],
+            occupationState: OccupationState(resistance: 10, compliance: 65)
+        )
+
+        var weihuiTile = map.tiles[weihuiCoord] ?? HexTile(coord: weihuiCoord)
+        weihuiTile.controller = .ming
+        map.tiles[weihuiCoord] = weihuiTile
+        map.hexToRegion[weihuiCoord] = weihuiId
+        map.regions[weihuiId] = RegionNode(
+            id: weihuiId,
+            name: "卫辉屯田",
+            owner: .ming,
+            controller: .ming,
+            terrain: .plain,
+            neighbors: [huaiqingId],
+            displayHexes: [weihuiCoord],
+            representativeHex: weihuiCoord,
+            infrastructure: 0,
+            supplyValue: 0,
+            coreOf: [.ming]
+        )
+
+        var economyState = EconomyState()
+        economyState.updateLedger(
+            FactionEconomyLedger(
+                faction: .ming,
+                stockpile: EconomyResources(manpower: 80, industry: 80, supplies: 50)
             )
         )
 
