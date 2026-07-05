@@ -106,9 +106,10 @@ enum CourtProjectKind: String, Codable, Equatable, CaseIterable, Identifiable {
             return [.policy]
         case .agrarianReform:
             return [.economy, .technology]
-        case .fortify,
-             .trainMilitia:
+        case .fortify:
             return [.military]
+        case .trainMilitia:
+            return [.policy, .military]
         case .firearmReform:
             return [.technology]
         case .redCannonMaintenance:
@@ -131,7 +132,7 @@ enum CourtProjectKind: String, Codable, Equatable, CaseIterable, Identifiable {
         case .fortify:
             return "加固重点州府，提升后续补给和防务。"
         case .trainMilitia:
-            return "把地方守备排入募兵队列。"
+            return "整训地方守备，稳定不稳州府并排入募兵队列。"
         case .firearmReform:
             return "优先修整火器、炮队和攻城器械。"
         case .redCannonMaintenance:

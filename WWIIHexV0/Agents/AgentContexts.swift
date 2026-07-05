@@ -207,8 +207,10 @@ enum CourtPolicyFocus: String, Codable, Equatable, CaseIterable, Identifiable {
             return "政策"
         case .agrarianReform:
             return "经济/科技"
-        case .fortify, .trainMilitia:
+        case .fortify:
             return "军事"
+        case .trainMilitia:
+            return "政策/军事"
         case .firearmReform:
             return "科技"
         case .redCannonMaintenance:
@@ -231,7 +233,7 @@ enum CourtPolicyFocus: String, Codable, Equatable, CaseIterable, Identifiable {
         case .fortify:
             return "提高城关承压能力，稳住要冲。"
         case .trainMilitia:
-            return "补地方守备，减少野战主力牵制。"
+            return "补地方守备，压低民变并减少野战主力牵制。"
         case .firearmReform:
             return "提升火器与炮队价值，改善攻守质量。"
         case .redCannonMaintenance:

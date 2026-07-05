@@ -940,6 +940,29 @@ final class RuleEngineCoreTests: XCTestCase {
         XCTAssertTrue(result.state.eventLog.last?.message.contains("乡绅归附") == true)
     }
 
+    func testTrainMilitiaCourtProjectStabilizesLocalSecurity() {
+        let state = Self.mingLocalGentryState()
+        let result = RuleEngine().execute(.enactCourtProject(kind: .trainMilitia), in: state)
+        let region = result.state.map.region(id: "region_weihui_gentry")
+        let ledger = result.state.economyState.ledger(for: .ming)
+        let order = ledger.productionQueue.first
+
+        XCTAssertTrue(result.succeeded)
+        XCTAssertTrue(CourtProjectKind.trainMilitia.domains.contains(.policy))
+        XCTAssertTrue(CourtProjectKind.trainMilitia.domains.contains(.military))
+        XCTAssertEqual(region?.controller, .ming)
+        XCTAssertEqual(region?.owner, .localNeutral)
+        XCTAssertEqual(region?.occupationState?.resistance, 36)
+        XCTAssertEqual(region?.occupationState?.compliance, 38)
+        XCTAssertEqual(ledger.stockpile.manpower, 5)
+        XCTAssertEqual(ledger.stockpile.industry, 55)
+        XCTAssertEqual(ledger.stockpile.supplies, 48)
+        XCTAssertEqual(order?.kind, .infantryDivision)
+        XCTAssertEqual(order?.remainingTurns, 1)
+        XCTAssertTrue(result.state.eventLog.last?.message.contains("整训团练") == true)
+        XCTAssertTrue(result.state.eventLog.last?.message.contains("地方驻防") == true)
+    }
+
     func testLowAgrarianBaseInfluencesCourtFocus() {
         let state = Self.mingAgrarianState()
 

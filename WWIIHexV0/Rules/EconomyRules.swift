@@ -253,6 +253,7 @@ struct EconomyRules {
             let affected = fortifyControlledRegions(faction: faction, limit: 2, state: &state)
             return affected.isEmpty ? "未找到可修城州府" : "\(affected.joined(separator: "、")) 城防和粮道提升"
         case .trainMilitia:
+            let secured = secureMilitiaRegions(faction: faction, limit: 2, state: &state)
             let order = ProductionOrder(
                 id: productionOrderId(kind: .infantryDivision, faction: faction, turn: state.turn, index: ledger.productionQueue.count),
                 faction: faction,
@@ -262,7 +263,8 @@ struct EconomyRules {
                 createdTurn: state.turn
             )
             ledger.productionQueue.append(order)
-            return "地方守备排入队列，1 回合后可部署"
+            let securityText = secured.isEmpty ? "" : "，\(secured.joined(separator: "、")) 地方驻防，民变下降、行政稍定"
+            return "地方守备排入队列，1 回合后可部署\(securityText)"
         case .firearmReform:
             let restored = restoreFireSupportUnits(faction: faction, limit: 3, state: &state)
             if restored > 0 {
@@ -376,6 +378,48 @@ struct EconomyRules {
             names.append(current.name)
         }
         return names
+    }
+
+    private func secureMilitiaRegions(
+        faction: Faction,
+        limit: Int,
+        state: inout GameState
+    ) -> [String] {
+        let regions = controlledRegions(for: faction, in: state)
+            .filter { region in
+                let occupation = region.occupationState ?? .stable
+                return occupation.resistance >= 15 || occupation.compliance < 70
+            }
+            .sorted {
+                let lhsScore = militiaSecurityScore(for: $0)
+                let rhsScore = militiaSecurityScore(for: $1)
+                if lhsScore != rhsScore {
+                    return lhsScore > rhsScore
+                }
+                return $0.id.rawValue < $1.id.rawValue
+            }
+            .prefix(limit)
+
+        var names: [String] = []
+        for region in regions {
+            guard var current = state.map.regions[region.id] else {
+                continue
+            }
+            let occupation = current.occupationState ?? .stable
+            current.occupationState = OccupationState(
+                resistance: occupation.resistance - 6,
+                compliance: occupation.compliance + 3
+            )
+            state.map.regions[region.id] = current
+            names.append(current.name)
+        }
+        return names
+    }
+
+    private func militiaSecurityScore(for region: RegionNode) -> Int {
+        let occupation = region.occupationState ?? .stable
+        let localBonus = region.owner == .localNeutral ? 20 : 0
+        return localBonus + occupation.resistance + max(0, 70 - occupation.compliance)
     }
 
     private func pacificationScore(for region: RegionNode, faction: Faction) -> Int {
