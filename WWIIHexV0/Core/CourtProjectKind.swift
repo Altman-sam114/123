@@ -58,6 +58,7 @@ enum CourtProjectKind: String, Codable, Equatable, CaseIterable, Identifiable {
     case fortify
     case trainMilitia
     case firearmReform
+    case redCannonMaintenance
     case grainTransport
 
     var id: String {
@@ -80,6 +81,8 @@ enum CourtProjectKind: String, Codable, Equatable, CaseIterable, Identifiable {
             return "整训团练"
         case .firearmReform:
             return "火器整备"
+        case .redCannonMaintenance:
+            return "红衣炮维护"
         case .grainTransport:
             return "粮台转运"
         }
@@ -108,6 +111,8 @@ enum CourtProjectKind: String, Codable, Equatable, CaseIterable, Identifiable {
             return [.military]
         case .firearmReform:
             return [.technology]
+        case .redCannonMaintenance:
+            return [.technology, .military]
         case .grainTransport:
             return [.economy, .military]
         }
@@ -129,6 +134,8 @@ enum CourtProjectKind: String, Codable, Equatable, CaseIterable, Identifiable {
             return "把地方守备排入募兵队列。"
         case .firearmReform:
             return "优先修整火器、炮队和攻城器械。"
+        case .redCannonMaintenance:
+            return "校修红衣炮与攻城炮队，恢复守城和攻城火力。"
         case .grainTransport:
             return "补粮并优先缓解缺粮部队。"
         }
@@ -150,6 +157,8 @@ enum CourtProjectKind: String, Codable, Equatable, CaseIterable, Identifiable {
             return "成军较慢，野战上限有限。"
         case .firearmReform:
             return "军械维护挤占银两。"
+        case .redCannonMaintenance:
+            return "耗银耗粮，见效依赖现有炮队或军械工坊。"
         case .grainTransport:
             return "银两转为粮草，其他项目延后。"
         }
@@ -171,6 +180,8 @@ enum CourtProjectKind: String, Codable, Equatable, CaseIterable, Identifiable {
             return "person.3"
         case .firearmReform:
             return "scope"
+        case .redCannonMaintenance:
+            return "wrench.and.screwdriver"
         case .grainTransport:
             return "shippingbox"
         }
@@ -192,6 +203,8 @@ enum CourtProjectKind: String, Codable, Equatable, CaseIterable, Identifiable {
             return EconomyResources(manpower: 45, industry: 25, supplies: 12)
         case .firearmReform:
             return EconomyResources(manpower: 25, industry: 60, supplies: 18)
+        case .redCannonMaintenance:
+            return EconomyResources(manpower: 12, industry: 55, supplies: 24)
         case .grainTransport:
             return EconomyResources(manpower: 0, industry: 35, supplies: 0)
         }
@@ -209,6 +222,8 @@ enum CourtProjectKind: String, Codable, Equatable, CaseIterable, Identifiable {
              .fortify,
              .trainMilitia,
              .firearmReform:
+            return .zero
+        case .redCannonMaintenance:
             return .zero
         }
     }

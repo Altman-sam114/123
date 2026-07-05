@@ -167,6 +167,7 @@ enum CourtPolicyFocus: String, Codable, Equatable, CaseIterable, Identifiable {
     case fortify
     case trainMilitia
     case firearmReform
+    case redCannonMaintenance
     case grainTransport
 
     var id: String {
@@ -189,6 +190,8 @@ enum CourtPolicyFocus: String, Codable, Equatable, CaseIterable, Identifiable {
             return "整训团练"
         case .firearmReform:
             return "火器整备"
+        case .redCannonMaintenance:
+            return "红衣炮维护"
         case .grainTransport:
             return "粮台转运"
         }
@@ -208,6 +211,8 @@ enum CourtPolicyFocus: String, Codable, Equatable, CaseIterable, Identifiable {
             return "军事"
         case .firearmReform:
             return "科技"
+        case .redCannonMaintenance:
+            return "科技/军事"
         case .grainTransport:
             return "经济/军事"
         }
@@ -229,6 +234,8 @@ enum CourtPolicyFocus: String, Codable, Equatable, CaseIterable, Identifiable {
             return "补地方守备，减少野战主力牵制。"
         case .firearmReform:
             return "提升火器与炮队价值，改善攻守质量。"
+        case .redCannonMaintenance:
+            return "校修红衣炮和攻城炮队，稳住城关火力。"
         case .grainTransport:
             return "优先保障粮道，缓解缺粮和被围风险。"
         }
@@ -250,6 +257,8 @@ enum CourtPolicyFocus: String, Codable, Equatable, CaseIterable, Identifiable {
             return "守备提升有限，野战仍依赖主力。"
         case .firearmReform:
             return "维护成本上升，见效依赖军械供给。"
+        case .redCannonMaintenance:
+            return "耗银耗粮，必须依托现有炮队或军械工坊。"
         case .grainTransport:
             return "后方资源向前线倾斜，其他方向可能缺口扩大。"
         }
@@ -271,6 +280,8 @@ enum CourtPolicyFocus: String, Codable, Equatable, CaseIterable, Identifiable {
             return "person.3"
         case .firearmReform:
             return "scope"
+        case .redCannonMaintenance:
+            return "wrench.and.screwdriver"
         case .grainTransport:
             return "shippingbox"
         }
@@ -314,6 +325,9 @@ struct CourtStrategySummary: Codable, Equatable {
         let lowSupplyCount = friendlyDivisions.filter { $0.supplyState == .lowSupply }.count
         let encircledCount = friendlyDivisions.filter { $0.supplyState == .encircled }.count
         let fireSupportCount = friendlyDivisions.filter { $0.hasFireSupport || $0.isSiegeCapable }.count
+        let damagedSiegeGunCount = friendlyDivisions.filter {
+            $0.isSiegeCapable && $0.strength < $0.maxStrength
+        }.count
         let activeFrontZones = state.warDeploymentState.frontZones.values
             .filter { $0.faction == faction && !$0.frontSegments.isEmpty }
         let averagePressure = activeFrontZones.isEmpty
@@ -355,6 +369,7 @@ struct CourtStrategySummary: Codable, Equatable {
                     localPacificationNeed(for: faction, state: state) * 28
             )
         let trainingPressure = clamp(max(25, 55 - min(policyPressure, militaryPressure)))
+        let redCannonPressure = clamp(damagedSiegeGunCount * 36 + activeFrontZones.count * 4)
         let campaignPressure = campaignPolicyPressure(from: state)
 
         let ranked = [
@@ -365,6 +380,7 @@ struct CourtStrategySummary: Codable, Equatable {
             (.fortify, clamp(militaryPressure + campaignPressure.fortify)),
             (.raiseTax, clamp(economyPressure + campaignPressure.raiseTax)),
             (.firearmReform, clamp(technologyPressure + campaignPressure.firearmReform)),
+            (.redCannonMaintenance, clamp(redCannonPressure + campaignPressure.redCannonMaintenance)),
             (.trainMilitia, trainingPressure)
         ]
         .sorted {
@@ -468,6 +484,8 @@ struct CourtStrategySummary: Codable, Equatable {
             return "局势暂可维持，适合补地方守备与预备力量。"
         case .firearmReform:
             return "火器/炮队支撑不足，需补军械质量。"
+        case .redCannonMaintenance:
+            return "红衣炮和攻城炮队受损，需先校修火力支点。"
         case .grainTransport:
             return "粮草缺口 \(economy.grainShortfall)，缺粮 \(lowSupplyCount)，被围 \(encircledCount)，需优先保粮道。"
         }
@@ -504,6 +522,7 @@ struct CourtStrategySummary: Codable, Equatable {
         var fortify: Int = 0
         var raiseTax: Int = 0
         var firearmReform: Int = 0
+        var redCannonMaintenance: Int = 0
         var rationale: String = ""
 
         var hasSignal: Bool {
@@ -513,7 +532,8 @@ struct CourtStrategySummary: Codable, Equatable {
                 agrarianReform > 0 ||
                 fortify > 0 ||
                 raiseTax > 0 ||
-                firearmReform > 0
+                firearmReform > 0 ||
+                redCannonMaintenance > 0
         }
     }
 
@@ -531,6 +551,7 @@ struct CourtStrategySummary: Codable, Equatable {
             pressure.fortify += 42
             pressure.grainTransport += 24
             pressure.firearmReform += 18
+            pressure.redCannonMaintenance += 20
             reasons.append("破关入京线已动")
         }
 
@@ -559,6 +580,7 @@ struct CourtStrategySummary: Codable, Equatable {
            !mingTrack.isSatisfied {
             pressure.fortify += 36
             pressure.firearmReform += 16
+            pressure.redCannonMaintenance += 16
             reasons.append("终局名分线未稳")
         }
 

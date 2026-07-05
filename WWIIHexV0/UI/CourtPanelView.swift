@@ -526,6 +526,8 @@ private extension CourtProjectKind {
             self = .trainMilitia
         case .firearmReform:
             self = .firearmReform
+        case .redCannonMaintenance:
+            self = .redCannonMaintenance
         case .grainTransport:
             self = .grainTransport
         }

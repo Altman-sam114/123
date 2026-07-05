@@ -278,6 +278,21 @@ struct EconomyRules {
             )
             ledger.productionQueue.append(order)
             return "军械工坊转入造炮队，1 回合后可部署"
+        case .redCannonMaintenance:
+            let maintained = maintainRedCannonUnits(faction: faction, limit: 2, state: &state)
+            if !maintained.isEmpty {
+                return "\(maintained.joined(separator: "、")) 红衣炮队校修，守城/攻城火力恢复"
+            }
+            let order = ProductionOrder(
+                id: productionOrderId(kind: .artilleryDivision, faction: faction, turn: state.turn, index: ledger.productionQueue.count),
+                faction: faction,
+                kind: .artilleryDivision,
+                remainingTurns: 1,
+                totalTurns: 1,
+                createdTurn: state.turn
+            )
+            ledger.productionQueue.append(order)
+            return "军械工坊校铸红衣炮，1 回合后可部署"
         case .grainTransport:
             let supplied = restoreLowSupplyUnits(faction: faction, limit: 3, state: &state)
             let supplyText = supplied > 0 ? "，\(supplied) 支缺粮部队恢复有粮" : ""
@@ -479,6 +494,43 @@ struct EconomyRules {
             restored += 1
         }
         return restored
+    }
+
+    private func maintainRedCannonUnits(
+        faction: Faction,
+        limit: Int,
+        state: inout GameState
+    ) -> [String] {
+        let candidateIds = state.divisions
+            .filter {
+                $0.faction == faction &&
+                    $0.isSiegeCapable &&
+                    $0.strength < $0.maxStrength &&
+                    !$0.isDestroyed
+            }
+            .sorted {
+                let lhsMissing = $0.maxStrength - $0.strength
+                let rhsMissing = $1.maxStrength - $1.strength
+                if lhsMissing != rhsMissing {
+                    return lhsMissing > rhsMissing
+                }
+                return $0.id < $1.id
+            }
+            .prefix(limit)
+            .map(\.id)
+
+        var maintained: [String] = []
+        for divisionId in candidateIds {
+            guard let index = state.divisionIndex(id: divisionId) else {
+                continue
+            }
+            let before = state.divisions[index].strength
+            state.divisions[index].reinforceStrength(2)
+            if state.divisions[index].strength > before {
+                maintained.append(state.divisions[index].name)
+            }
+        }
+        return maintained
     }
 
     private func restoreLowSupplyUnits(

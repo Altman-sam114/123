@@ -974,6 +974,35 @@ final class RuleEngineCoreTests: XCTestCase {
         XCTAssertTrue(result.state.eventLog.last?.message.contains("屯田水利兴修") == true)
     }
 
+    func testDamagedRedCannonsInfluenceCourtFocus() {
+        let state = Self.mingRedCannonState()
+
+        let summary = CourtStrategySummary.from(faction: .ming, state: state)
+
+        XCTAssertEqual(summary.recommendedFocus, .redCannonMaintenance)
+        XCTAssertTrue(summary.rationale.contains("红衣炮"))
+        XCTAssertEqual(CourtProjectKind.redCannonMaintenance.displayName, "红衣炮维护")
+        XCTAssertTrue(CourtProjectKind.redCannonMaintenance.domains.contains(.technology))
+        XCTAssertTrue(CourtProjectKind.redCannonMaintenance.domains.contains(.military))
+    }
+
+    func testRedCannonMaintenanceRestoresDamagedSiegeUnits() {
+        let state = Self.mingRedCannonState()
+        let result = RuleEngine().execute(.enactCourtProject(kind: .redCannonMaintenance), in: state)
+        let shanhaiGun = result.state.division(id: "ming_red_cannon_shanhai")
+        let beijingGun = result.state.division(id: "ming_red_cannon_beijing")
+        let stockpile = result.state.economyState.ledger(for: .ming).stockpile
+
+        XCTAssertTrue(result.succeeded)
+        XCTAssertEqual(shanhaiGun?.strength, 7)
+        XCTAssertEqual(beijingGun?.strength, 9)
+        XCTAssertEqual(stockpile.manpower, 88)
+        XCTAssertEqual(stockpile.industry, 65)
+        XCTAssertEqual(stockpile.supplies, 66)
+        XCTAssertTrue(result.state.eventLog.last?.message.contains("红衣炮维护") == true)
+        XCTAssertTrue(result.state.eventLog.last?.message.contains("红衣炮队校修") == true)
+    }
+
     func testMingBattleObjectiveSummaryShowsCurrentTaskChain() {
         let state = Self.mingVictoryState(objectiveControllers: [:])
 
@@ -1344,6 +1373,48 @@ final class RuleEngineCoreTests: XCTestCase {
             selectedUnitSummary: nil,
             eventLog: []
         )
+    }
+
+    private static func mingRedCannonState() -> GameState {
+        var shanhaiGun = Self.division(
+            id: "ming_red_cannon_shanhai",
+            faction: .ming,
+            coord: HexCoord(q: 0, r: 0),
+            hp: 5
+        )
+        shanhaiGun.name = "山海关红衣炮队"
+        shanhaiGun.components = [
+            DivisionComponent(type: .artillery, weight: 0.55),
+            DivisionComponent(type: .siegeEngine, weight: 0.30),
+            DivisionComponent(type: .infantry, weight: 0.15)
+        ]
+
+        var beijingGun = Self.division(
+            id: "ming_red_cannon_beijing",
+            faction: .ming,
+            coord: HexCoord(q: 1, r: 0),
+            hp: 7
+        )
+        beijingGun.name = "京营攻城炮队"
+        beijingGun.components = [
+            DivisionComponent(type: .artillery, weight: 0.50),
+            DivisionComponent(type: .siegeEngine, weight: 0.25),
+            DivisionComponent(type: .firearm, weight: 0.25)
+        ]
+
+        var state = Self.mingVictoryState(
+            objectiveControllers: [:],
+            divisions: [shanhaiGun, beijingGun]
+        )
+        var economyState = EconomyState()
+        economyState.updateLedger(
+            FactionEconomyLedger(
+                faction: .ming,
+                stockpile: EconomyResources(manpower: 100, industry: 120, supplies: 90)
+            )
+        )
+        state.economyState = economyState
+        return state
     }
 
     private static let mingVictoryConditions: [VictoryConditionDefinition] = [
