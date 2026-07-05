@@ -92,6 +92,8 @@ private struct EventLogSummaryGrid: View {
 
     var body: some View {
         LazyVGrid(columns: columns, alignment: .leading, spacing: MingDesignTokens.compactSpacing) {
+            EventLogMetricChip(title: "急务", value: summary.campaignTaskCount, systemImage: "exclamationmark.triangle", tint: MingDesignTokens.cinnabar)
+            EventLogMetricChip(title: "战役", value: summary.campaignCueCount, systemImage: "scroll", tint: MingDesignTokens.imperialGold)
             EventLogMetricChip(title: "战事", value: summary.battleCount, systemImage: "flame", tint: MingDesignTokens.cinnabar)
             EventLogMetricChip(title: "粮草", value: summary.supplyCount, systemImage: "shippingbox", tint: MingDesignTokens.jade)
             EventLogMetricChip(title: "州府", value: summary.territoryCount, systemImage: "building.columns", tint: MingDesignTokens.imperialGold)
@@ -201,12 +203,23 @@ private struct LogDisplayEntry: Identifiable {
         guard let relatedRecordId = entry.relatedRecordId else {
             return nil
         }
+        if relatedRecordId.hasPrefix("battle-task-") {
+            return "本旬急务"
+        }
+        if relatedRecordId.hasPrefix("battle-cue-") {
+            return "战役提示"
+        }
+        if relatedRecordId.hasPrefix("objective-control-") {
+            return "目标换手"
+        }
         return "回执 \(relatedRecordId)"
     }
 }
 
 private struct EventLogSummary {
     let totalCount: Int
+    let campaignTaskCount: Int
+    let campaignCueCount: Int
     let battleCount: Int
     let supplyCount: Int
     let territoryCount: Int
@@ -215,6 +228,8 @@ private struct EventLogSummary {
 
     init(entries: [LogDisplayEntry]) {
         self.totalCount = entries.count
+        self.campaignTaskCount = entries.filter { $0.category == .campaignTask }.count
+        self.campaignCueCount = entries.filter { $0.category == .campaignCue }.count
         self.battleCount = entries.filter { $0.category.isBattleReport }.count
         self.supplyCount = entries.filter { $0.category == .supply }.count
         self.territoryCount = entries.filter { $0.category.isTerritoryReport }.count
@@ -236,6 +251,12 @@ private struct EventLogSummary {
         if totalCount == 0 {
             return "候报"
         }
+        if campaignTaskCount > 0 {
+            return "有急务"
+        }
+        if campaignCueCount > 0 {
+            return "战役"
+        }
         if battleCount > 0 {
             return "有军情"
         }
@@ -252,6 +273,12 @@ private struct EventLogSummary {
     }
 
     var statusImageName: String {
+        if campaignTaskCount > 0 {
+            return "exclamationmark.triangle"
+        }
+        if campaignCueCount > 0 {
+            return "scroll"
+        }
         if battleCount > 0 {
             return "exclamationmark.triangle"
         }
@@ -268,6 +295,12 @@ private struct EventLogSummary {
     }
 
     var statusTint: Color {
+        if campaignTaskCount > 0 {
+            return MingDesignTokens.cinnabar
+        }
+        if campaignCueCount > 0 {
+            return MingDesignTokens.imperialGold
+        }
         if battleCount > 0 {
             return MingDesignTokens.cinnabar
         }
@@ -285,6 +318,8 @@ private struct EventLogSummary {
 }
 
 private enum LogDisplayCategory {
+    case campaignTask
+    case campaignCue
     case combat
     case retreat
     case reinforcement
@@ -297,6 +332,17 @@ private enum LogDisplayCategory {
     case event
 
     init(entry: GameLogEntry) {
+        if let relatedRecordId = entry.relatedRecordId {
+            if relatedRecordId.hasPrefix("battle-task-") {
+                self = .campaignTask
+                return
+            }
+            if relatedRecordId.hasPrefix("battle-cue-") {
+                self = .campaignCue
+                return
+            }
+        }
+
         switch entry.category {
         case .combat:
             self = .combat
@@ -349,6 +395,10 @@ private enum LogDisplayCategory {
 
     var displayName: String {
         switch self {
+        case .campaignTask:
+            return "急务"
+        case .campaignCue:
+            return "战役"
         case .combat:
             return "战斗"
         case .retreat:
@@ -374,6 +424,10 @@ private enum LogDisplayCategory {
 
     var foregroundStyle: Color {
         switch self {
+        case .campaignTask:
+            return MingDesignTokens.cinnabar
+        case .campaignCue:
+            return MingDesignTokens.imperialGold
         case .combat:
             return MingDesignTokens.cinnabar
         case .retreat:
@@ -403,6 +457,10 @@ private enum LogDisplayCategory {
 
     var systemImageName: String {
         switch self {
+        case .campaignTask:
+            return "exclamationmark.triangle"
+        case .campaignCue:
+            return "scroll"
         case .combat:
             return "flame"
         case .retreat:
@@ -430,7 +488,7 @@ private enum LogDisplayCategory {
         switch self {
         case .combat, .retreat, .reinforcement, .encirclement:
             return true
-        case .supply, .frontChange, .theaterChange, .regionOwnerChange, .diplomacy, .event:
+        case .campaignTask, .campaignCue, .supply, .frontChange, .theaterChange, .regionOwnerChange, .diplomacy, .event:
             return false
         }
     }
@@ -439,7 +497,7 @@ private enum LogDisplayCategory {
         switch self {
         case .frontChange, .theaterChange, .regionOwnerChange:
             return true
-        case .combat, .retreat, .reinforcement, .encirclement, .supply, .diplomacy, .event:
+        case .campaignTask, .campaignCue, .combat, .retreat, .reinforcement, .encirclement, .supply, .diplomacy, .event:
             return false
         }
     }
