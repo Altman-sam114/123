@@ -129,6 +129,23 @@ struct BattleObjectiveSummary: Equatable {
         let kind: Kind
         let title: String
         let detail: String
+
+        var eventMessage: String {
+            "\(kind.displayName) · \(title)：\(detail)"
+        }
+
+        var eventCategory: GameLogCategory {
+            switch kind {
+            case .economy:
+                return .supply
+            case .military:
+                return .frontChange
+            case .agent,
+                 .history,
+                 .policy:
+                return .event
+            }
+        }
     }
 
     let title: String

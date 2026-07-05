@@ -792,6 +792,22 @@ final class RuleEngineCoreTests: XCTestCase {
         XCTAssertEqual(summary.cues.first?.kind, .economy)
     }
 
+    func testMingEndTurnRecordsBattleCuesAsReports() {
+        let state = Self.mingVictoryState(objectiveControllers: [:])
+
+        let result = RuleEngine().execute(.endTurn, in: state)
+
+        XCTAssertTrue(result.succeeded)
+        XCTAssertTrue(result.state.eventLog.contains {
+            $0.relatedRecordId == "battle-cue-1-ming-songjin_aftershock"
+                && $0.message.contains("松锦余波")
+        })
+        XCTAssertTrue(result.state.eventLog.contains {
+            $0.relatedRecordId == "battle-cue-1-ming-chongzhen_revenue_pressure"
+                && $0.message.contains("催饷与安民")
+        })
+    }
+
     func testInvalidCommandDoesNotModifyGameState() {
         let state = Self.testState(
             activeFaction: .allies,

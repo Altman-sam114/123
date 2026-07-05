@@ -175,6 +175,7 @@ struct CommandExecutor {
         supplyRules.advanceRetreats(in: &state)
         supplyRules.applyEncirclementAttrition(in: &state)
         victoryRules.updateVictoryState(in: &state)
+        appendBattleCueEvents(in: &state)
 
         let turnOrder = state.resolvedTurnOrder
         if let currentIndex = turnOrder.firstIndex(of: state.activeFaction), !turnOrder.isEmpty {
@@ -194,6 +195,26 @@ struct CommandExecutor {
         resetActionsForActiveFaction(in: &state)
         state = StrategicStateBootstrapper().refreshRuntimeState(state)
         state.appendEvent("Turn advanced to \(state.turn), \(state.activeFaction.displayName) active.")
+    }
+
+    private func appendBattleCueEvents(in state: inout GameState) {
+        let summary = BattleObjectiveSummary.from(state: state)
+        guard summary.isMingScenario else {
+            return
+        }
+
+        for cue in summary.cues {
+            let recordId = "battle-cue-\(state.turn)-\(state.activeFaction.rawValue)-\(cue.id)"
+            guard !state.eventLog.contains(where: { $0.relatedRecordId == recordId }) else {
+                continue
+            }
+
+            state.appendEvent(
+                cue.eventMessage,
+                category: cue.eventCategory,
+                relatedRecordId: recordId
+            )
+        }
     }
 
     private func resetActionsForActiveFaction(in state: inout GameState) {
