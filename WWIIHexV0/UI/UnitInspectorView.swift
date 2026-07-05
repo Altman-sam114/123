@@ -27,6 +27,7 @@ struct UnitInspectorView: View {
         VStack(alignment: .leading, spacing: 8) {
             UnitCommandHeader(division: division, playerFaction: playerFaction)
             UnitReadinessSection(division: division)
+            UnitWarReadinessSection(division: division)
             UnitStatsGrid(stats: division.effectiveStats)
             UnitComponentSection(components: division.components)
             if let strategicState {
@@ -148,6 +149,70 @@ private struct UnitStatusChip: View {
         .padding(.vertical, 6)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(MingDesignTokens.panelBackground.opacity(0.52), in: RoundedRectangle(cornerRadius: 6))
+    }
+}
+
+private struct UnitWarReadinessSection: View {
+    let division: Division
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: MingDesignTokens.compactSpacing) {
+            HStack(spacing: 6) {
+                Label("军令战备", systemImage: "list.bullet.rectangle")
+                    .font(.caption.bold())
+                    .foregroundStyle(division.readinessTint)
+                Spacer(minLength: 8)
+                Text(division.warReadinessStateText)
+                    .font(.caption)
+                    .foregroundStyle(division.readinessTint)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.78)
+            }
+
+            Text(division.warReadinessBrief)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+
+            LazyVGrid(columns: [GridItem(.adaptive(minimum: 82), spacing: 6)], alignment: .leading, spacing: 6) {
+                ForEach(division.warReadinessSignals, id: \.title) { signal in
+                    UnitWarSignalTile(signal: signal)
+                }
+            }
+        }
+        .padding(MingDesignTokens.compactSpacing)
+        .background(MingDesignTokens.sectionBackground)
+        .clipShape(RoundedRectangle(cornerRadius: MingDesignTokens.cornerRadius))
+        .accessibilityElement(children: .combine)
+    }
+}
+
+private struct UnitWarSignalTile: View {
+    let signal: UnitWarReadinessSignal
+
+    var body: some View {
+        HStack(spacing: 5) {
+            Image(systemName: signal.systemImage)
+                .font(.caption2)
+                .foregroundStyle(signal.tint)
+                .frame(width: 13)
+
+            VStack(alignment: .leading, spacing: 1) {
+                Text(signal.title)
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+                Text(signal.value)
+                    .font(.caption.bold())
+                    .foregroundStyle(signal.tint)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.78)
+            }
+        }
+        .padding(7)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(MingDesignTokens.panelBackground.opacity(0.52), in: RoundedRectangle(cornerRadius: 6))
+        .accessibilityElement(children: .combine)
     }
 }
 
@@ -288,6 +353,13 @@ private struct UnitPositionRow: View {
     }
 }
 
+private struct UnitWarReadinessSignal {
+    let title: String
+    let value: String
+    let systemImage: String
+    let tint: Color
+}
+
 private extension Division {
     var inspectorStrengthText: String {
         "\(strength) / \(maxStrength)"
@@ -370,6 +442,120 @@ private extension Division {
             return MingDesignTokens.cinnabar
         }
         if strengthRatio < 0.7 {
+            return MingDesignTokens.imperialGold
+        }
+        return MingDesignTokens.jade
+    }
+
+    var warReadinessStateText: String {
+        if isDestroyed {
+            return "溃散"
+        }
+        if isRetreating {
+            return "退守"
+        }
+        if supplyState == .encircled {
+            return "断粮"
+        }
+        if supplyState == .lowSupply {
+            return "缺粮"
+        }
+        if hasActed {
+            return "已行"
+        }
+        return "可调"
+    }
+
+    var warReadinessBrief: String {
+        if isDestroyed {
+            return "军伍已溃，当前只能作为战损塘报和复盘依据。"
+        }
+        if isRetreating {
+            let target = retreatTarget.map { "\($0.q),\($0.r)" } ?? "后方"
+            return "部队正在向 \(target) 退守，剩余 \(retreatTurnsRemaining) 旬；应先稳住粮道与兵力。"
+        }
+        if supplyState == .encircled {
+            return "粮道断绝，攻守行程已受压；宜先解围或补给再发重令。"
+        }
+        if supplyState == .lowSupply {
+            return "粮草偏紧，机动和攻势会受牵制；适合短促处置或就近补粮。"
+        }
+        if strengthRatio < 0.45 {
+            return "兵力折损过半，宜守要冲、等补员或并入稳固防区。"
+        }
+        if hasActed {
+            return "本旬军令已行，仍可作为战线态势和下旬筹划参考。"
+        }
+        return "军令尚可调度，可结合粮道、兵力和兵种定位决定进取或固守。"
+    }
+
+    var warReadinessSignals: [UnitWarReadinessSignal] {
+        [
+            UnitWarReadinessSignal(
+                title: "军令",
+                value: canAct ? "可调" : warReadinessStateText,
+                systemImage: canAct ? "checkmark.seal" : "clock",
+                tint: canAct ? MingDesignTokens.jade : readinessTint
+            ),
+            UnitWarReadinessSignal(
+                title: "粮道",
+                value: supplyState.displayName,
+                systemImage: supplyState.systemImageName,
+                tint: supplyState.tint
+            ),
+            UnitWarReadinessSignal(
+                title: "战力",
+                value: warStrengthBandText,
+                systemImage: "gauge.with.dots.needle.67percent",
+                tint: warStrengthTint
+            ),
+            UnitWarReadinessSignal(
+                title: "用兵",
+                value: warRoleShortText,
+                systemImage: commandSystemImageName,
+                tint: roleTint
+            )
+        ]
+    }
+
+    var warStrengthBandText: String {
+        if strengthRatio >= 0.75 {
+            return "充足"
+        }
+        if strengthRatio >= 0.45 {
+            return "半损"
+        }
+        return "危急"
+    }
+
+    var warStrengthTint: Color {
+        if strengthRatio >= 0.75 {
+            return MingDesignTokens.jade
+        }
+        if strengthRatio >= 0.45 {
+            return MingDesignTokens.imperialGold
+        }
+        return MingDesignTokens.cinnabar
+    }
+
+    var warRoleShortText: String {
+        if isSiegeCapable {
+            return "攻城"
+        }
+        if hasFireSupport {
+            return "火器"
+        }
+        if isArmor || isMobileUnit {
+            return "机动"
+        }
+        return "守线"
+    }
+
+    var roleTint: Color {
+        if isSiegeCapable || hasFireSupport {
+            return MingDesignTokens.porcelainBlue
+        }
+        if isArmor || isMobileUnit {
             return MingDesignTokens.imperialGold
         }
         return MingDesignTokens.jade
@@ -464,6 +650,17 @@ private extension SupplyState {
             return MingDesignTokens.imperialGold
         case .encircled:
             return MingDesignTokens.cinnabar
+        }
+    }
+
+    var systemImageName: String {
+        switch self {
+        case .supplied:
+            return "leaf"
+        case .lowSupply:
+            return "exclamationmark.triangle"
+        case .encircled:
+            return "xmark.octagon"
         }
     }
 }

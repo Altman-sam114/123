@@ -111,7 +111,7 @@ WWIIHexV0/
 - v4.6 首片开始发布级 UI 收口：`MingDesignTokens` 统一明末面板色彩/圆角/间距；`CourtPanelView` 从 `RootGameView` 拆出并改为奏疏/印玺风格；军令、将领名帖、单位详情、单位浮窗、塘报战记、AI 决策、信息按钮和新局按钮继续中文化；`UnitNode` 不再绘制 NATO APP-6 兵牌，改为“城/旗/火/骑/步”和“守/退”中文军牌；地图空态标题改为“明末棋策舆图”。
 - v4.6 朝报令条首片继续 polish 顶部 HUD：`HUDView` 从普通指标 grid 升级为朝报令条，读取 `FactionEconomyLedger` 和只读 `CourtStrategySummary` 展示当前势力、回合、胜负、民力、银两、粮草、入账、营造队列和政策/经济/科技/军事四线压力；结束回合和新局按钮仍使用原回调，不直接改规则状态。
 - v4.6 府库牌首片继续 polish 钱粮界面：`EconomyPanelView` 从表格/按钮列表升级为府库牌，读取 `FactionEconomyLedger` 展示民力、银两、粮草库存、本回合入账、军粮维护、补员消耗、收支急报、净民力/银两/粮草、募兵筹粮和营造队列；生产按钮仍只调用 `onQueueProduction -> AppContainer.queueProduction -> Command.queueProduction`，不直接改经济账本。
-- v4.6 部队军情牌首片继续 polish 部队界面：`UnitInspectorView` 以军情牌展示选中部队，读取 `Division` 的兵力、补给、退守、行动、`effectiveStats` 和兵种组件，以及 `UnitInspectorStrategicState` 的州府、动态方面、防区、部署和前线归属；该片只影响 SwiftUI 展示，不改变战斗、补给、部署或命令规则。
+- v4.6 部队军情牌首片继续 polish 部队界面：`UnitInspectorView` 以军情牌展示选中部队，读取 `Division` 的兵力、补给、退守、行动、`effectiveStats` 和兵种组件，以及 `UnitInspectorStrategicState` 的州府、动态方面、防区、部署和前线归属；后续增强新增“军令战备”只读摘要，用现有 `Division.canAct`、粮草、兵力、退守、攻城/火器/机动定位派生可调/已行/断粮、粮道、战力和用兵提示；该片只影响 SwiftUI 展示，不改变战斗、补给、部署或命令规则。
 - v4.6 军令牌首片继续 polish 军事指令界面：`CommandPanelView` 从简单按钮列表升级为军令牌，展示当前势力/阶段、选中军情、兵力、粮草、退守、行动、固守/退守/补给处置和最近军令回执；固守、准许退守、就地补给和结束回合仍只调用 `RootGameView` 注入的 `AppContainer` 回调，不直接改 `GameState`。
 - v4.6 将领面板首片继续 polish 督师/总兵界面：`GeneralCommandPanelView` 升级为将印军令，展示防区、压力、战态、主将履历、忠诚、军心、干预、麾下军伍、目标和军令计划；`GeneralProfileView` 升级为将领名帖，展示印信、统兵风格、履历奏记、君臣关系、将略和麾下军伍；固守/进取仍只调用原回调，不直接改规则状态。
 - v4.6 军机复盘牌首片继续 polish AI 决策界面：`AgentPanelView` 从调试字段列表升级为军机复盘牌，展示最高意志、决策摘要、军机五线态势、战区指令、势力军略、命令回执、异常塘报和原始 JSON；它只读取 `AgentDecisionRecord`、`RulerDecisionRecord`、`WarDirectiveRecord`、`CampaignAISummary` 与 `ZoneCommanderDoctrine.profile(for:)`，不改变 AI、命令或规则执行链。

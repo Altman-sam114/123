@@ -1,4 +1,4 @@
-# WWIIHexV0 核心流程文档（明末迁移 v4.7 剧本胜利条件数据驱动、明末胜负链、战役目标面板、天下五线态势、朝廷五线态势、军机五线态势、本旬任务链/任务塘报、开封围城压力提示、AI doctrine、军机势力军略展示、目标定位舆图反馈、目标换手塘报与阶段战局链首片，v4.6 UI、朝廷项目、整训团练地方驻防、朝议争点、朝报令条、军令牌、将印军令/将领名帖、军机复盘牌、塘报战记、军情牌、州府牌归属旗号、府库收支急报、天下急势、地图标识、粮道线路/开关、军令计划线、势力旗号、舆图图例与四线项目分组首片）
+# WWIIHexV0 核心流程文档（明末迁移 v4.7 剧本胜利条件数据驱动、明末胜负链、战役目标面板、天下五线态势、朝廷五线态势、军机五线态势、本旬任务链/任务塘报、开封围城压力提示、AI doctrine、军机势力军略展示、目标定位舆图反馈、目标换手塘报与阶段战局链首片，v4.6 UI、朝廷项目、整训团练地方驻防、朝议争点、朝报令条、军令牌、将印军令/将领名帖、军机复盘牌、塘报战记、军情牌/军令战备、州府牌归属旗号、府库收支急报、天下急势、地图标识、粮道线路/开关、军令计划线、势力旗号、舆图图例与四线项目分组首片）
 
 > 本文是项目当前核心逻辑的接手文档。目标不是复述历史设计，而是按当前代码真实链路说明：数据如何进入游戏，hex / region / theater / front / deploy 如何派生，主游戏和地图编辑器如何共同维护同一套地图语义，AI / 玩家命令如何落到规则系统。
 
@@ -65,7 +65,7 @@ MapEditor / JSON 数据
 - v4.5 朝廷首片中，`CourtStrategySummary` 从钱粮、治理、补给、前线和火器/炮队状态派生政策、经济、科技、军事四线压力；Root 信息面板新增“朝廷”tab，AI 与元帅摘要可读取同一朝议建议。
 - v4.6 UI 首片中，`MingDesignTokens` 提供明末面板色彩/圆角/间距常量；`CourtPanelView` 已从 `RootGameView` 拆出并改为奏疏/印玺风格；主 UI、军令、将领名帖、单位、塘报战记、AI 面板继续中文化；`UnitNode` 地图军牌从 NATO 图形改为中文徽记和守/退状态。
 - v4.6 朝报令条首片中，`HUDView` 从普通指标 grid 升级为顶部朝报令条，展示当前势力、回合、胜负、民力、银两、粮草、入账、营造队列和政策/经济/科技/军事四线压力；该片只读 `GameState`、`FactionEconomyLedger` 和 `CourtStrategySummary`，结束回合/新局仍走原回调。
-- v4.6 部队军情牌首片中，`UnitInspectorView` 从字段列表升级为只读军情牌，展示军牌字、兵力条、粮草/退守/行动、攻守行程察指标、兵种编成条和驻防归属；该片只读 `Division` 与 `UnitInspectorStrategicState`，不改变战斗、补给、部署或命令规则。
+- v4.6 部队军情牌首片中，`UnitInspectorView` 从字段列表升级为只读军情牌，展示军牌字、兵力条、粮草/退守/行动、攻守行程察指标、兵种编成条和驻防归属；后续增强新增“军令战备”只读摘要，基于 `Division.canAct`、`supplyState`、`strengthRatio`、退守和部队编成派生可调/已行/断粮、粮道、战力和用兵定位；该片只读 `Division` 与 `UnitInspectorStrategicState`，不改变战斗、补给、部署或命令规则。
 - v4.6 军令牌首片中，`CommandPanelView` 从简单标题和按钮列升级为军令牌，展示当前势力/阶段、选中军情、兵力、粮草、退守、行动、固守/退守/补给处置和军令回执；固守、准许退守、就地补给和结束回合仍只调用 `RootGameView` 注入的原有回调，不直接修改 `GameState`。
 - v4.6 将领面板首片中，`GeneralCommandPanelView` 从简单将领列表升级为将印军令，展示防区、压力、战态、主将履历、忠诚、军心、干预、麾下军伍、目标和军令计划；`GeneralProfileView` 升级为将领名帖，展示印信、统兵风格、履历奏记、君臣关系、将略和麾下军伍。该片只读 `GeneralData`、`GeneralAssignment`、`FrontZone`、`Division` 与 `PlayerPlannedOperation`，固守/进取仍走原回调，不直接改规则状态。
 - v4.6 军机复盘牌首片中，`AgentPanelView` 从 LabeledContent 调试列表升级为只读军机复盘牌，展示决策摘要、最高意志、军机五线态势、战区指令、势力军略、命令回执、异常塘报和原始 JSON；该片只读 `AgentDecisionRecord`、`RulerDecisionRecord`、`WarDirectiveRecord`、`CampaignAISummary` 与 `ZoneCommanderDoctrine.profile(for:)`，不改变 `MarshalAgent`、`RulerAgent`、`WarCommandExecutor`、`Command` 或 `RuleEngine`。
@@ -2137,7 +2137,7 @@ RegionInspectorState
 - `GeneralProfileView` 以将领名帖展示 `GeneralData` 的印信、势力、官职、统兵风格、履历奏记、君臣关系、将略和麾下军伍；它只负责 SwiftUI 展示，不写入将领、部署或命令状态。
 - `AgentPanelView` 以军机复盘牌展示 AI 与军机记录，读取 `AgentDecisionRecord` 的主事、来源、意图、局势摘要、legacy command results、错误和 raw JSON；读取 `RulerDecisionRecord` 的最高意志、姿态、重心、目标、攻势阈、留营、天下判断和朱批理由；读取 `WarDirectiveRecord` 的战区、势力、军机、督师、战术、目标、指向、命令成功/驳回数量和 diagnostics；读取 `CampaignAISummary.from(state:)` 的五线压力、告急状态和当旬急务，作为“军机五线”只读复盘区；读取 `ZoneCommanderDoctrine.profile(for: directive.faction)` 的军略名、指挥风格、技能标签和势力战术偏向，作为每条战区指令下的“势力军略”解释。它只负责 SwiftUI 展示，不写入 `GameState`，也不改变 `MarshalAgent`、`RulerAgent`、`ZoneCommanderDoctrine`、`WarCommandExecutor`、`Command`、`CommandValidator` 或 `RuleEngine`。
 - `EventLogView` 以塘报战记展示最近 60 条 `GameLogEntry`，顶部用“报”印、候报/有军情/粮情/战局/天下状态和战事/粮草/州府/天下计数组织当前局势；每条塘报保留回合、势力、阶段、分类图标、正文和相关回执。它只负责 SwiftUI 展示，不改变 `GameLogEntry` schema、事件写入点、命令执行或任何规则权威。
-- `UnitInspectorView` 以军情牌展示选中部队，读取 `Division` 的兵力、补给、退守、行动、`effectiveStats` 和兵种组件，以及 `UnitInspectorStrategicState` 的坐标、州府、动态方面、防区、部署和前线归属；它只负责 SwiftUI 展示，不写入任何战术或战略状态。
+- `UnitInspectorView` 以军情牌展示选中部队，读取 `Division` 的兵力、补给、退守、行动、`effectiveStats` 和兵种组件，以及 `UnitInspectorStrategicState` 的坐标、州府、动态方面、防区、部署和前线归属；军令战备摘要也只从现有 `Division` 派生可调/已行/断粮、粮道、战力和用兵定位；它只负责 SwiftUI 展示，不写入任何战术或战略状态。
 - `RegionInspectorView` 以州府牌展示选中州府，读取 `RegionInspectorState` 的州府、治理、钱粮产出、控制方旗号、原属章、目标、友敌军、方面/防区和当前 hex 归属旗号；它只负责 SwiftUI 展示，不写入 hex、region、economy、front、deployment 或命令状态。
 - `EconomyPanelView` 以府库牌展示当前 active faction 的 `FactionEconomyLedger`，读取库存、入账、维护、补员、净收支、粮草/补员压力、生产成本和 `ProductionOrder` 进度；生产入口仍只调用 `onQueueProduction -> AppContainer.queueProduction -> Command.queueProduction`，不直接写入 `EconomyState`。
 - `DiplomacyPanelView` 的“天下急势”读取当前势力外交关系、主要对手、战意和朝议四线压力；诸方势力列表用势力旗号、主战标记、战意条和离散值增强中华世界局势可读性；战和关系列表用双方旗号、关系状态、张力条和起始回合展示当前冲突线；阵营名义用旗号、成员和当前阵营高亮展示，不改变外交状态、朝议压力、AI 决策或规则权威。
