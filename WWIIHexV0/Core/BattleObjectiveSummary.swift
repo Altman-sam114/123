@@ -784,6 +784,10 @@ struct BattleObjectiveSummary: Equatable {
             )
         ]
 
+        if let kaifengTask = kaifengReliefTask(dashunTrack: dashunTrack) {
+            tasks.insert(kaifengTask, at: 2)
+        }
+
         if state.turn >= max(1, state.maxTurns - 3) {
             tasks.insert(finalMandateTask(mingTrack: mingTrack), at: 0)
         }
@@ -805,6 +809,22 @@ struct BattleObjectiveSummary: Equatable {
             title: title,
             detail: detail,
             targetObjectiveId: target
+        )
+    }
+
+    private static func kaifengReliefTask(dashunTrack: Track?) -> CampaignTask? {
+        guard let kaifeng = dashunTrack?.targets.first(where: { $0.objectiveId == "obj_kaifeng" }),
+              kaifeng.controller == .dashun else {
+            return nil
+        }
+
+        return CampaignTask(
+            id: "relieve_kaifeng_pressure",
+            line: .military,
+            priority: .urgent,
+            title: "救援开封压力",
+            detail: "开封已落入大顺控制，中原粮链压力成形；先定位开封和周边粮道，组织救援或截断后续洛阳、西安连接。",
+            targetObjectiveId: "obj_kaifeng"
         )
     }
 
@@ -947,6 +967,18 @@ struct BattleObjectiveSummary: Equatable {
                     kind: .agent,
                     title: "军机复盘",
                     detail: "AI 回合已有督师指令和命令回执，可在军机面板查看诸方 Agent 的取舍。"
+                )
+            )
+        }
+
+        if let dashunTrack = tracks.first(where: { $0.id == .dashunCentralPlain }),
+           dashunTrack.targets.contains(where: { $0.objectiveId == "obj_kaifeng" && $0.controller == .dashun }) {
+            cues.append(
+                Cue(
+                    id: "kaifeng_siege_pressure",
+                    kind: .military,
+                    title: "开封围城压力",
+                    detail: "开封已落入大顺控制，河南粮链和京畿屏障同时承压；目标面板可直接定位开封组织救援。"
                 )
             )
         }

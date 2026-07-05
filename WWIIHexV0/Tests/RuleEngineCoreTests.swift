@@ -1076,6 +1076,27 @@ final class RuleEngineCoreTests: XCTestCase {
         XCTAssertTrue(economyTask?.detail.contains("大顺已取 2 / 3") == true)
     }
 
+    func testKaifengPressureAddsCueAndReliefTask() {
+        let state = Self.mingVictoryState(
+            objectiveControllers: [
+                "obj_kaifeng": .dashun
+            ],
+            turn: 3
+        )
+
+        let summary = BattleObjectiveSummary.from(state: state)
+        let kaifengTask = summary.tasks.first { $0.id == "relieve_kaifeng_pressure" }
+
+        XCTAssertTrue(summary.cues.contains {
+            $0.id == "kaifeng_siege_pressure"
+                && $0.title.contains("开封")
+                && $0.detail.contains("大顺")
+        })
+        XCTAssertEqual(kaifengTask?.priority, .urgent)
+        XCTAssertEqual(kaifengTask?.targetObjectiveId, "obj_kaifeng")
+        XCTAssertTrue(kaifengTask?.detail.contains("洛阳") == true)
+    }
+
     func testMingEndTurnRecordsBattleCuesAsReports() {
         let state = Self.mingVictoryState(objectiveControllers: [:])
 
@@ -1115,8 +1136,31 @@ final class RuleEngineCoreTests: XCTestCase {
                 && $0.relatedRecordId == "battle-task-1-ming-block_central_plain_grain_chain"
                 && $0.message.contains("截断河南秦陕粮链")
         })
+        XCTAssertTrue(result.state.eventLog.contains {
+            $0.category == .frontChange
+                && $0.relatedRecordId == "battle-task-1-ming-relieve_kaifeng_pressure"
+                && $0.message.contains("救援开封压力")
+        })
         XCTAssertFalse(result.state.eventLog.contains {
             $0.relatedRecordId == "battle-task-1-ming-ready_firearms_forts"
+        })
+    }
+
+    func testMingEndTurnRecordsKaifengPressureCue() {
+        let state = Self.mingVictoryState(
+            objectiveControllers: [
+                "obj_kaifeng": .dashun
+            ],
+            turn: 3
+        )
+
+        let result = RuleEngine().execute(.endTurn, in: state)
+
+        XCTAssertTrue(result.succeeded)
+        XCTAssertTrue(result.state.eventLog.contains {
+            $0.category == .frontChange
+                && $0.relatedRecordId == "battle-cue-3-ming-kaifeng_siege_pressure"
+                && $0.message.contains("开封围城压力")
         })
     }
 
