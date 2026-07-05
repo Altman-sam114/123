@@ -11,6 +11,7 @@ struct BattleObjectivePanelView: View {
 
             if summary.isMingScenario {
                 BattleObjectiveScoreboard(summary: summary)
+                BattleObjectiveCueBoard(cues: summary.cues)
 
                 VStack(alignment: .leading, spacing: MingDesignTokens.compactSpacing) {
                     Text("胜负线")
@@ -93,6 +94,78 @@ private struct BattleObjectiveHeader: View {
         }
         .padding(MingDesignTokens.compactSpacing)
         .background(MingDesignTokens.sectionBackground, in: RoundedRectangle(cornerRadius: MingDesignTokens.cornerRadius))
+    }
+}
+
+private struct BattleObjectiveCueBoard: View {
+    let cues: [BattleObjectiveSummary.Cue]
+
+    var body: some View {
+        if !cues.isEmpty {
+            VStack(alignment: .leading, spacing: MingDesignTokens.compactSpacing) {
+                Text("战役提示")
+                    .font(.subheadline.bold())
+                    .foregroundStyle(MingDesignTokens.ink)
+
+                ForEach(cues) { cue in
+                    BattleObjectiveCueRow(cue: cue)
+                }
+            }
+            .padding(MingDesignTokens.compactSpacing)
+            .background(MingDesignTokens.sectionBackground, in: RoundedRectangle(cornerRadius: MingDesignTokens.cornerRadius))
+        }
+    }
+}
+
+private struct BattleObjectiveCueRow: View {
+    let cue: BattleObjectiveSummary.Cue
+
+    var body: some View {
+        HStack(alignment: .top, spacing: 8) {
+            Label(cue.kind.displayName, systemImage: cue.kind.systemImage)
+                .font(.caption.bold())
+                .foregroundStyle(tint)
+                .labelStyle(.iconOnly)
+                .frame(width: 24, height: 24)
+                .background(tint.opacity(0.12), in: RoundedRectangle(cornerRadius: 6))
+                .accessibilityLabel(cue.kind.displayName)
+
+            VStack(alignment: .leading, spacing: 2) {
+                HStack(spacing: 6) {
+                    Text(cue.kind.displayName)
+                        .font(.caption.bold())
+                        .foregroundStyle(tint)
+                    Text(cue.title)
+                        .font(.caption.bold())
+                        .foregroundStyle(MingDesignTokens.ink)
+                        .lineLimit(1)
+                }
+
+                Text(cue.detail)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
+        .padding(.horizontal, 7)
+        .padding(.vertical, 7)
+        .background(MingDesignTokens.panelBackground.opacity(0.58), in: RoundedRectangle(cornerRadius: 6))
+        .accessibilityElement(children: .combine)
+    }
+
+    private var tint: Color {
+        switch cue.kind {
+        case .history:
+            return MingDesignTokens.cinnabar
+        case .policy:
+            return MingDesignTokens.porcelainBlue
+        case .economy:
+            return MingDesignTokens.jade
+        case .military:
+            return MingDesignTokens.imperialGold
+        case .agent:
+            return MingDesignTokens.ink
+        }
     }
 }
 

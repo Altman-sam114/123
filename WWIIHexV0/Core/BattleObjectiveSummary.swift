@@ -86,12 +86,58 @@ struct BattleObjectiveSummary: Equatable {
         }
     }
 
+    struct Cue: Equatable, Identifiable {
+        enum Kind: String, Equatable {
+            case history
+            case policy
+            case economy
+            case military
+            case agent
+
+            var displayName: String {
+                switch self {
+                case .history:
+                    return "史势"
+                case .policy:
+                    return "政务"
+                case .economy:
+                    return "钱粮"
+                case .military:
+                    return "军务"
+                case .agent:
+                    return "军机"
+                }
+            }
+
+            var systemImage: String {
+                switch self {
+                case .history:
+                    return "scroll"
+                case .policy:
+                    return "building.columns"
+                case .economy:
+                    return "shippingbox"
+                case .military:
+                    return "shield.lefthalf.filled"
+                case .agent:
+                    return "brain.head.profile"
+                }
+            }
+        }
+
+        let id: String
+        let kind: Kind
+        let title: String
+        let detail: String
+    }
+
     let title: String
     let subtitle: String
     let isMingScenario: Bool
     let tracks: [Track]
     let scoreRows: [ScoreRow]
     let leadingFaction: Faction?
+    let cues: [Cue]
 
     static func from(state: GameState) -> BattleObjectiveSummary {
         guard state.scenarioId.hasPrefix("chongzhen_1642") else {
@@ -101,19 +147,22 @@ struct BattleObjectiveSummary: Equatable {
                 isMingScenario: false,
                 tracks: [],
                 scoreRows: [],
-                leadingFaction: nil
+                leadingFaction: nil,
+                cues: []
             )
         }
 
         let rows = scoreRows(in: state)
         let dataDrivenTracks = tracks(from: state)
+        let tracks = dataDrivenTracks.isEmpty ? fallbackTracks(from: state) : dataDrivenTracks
         return BattleObjectiveSummary(
             title: "崇祯十五年 · 天下目标",
             subtitle: "破关、据中原、控湖广与守京师关口共同构成当前胜负线。",
             isMingScenario: true,
-            tracks: dataDrivenTracks.isEmpty ? fallbackTracks(from: state) : dataDrivenTracks,
+            tracks: tracks,
             scoreRows: rows,
-            leadingFaction: leadingFaction(from: rows)
+            leadingFaction: leadingFaction(from: rows),
+            cues: cues(from: state, tracks: tracks)
         )
     }
 
@@ -281,5 +330,69 @@ struct BattleObjectiveSummary: Equatable {
     private static func priority(of faction: Faction) -> Int {
         let factions: [Faction] = [.ming, .qing, .dashun, .daxi]
         return factions.firstIndex(of: faction) ?? factions.endIndex
+    }
+
+    private static func cues(from state: GameState, tracks: [Track]) -> [Cue] {
+        var cues: [Cue] = []
+
+        if state.turn == 1 {
+            cues.append(
+                Cue(
+                    id: "songjin_aftershock",
+                    kind: .history,
+                    title: "松锦余波",
+                    detail: "辽东主力受挫后，山海关、北京与湖广粮道成为明廷能否续命的关节。"
+                )
+            )
+        }
+
+        if state.activeFaction == .ming && state.turn <= 2 {
+            cues.append(
+                Cue(
+                    id: "chongzhen_revenue_pressure",
+                    kind: .policy,
+                    title: "催饷与安民",
+                    detail: "朝廷可短期征饷补军费，也可赈济压民变；两者会牵动政策、经济与军事压力。"
+                )
+            )
+        }
+
+        let strainedUnits = state.divisions.filter {
+            $0.faction == state.activeFaction && $0.supplyState != .supplied
+        }
+        if let unit = strainedUnits.first {
+            cues.append(
+                Cue(
+                    id: "supply_warning_\(unit.id)",
+                    kind: .economy,
+                    title: "粮道告急",
+                    detail: "\(unit.name) 已非满粮状态；先看粮道虚线和府库粮草，再决定补给或撤守。"
+                )
+            )
+        }
+
+        if !state.warDirectiveRecords.isEmpty {
+            cues.append(
+                Cue(
+                    id: "agent_after_action",
+                    kind: .agent,
+                    title: "军机复盘",
+                    detail: "AI 回合已有督师指令和命令回执，可在军机面板查看诸方 Agent 的取舍。"
+                )
+            )
+        }
+
+        if let pressureTrack = tracks.first(where: { $0.timing == .immediate && $0.controlledCount > 0 && !$0.isSatisfied }) {
+            cues.append(
+                Cue(
+                    id: "objective_pressure_\(pressureTrack.id.rawValue)",
+                    kind: .military,
+                    title: "\(pressureTrack.title)逼近",
+                    detail: "\(pressureTrack.faction.displayName)已取 \(pressureTrack.controlledCount) / \(pressureTrack.requiredCount) 处要冲，需尽快调兵或改变方面目标。"
+                )
+            )
+        }
+
+        return Array(cues.prefix(4))
     }
 }

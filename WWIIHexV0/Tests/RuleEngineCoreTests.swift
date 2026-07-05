@@ -759,6 +759,39 @@ final class RuleEngineCoreTests: XCTestCase {
         XCTAssertEqual(dashunTrack?.statusText, "据中原秦陕已成")
     }
 
+    func testMingBattleObjectiveSummaryShowsOpeningScenarioCues() {
+        let state = Self.mingVictoryState(objectiveControllers: [:])
+
+        let summary = BattleObjectiveSummary.from(state: state)
+
+        XCTAssertEqual(summary.cues.first?.id, "songjin_aftershock")
+        XCTAssertTrue(summary.cues.contains { $0.id == "chongzhen_revenue_pressure" })
+        XCTAssertEqual(summary.cues.first?.kind, .history)
+    }
+
+    func testMingBattleObjectiveSummaryShowsSupplyAndObjectivePressureCues() {
+        let state = Self.mingVictoryState(
+            objectiveControllers: [
+                "obj_shanhaiguan": .qing
+            ],
+            turn: 3,
+            divisions: [
+                Self.division(
+                    id: "ming_low_supply",
+                    faction: .ming,
+                    coord: HexCoord(q: 1, r: 0),
+                    supplyState: .lowSupply
+                )
+            ]
+        )
+
+        let summary = BattleObjectiveSummary.from(state: state)
+
+        XCTAssertTrue(summary.cues.contains { $0.id == "supply_warning_ming_low_supply" })
+        XCTAssertTrue(summary.cues.contains { $0.id == "objective_pressure_qingPassCapital" })
+        XCTAssertEqual(summary.cues.first?.kind, .economy)
+    }
+
     func testInvalidCommandDoesNotModifyGameState() {
         let state = Self.testState(
             activeFaction: .allies,
@@ -856,7 +889,8 @@ final class RuleEngineCoreTests: XCTestCase {
         objectiveControllers: [String: Faction],
         turn: Int = 1,
         maxTurns: Int = 20,
-        victoryConditions: [VictoryConditionDefinition] = Self.mingVictoryConditions
+        victoryConditions: [VictoryConditionDefinition] = Self.mingVictoryConditions,
+        divisions: [Division] = []
     ) -> GameState {
         let objectives: [Objective] = [
             Objective(id: "obj_shanhaiguan", name: "山海关", coord: HexCoord(q: 0, r: 0), type: .fortress, points: 7),
@@ -895,7 +929,7 @@ final class RuleEngineCoreTests: XCTestCase {
             turnOrder: [.ming, .qing, .dashun, .daxi],
             humanControlledFactions: [.ming],
             aiControlledFactions: [.qing, .dashun, .daxi],
-            divisions: [],
+            divisions: divisions,
             victoryState: .ongoing,
             selectedUnitSummary: nil,
             eventLog: []
