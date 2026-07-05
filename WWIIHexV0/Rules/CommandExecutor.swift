@@ -48,6 +48,7 @@ struct CommandExecutor {
 
         if occupationRules.canOccupy(division: state.divisions[index], destination: destination, in: state),
            var tile = state.map.tile(at: destination) {
+            let previousController = tile.controller
             tile.controller = state.divisions[index].faction
             state.map.setTile(tile)
             if let destinationRegionId = state.map.region(for: destination),
@@ -63,6 +64,12 @@ struct CommandExecutor {
             _ = strategicSynchronizer.synchronizeAfterOccupationChange(
                 in: &state,
                 affectedRegionIds: state.map.region(for: destination).map { [$0] } ?? []
+            )
+            appendObjectiveControlEventIfNeeded(
+                at: destination,
+                previousController: previousController,
+                newController: state.divisions[index].faction,
+                in: &state
             )
         }
 
@@ -215,6 +222,28 @@ struct CommandExecutor {
                 relatedRecordId: recordId
             )
         }
+    }
+
+    private func appendObjectiveControlEventIfNeeded(
+        at coord: HexCoord,
+        previousController: Faction?,
+        newController: Faction,
+        in state: inout GameState
+    ) {
+        guard state.scenarioId.hasPrefix("chongzhen_1642"),
+              previousController != newController,
+              let objective = state.map.objectives.first(where: { $0.coord == coord }) else {
+            return
+        }
+
+        let previousName = previousController?.displayName ?? "无人控制"
+        let pointsText = objective.points > 0 ? "要冲分 \(objective.points)" : "目标线"
+        let previousKey = previousController?.rawValue ?? "neutral"
+        state.appendEvent(
+            "塘报：\(objective.name)易手，原属\(previousName)，现由\(newController.displayName)据守；\(pointsText)随之改写。",
+            category: .regionOwnerChange,
+            relatedRecordId: "objective-control-\(state.turn)-\(objective.id)-\(previousKey)-\(newController.rawValue)"
+        )
     }
 
     private func resetActionsForActiveFaction(in state: inout GameState) {

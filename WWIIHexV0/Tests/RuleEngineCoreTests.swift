@@ -856,6 +856,34 @@ final class RuleEngineCoreTests: XCTestCase {
         })
     }
 
+    func testMingObjectiveCaptureRecordsControlChangeReport() {
+        var state = Self.mingVictoryState(
+            objectiveControllers: [
+                "obj_shanhaiguan": .qing
+            ],
+            divisions: [
+                Self.division(id: "qing_vanguard", faction: .qing, coord: HexCoord(q: 0, r: 0))
+            ]
+        )
+        state.activeFaction = .qing
+        state.phase = .aiAction
+        state.diplomacyState = DiplomacyState.initial(for: [.ming, .qing, .dashun, .daxi], turn: state.turn)
+
+        let result = RuleEngine().execute(
+            .move(divisionId: "qing_vanguard", destination: HexCoord(q: 1, r: 0)),
+            in: state
+        )
+
+        XCTAssertTrue(result.succeeded)
+        XCTAssertEqual(result.state.map.controllerOfObjective(id: "obj_beijing"), .qing)
+        XCTAssertTrue(result.state.eventLog.contains {
+            $0.category == .regionOwnerChange
+                && $0.relatedRecordId == "objective-control-1-obj_beijing-ming-qing"
+                && $0.message.contains("北京易手")
+                && $0.message.contains("后金/清")
+        })
+    }
+
     func testInvalidCommandDoesNotModifyGameState() {
         let state = Self.testState(
             activeFaction: .allies,
