@@ -81,8 +81,6 @@ struct RootGameView: View {
     }
 
     private var mapControls: some View {
-        let objectiveSummary = BattleObjectiveSummary.from(state: container.gameState)
-
         VStack(spacing: 6) {
             HStack(alignment: .firstTextBaseline, spacing: 8) {
                 Label("舆图", systemImage: "map")
@@ -95,7 +93,7 @@ struct RootGameView: View {
                     .lineLimit(1)
             }
 
-            MingMapSituationStrip(summary: objectiveSummary)
+            MingMapSituationStrip(summary: BattleObjectiveSummary.from(state: container.gameState))
 
             Picker("图层", selection: Binding(
                 get: { container.mapDisplayLayer },
