@@ -4,46 +4,29 @@ struct EventLogView: View {
     let entries: [GameLogEntry]
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text("战报")
-                .font(.headline)
+        VStack(alignment: .leading, spacing: MingDesignTokens.sectionSpacing) {
+            EventLogHeader(summary: summary)
+            EventLogSummaryGrid(summary: summary)
 
             ScrollView {
-                LazyVStack(alignment: .leading, spacing: 8) {
+                LazyVStack(alignment: .leading, spacing: MingDesignTokens.compactSpacing) {
                     if recentEntries.isEmpty {
-                        Text("暂无战报。")
-                            .foregroundStyle(.secondary)
+                        EventLogEmptyState()
                     } else {
                         ForEach(recentEntries) { item in
-                            VStack(alignment: .leading, spacing: 2) {
-                                HStack(spacing: 6) {
-                                    Text(item.category.displayName)
-                                        .font(.caption.weight(.semibold))
-                                        .foregroundStyle(item.category.foregroundStyle)
-                                        .padding(.horizontal, 6)
-                                        .padding(.vertical, 2)
-                                        .background(item.category.backgroundStyle)
-                                        .clipShape(RoundedRectangle(cornerRadius: 4))
-
-                                    Text(metadata(for: item.entry))
-                                        .font(.caption)
-                                        .foregroundStyle(.secondary)
-                                }
-
-                                Text(item.entry.message)
-                                    .font(.body)
-                                    .lineLimit(nil)
-                                    .fixedSize(horizontal: false, vertical: true)
-                            }
-                            .frame(maxWidth: .infinity, alignment: .leading)
+                            EventLogReportRow(item: item)
                         }
                     }
                 }
             }
-            .frame(minHeight: 120)
+            .frame(minHeight: 140)
         }
         .padding(MingDesignTokens.panelPadding)
         .background(MingDesignTokens.panelBackground)
+        .overlay {
+            RoundedRectangle(cornerRadius: MingDesignTokens.cornerRadius)
+                .stroke(MingDesignTokens.courtStroke.opacity(0.72), lineWidth: 1)
+        }
         .clipShape(RoundedRectangle(cornerRadius: MingDesignTokens.cornerRadius))
     }
 
@@ -54,13 +37,149 @@ struct EventLogView: View {
             .map { LogDisplayEntry(entry: $0, category: LogDisplayCategory(entry: $0)) }
     }
 
-    private func metadata(for entry: GameLogEntry) -> String {
-        let faction = entry.faction?.displayName ?? "系统"
-        let phase = entry.phase?.displayName ?? "整备"
-        if let relatedRecordId = entry.relatedRecordId {
-            return "第 \(entry.turn) 回合 - \(faction) - \(phase) - \(relatedRecordId)"
+    private var summary: EventLogSummary {
+        EventLogSummary(entries: recentEntries)
+    }
+}
+
+private struct EventLogHeader: View {
+    let summary: EventLogSummary
+
+    var body: some View {
+        HStack(alignment: .top, spacing: MingDesignTokens.compactSpacing) {
+            Text("报")
+                .font(.headline)
+                .bold()
+                .foregroundStyle(MingDesignTokens.cinnabar)
+                .frame(width: 34, height: 34)
+                .background(MingDesignTokens.subtleSeal)
+                .clipShape(RoundedRectangle(cornerRadius: MingDesignTokens.cornerRadius))
+                .overlay {
+                    RoundedRectangle(cornerRadius: MingDesignTokens.cornerRadius)
+                        .stroke(MingDesignTokens.courtStroke, lineWidth: 1)
+                }
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text("塘报战记")
+                    .font(.headline)
+                    .foregroundStyle(MingDesignTokens.ink)
+
+                Text(summary.headline)
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(2)
+            }
+
+            Spacer(minLength: MingDesignTokens.compactSpacing)
+
+            Label(summary.statusText, systemImage: summary.statusImageName)
+                .font(.caption)
+                .bold()
+                .foregroundStyle(summary.statusTint)
+                .padding(.horizontal, MingDesignTokens.compactSpacing)
+                .padding(.vertical, 5)
+                .background(summary.statusTint.opacity(0.12), in: RoundedRectangle(cornerRadius: 6))
         }
-        return "第 \(entry.turn) 回合 - \(faction) - \(phase)"
+    }
+}
+
+private struct EventLogSummaryGrid: View {
+    let summary: EventLogSummary
+
+    private let columns = [
+        GridItem(.adaptive(minimum: 72), spacing: MingDesignTokens.compactSpacing)
+    ]
+
+    var body: some View {
+        LazyVGrid(columns: columns, alignment: .leading, spacing: MingDesignTokens.compactSpacing) {
+            EventLogMetricChip(title: "战事", value: summary.battleCount, systemImage: "flame", tint: MingDesignTokens.cinnabar)
+            EventLogMetricChip(title: "粮草", value: summary.supplyCount, systemImage: "shippingbox", tint: MingDesignTokens.jade)
+            EventLogMetricChip(title: "州府", value: summary.territoryCount, systemImage: "building.columns", tint: MingDesignTokens.imperialGold)
+            EventLogMetricChip(title: "天下", value: summary.diplomacyCount, systemImage: "globe.asia.australia", tint: MingDesignTokens.porcelainBlue)
+        }
+    }
+}
+
+private struct EventLogMetricChip: View {
+    let title: String
+    let value: Int
+    let systemImage: String
+    let tint: Color
+
+    var body: some View {
+        Label {
+            Text("\(title) \(value)")
+                .lineLimit(1)
+                .minimumScaleFactor(0.8)
+        } icon: {
+            Image(systemName: systemImage)
+        }
+        .font(.caption)
+        .foregroundStyle(tint)
+        .frame(maxWidth: .infinity, minHeight: 30, alignment: .leading)
+        .padding(.horizontal, MingDesignTokens.compactSpacing)
+        .background(MingDesignTokens.sectionBackground, in: RoundedRectangle(cornerRadius: 6))
+    }
+}
+
+private struct EventLogEmptyState: View {
+    var body: some View {
+        Label("尚无塘报入册", systemImage: "scroll")
+            .font(.body)
+            .foregroundStyle(.secondary)
+            .frame(maxWidth: .infinity, minHeight: MingDesignTokens.minimumTapSize, alignment: .leading)
+            .padding(MingDesignTokens.compactSpacing)
+            .background(MingDesignTokens.sectionBackground, in: RoundedRectangle(cornerRadius: 6))
+    }
+}
+
+private struct EventLogReportRow: View {
+    let item: LogDisplayEntry
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            HStack(alignment: .firstTextBaseline, spacing: 6) {
+                Label(item.category.displayName, systemImage: item.category.systemImageName)
+                    .font(.caption)
+                    .bold()
+                    .foregroundStyle(item.category.foregroundStyle)
+                    .padding(.horizontal, 7)
+                    .padding(.vertical, 3)
+                    .background(item.category.backgroundStyle, in: RoundedRectangle(cornerRadius: 6))
+
+                Text(item.metadataText)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.8)
+
+                Spacer(minLength: 0)
+            }
+
+            Text(item.entry.message)
+                .font(.body)
+                .foregroundStyle(MingDesignTokens.ink)
+                .lineLimit(nil)
+                .fixedSize(horizontal: false, vertical: true)
+
+            if let receiptText = item.receiptText {
+                Label(receiptText, systemImage: "checkmark.seal")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.8)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(MingDesignTokens.compactSpacing)
+        .background(MingDesignTokens.sectionBackground.opacity(0.86), in: RoundedRectangle(cornerRadius: MingDesignTokens.cornerRadius))
+        .overlay(alignment: .leading) {
+            Rectangle()
+                .fill(item.category.foregroundStyle.opacity(0.72))
+                .frame(width: 3)
+                .clipShape(RoundedRectangle(cornerRadius: 2))
+        }
+        .accessibilityElement(children: .combine)
     }
 }
 
@@ -70,6 +189,98 @@ private struct LogDisplayEntry: Identifiable {
 
     var id: UUID {
         entry.id
+    }
+
+    var metadataText: String {
+        let faction = entry.faction?.displayName ?? "系统"
+        let phase = entry.phase?.displayName ?? "整备"
+        return "第 \(entry.turn) 回合 · \(faction) · \(phase)"
+    }
+
+    var receiptText: String? {
+        guard let relatedRecordId = entry.relatedRecordId else {
+            return nil
+        }
+        return "回执 \(relatedRecordId)"
+    }
+}
+
+private struct EventLogSummary {
+    let totalCount: Int
+    let battleCount: Int
+    let supplyCount: Int
+    let territoryCount: Int
+    let diplomacyCount: Int
+    let latestCategory: LogDisplayCategory?
+
+    init(entries: [LogDisplayEntry]) {
+        self.totalCount = entries.count
+        self.battleCount = entries.filter { $0.category.isBattleReport }.count
+        self.supplyCount = entries.filter { $0.category == .supply }.count
+        self.territoryCount = entries.filter { $0.category.isTerritoryReport }.count
+        self.diplomacyCount = entries.filter { $0.category == .diplomacy }.count
+        self.latestCategory = entries.first?.category
+    }
+
+    var headline: String {
+        guard totalCount > 0 else {
+            return "军中尚无新报"
+        }
+        if let latestCategory {
+            return "近 \(totalCount) 条近报 · 最新 \(latestCategory.displayName)"
+        }
+        return "近 \(totalCount) 条近报"
+    }
+
+    var statusText: String {
+        if totalCount == 0 {
+            return "候报"
+        }
+        if battleCount > 0 {
+            return "有军情"
+        }
+        if supplyCount > 0 {
+            return "粮情"
+        }
+        if territoryCount > 0 {
+            return "战局"
+        }
+        if diplomacyCount > 0 {
+            return "天下"
+        }
+        return "入册"
+    }
+
+    var statusImageName: String {
+        if battleCount > 0 {
+            return "exclamationmark.triangle"
+        }
+        if supplyCount > 0 {
+            return "shippingbox"
+        }
+        if territoryCount > 0 {
+            return "map"
+        }
+        if diplomacyCount > 0 {
+            return "globe.asia.australia"
+        }
+        return totalCount == 0 ? "hourglass" : "scroll"
+    }
+
+    var statusTint: Color {
+        if battleCount > 0 {
+            return MingDesignTokens.cinnabar
+        }
+        if supplyCount > 0 {
+            return MingDesignTokens.jade
+        }
+        if territoryCount > 0 {
+            return MingDesignTokens.imperialGold
+        }
+        if diplomacyCount > 0 {
+            return MingDesignTokens.porcelainBlue
+        }
+        return .secondary
     }
 }
 
@@ -164,23 +375,23 @@ private enum LogDisplayCategory {
     var foregroundStyle: Color {
         switch self {
         case .combat:
-            return .red
+            return MingDesignTokens.cinnabar
         case .retreat:
-            return .orange
+            return MingDesignTokens.imperialGold
         case .reinforcement:
-            return .green
+            return MingDesignTokens.jade
         case .encirclement:
-            return .purple
+            return MingDesignTokens.cinnabar
         case .supply:
-            return .teal
+            return MingDesignTokens.jade
         case .frontChange:
-            return .blue
+            return MingDesignTokens.porcelainBlue
         case .theaterChange:
-            return .indigo
+            return MingDesignTokens.porcelainBlue
         case .regionOwnerChange:
-            return .mint
+            return MingDesignTokens.imperialGold
         case .diplomacy:
-            return .cyan
+            return MingDesignTokens.porcelainBlue
         case .event:
             return .secondary
         }
@@ -188,5 +399,48 @@ private enum LogDisplayCategory {
 
     var backgroundStyle: Color {
         foregroundStyle.opacity(0.12)
+    }
+
+    var systemImageName: String {
+        switch self {
+        case .combat:
+            return "flame"
+        case .retreat:
+            return "arrow.uturn.backward.circle"
+        case .reinforcement:
+            return "cross.case"
+        case .encirclement:
+            return "target"
+        case .supply:
+            return "shippingbox"
+        case .frontChange:
+            return "point.3.connected.trianglepath.dotted"
+        case .theaterChange:
+            return "map"
+        case .regionOwnerChange:
+            return "building.columns"
+        case .diplomacy:
+            return "globe.asia.australia"
+        case .event:
+            return "scroll"
+        }
+    }
+
+    var isBattleReport: Bool {
+        switch self {
+        case .combat, .retreat, .reinforcement, .encirclement:
+            return true
+        case .supply, .frontChange, .theaterChange, .regionOwnerChange, .diplomacy, .event:
+            return false
+        }
+    }
+
+    var isTerritoryReport: Bool {
+        switch self {
+        case .frontChange, .theaterChange, .regionOwnerChange:
+            return true
+        case .combat, .retreat, .reinforcement, .encirclement, .supply, .diplomacy, .event:
+            return false
+        }
     }
 }
