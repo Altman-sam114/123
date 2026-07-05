@@ -18,7 +18,7 @@
   -> v4.5 朝廷首片把政策、经济、科技、军事四线压力派生为 CourtStrategySummary，并进入 UI / AI 摘要
   -> v4.6 UI 首片用 MingDesignTokens、独立 CourtPanelView、朝议争点、朝报令条、军令牌、将印军令、将领名帖、军机复盘牌、塘报战记、部队军情牌、州府牌、府库牌、天下急势、中文军牌、势力旗号、城/关/粮 badge、粮道虚线/开关、军令计划线、舆图图例和四线项目分组 polish 主界面、地图部队和朝廷/将领/军令/AI 面板
   -> v4.6 朝廷项目首片把征饷、赈济、招抚、农政、修城、团练、火器、红衣炮、粮台驿道等主议/备议落到 Command.enactCourtProject 和 EconomyRules
-  -> v4.7 明末胜负链首片把 ScenarioDefinition.victoryConditions 写入 GameState，并让清破关入京、大顺据中原秦陕、大西据湖广粮区、明廷守住京师关口等条件进入 BattleObjectiveSummary / VictoryRules，在“目标”面板显示进度、只读战役提示、开封围城压力、天下五线态势、本旬任务链和阶段战局链，回合末把提示和急务/主线任务入塘报；CampaignAISummary 把同一五线态势送入 AgentContext 和 MarshalBattlefieldSummary；CourtStrategySummary 读取同一战役线压力加权朝廷主议；ZoneCommanderDoctrine 让明廷谨慎、清/大顺/大西进取、地方自保，并贯通 TheaterCommanderPool、AppContainer 空将领 registry fallback、MockAICommander 和不同 tactic 映射；目标 chip 和任务按钮可只读定位对应 hex / 州府；目标 hex 换手会写塘报
+  -> v4.7 明末胜负链首片把 ScenarioDefinition.victoryConditions 写入 GameState，并让清破关入京、大顺据中原秦陕、大西据湖广粮区、明廷守住京师关口等条件进入 BattleObjectiveSummary / VictoryRules，在“目标”面板显示进度、只读战役提示、开封围城压力、天下五线态势、本旬任务链和阶段战局链，回合末把提示和急务/主线任务入塘报；CampaignAISummary 把同一五线态势送入 AgentContext 和 MarshalBattlefieldSummary；CourtStrategySummary 读取同一战役线压力加权朝廷主议；ZoneCommanderDoctrine 让明廷谨慎、清/大顺/大西进取、地方自保，并贯通 TheaterCommanderPool、AppContainer 空将领 registry fallback、MockAICommander、SimulatedMarshalLLMClient 和不同 tactic 映射；目标 chip 和任务按钮可只读定位对应 hex / 州府；目标 hex 换手会写塘报
   -> v0.5 元帅层是战略意图层，不替代战术权威
   -> 玩家和 AI 都必须把命令交给 RuleEngine
   -> 命令执行后再同步刷新战略层和 UI
@@ -333,7 +333,7 @@ flowchart TD
 
 这张图看 v0.5 分支默认 AI 主路径。AI 不直接控制单位，也不直接改地图；元帅先读取降维战场摘要，模拟 LLM 输出 `TheaterDirectiveEnvelope` JSON，经 decoder 校验和 compiler 降级后，形成战区级 `DirectiveEnvelope`。`WarCommandExecutor` 再把这些战术翻译成底层 `Command`，最后交给 `RuleEngine`。
 
-当前 v0.5 的默认 AI 主线是 `MarshalAgent -> TheaterDirective JSON -> TheaterDirectiveDecoder -> TheaterDirectiveCompiler -> ZoneDirective -> WarCommandExecutor -> RuleEngine`。旧 v0.37 `TheaterCommanderPool -> ZoneCommanderAgent` 作为 fallback 和显式 `.zoneDirective` 路径保留；`AppContainer` 空将领 registry fallback 也复用 `TheaterCommanderPool.automatic(for:)`。fallback 默认配置已通过 `ZoneCommanderDoctrine` 区分明廷谨慎、清/大顺/大西进取和地方自保，并在分类后映射清方突骑破阵/合围、大顺破围、大西流动作战等 tactic。`CourtStrategySummary` 已作为只读朝议摘要进入元帅输入；玩家可执行的朝廷项目是显式 `Command.enactCourtProject`，不属于元帅/Ruler 自动政策层。可执行统治者/多回合政策层仍只是后续上游预留。旧 Agent D 管线仍保留，但默认不走。
+当前 v0.5 的默认 AI 主线是 `MarshalAgent -> TheaterDirective JSON -> TheaterDirectiveDecoder -> TheaterDirectiveCompiler -> ZoneDirective -> WarCommandExecutor -> RuleEngine`。旧 v0.37 `TheaterCommanderPool -> ZoneCommanderAgent` 作为 fallback 和显式 `.zoneDirective` 路径保留；`AppContainer` 空将领 registry fallback 也复用 `TheaterCommanderPool.automatic(for:)`。fallback 默认配置已通过 `ZoneCommanderDoctrine` 区分明廷谨慎、清/大顺/大西进取和地方自保，并在分类后映射清方突骑破阵/合围、大顺破围、大西流动作战等 tactic；默认 `SimulatedMarshalLLMClient` 也会读取 `summary.faction`，让元帅 JSON 上游在同态进攻下输出同一势力战术差异。`CourtStrategySummary` 已作为只读朝议摘要进入元帅输入；玩家可执行的朝廷项目是显式 `Command.enactCourtProject`，不属于元帅/Ruler 自动政策层。可执行统治者/多回合政策层仍只是后续上游预留。旧 Agent D 管线仍保留，但默认不走。
 
 ```mermaid
 flowchart TD
@@ -343,7 +343,7 @@ flowchart TD
     REFRESH["行动前刷新运行时战略层<br/>StrategicStateBootstrapper.refreshRuntimeState<br/>避免 AI 读到旧前线/旧部署"]:::rules
     TM["AI 回合编排器<br/>TurnManager.runAITurn<br/>默认 pipelineMode = marshalDirective"]:::rules
     SUM["战场摘要<br/>MarshalBattlefieldSummarizer<br/>只给元帅 front/deploy/目标/补给/钱粮/朝议摘要，不给全量 hex"]:::ai
-    LLM["模拟 LLM 客户端<br/>SimulatedMarshalLLMClient<br/>输出 fenced JSON，不接真实网络或模型"]:::ai
+    LLM["模拟 LLM 客户端<br/>SimulatedMarshalLLMClient<br/>按势力 doctrine 选 tactic，输出 fenced JSON，不接真实网络或模型"]:::ai
     DEC["元帅 JSON 解码器<br/>TheaterDirectiveDecoder<br/>提取 JSON、解码、校验 schema/zone/region/tactic"]:::command
     COMP["元帅意图编译器<br/>TheaterDirectiveCompiler<br/>TheaterDirective -> ZoneDirective<br/>传递 focus/convergence/coordinated 参数"]:::command
     ENV["指令信封<br/>DirectiveEnvelope<br/>收集编译后的 ZoneDirective"]:::command

@@ -1386,7 +1386,7 @@ struct SimulatedMarshalLLMClient: MarshalLLMClient {
         let directives = summary.fronts.map { front -> TheaterDirective in
             let shouldAttack = shouldAttack(front: front, bias: config.strategicBias)
             if shouldAttack {
-                let tactic = offensiveTactic(front: front, bias: config.strategicBias)
+                let tactic = offensiveTactic(front: front, faction: summary.faction, bias: config.strategicBias)
                 return TheaterDirective(
                     id: "marshal_\(summary.turn)_\(front.id.rawValue)",
                     zoneId: front.id,
@@ -1403,7 +1403,7 @@ struct SimulatedMarshalLLMClient: MarshalLLMClient {
                     intensity: front.strengthRatio >= 1.8 ? .allOut : .limitedCounter,
                     maxCommittedUnits: front.frontUnitCount + max(0, front.depthUnitCount / 2),
                     exploitDepth: front.strengthRatio >= 1.8 ? 1 : 0,
-                    rationale: "Simulated marshal JSON: \(tactic.rawValue) selected from strength ratio \(String(format: "%.2f", front.strengthRatio))."
+                    rationale: "Simulated marshal JSON: \(tactic.rawValue) selected from \(faction.displayName) doctrine and strength ratio \(String(format: "%.2f", front.strengthRatio))."
                 )
             }
 
@@ -1468,8 +1468,12 @@ struct SimulatedMarshalLLMClient: MarshalLLMClient {
 
     private func offensiveTactic(
         front: MarshalFrontSummary,
+        faction: Faction,
         bias: MarshalAgentConfig.StrategicBias
     ) -> TacticName {
+        if let doctrineTactic = doctrineOffensiveTactic(front: front, faction: faction) {
+            return doctrineTactic
+        }
         if front.enemyZoneIds.count >= 2,
            front.strengthRatio >= 1.25 {
             return .pincerMovement
@@ -1490,6 +1494,31 @@ struct SimulatedMarshalLLMClient: MarshalLLMClient {
             return .feint
         }
         return .standardAttack
+    }
+
+    private func doctrineOffensiveTactic(front: MarshalFrontSummary, faction: Faction) -> TacticName? {
+        switch faction {
+        case .ming:
+            return .fireCoverage
+        case .qing:
+            if front.enemyZoneIds.count >= 2,
+               front.strengthRatio >= 1.15 {
+                return .pincerMovement
+            }
+            return .spearhead
+        case .dashun:
+            return .breakthrough
+        case .daxi:
+            if front.pressure > 0 || front.supplyWarningCount > 0 {
+                return .feint
+            }
+            return .guerrillaWarfare
+        case .localNeutral:
+            return front.pressure > 0 ? .feint : .standardAttack
+        case .germany,
+             .allies:
+            return nil
+        }
     }
 
     private func defensiveTactic(front: MarshalFrontSummary) -> TacticName {
@@ -1516,7 +1545,7 @@ struct SimulatedMarshalLLMClient: MarshalLLMClient {
         let campaign = "Campaign mandate: \(summary.campaignSummary.displaySummary)."
         switch bias {
         case .offensive:
-            return "Concentrate active fronts with favorable odds; hold strained fronts with minimal reserves. \(economy) \(court) \(campaign)"
+            return "Concentrate active fronts with favorable odds; apply faction doctrine when choosing offensive tactics; hold strained fronts with minimal reserves. \(economy) \(court) \(campaign)"
         case .balanced:
             return "Preserve front stability while attacking only where the summarized odds justify commitment. \(economy) \(court) \(campaign)"
         case .defensive:

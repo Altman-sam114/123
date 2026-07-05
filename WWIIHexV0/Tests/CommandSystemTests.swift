@@ -141,6 +141,18 @@ final class CommandSystemTests: XCTestCase {
         XCTAssertEqual(mingDirective.tactic, .fireCoverage)
     }
 
+    func testSimulatedMarshalLLMUsesMingFactionDoctrineTactics() throws {
+        let qingTactic = try Self.simulatedMarshalTactic(for: .qing)
+        let dashunTactic = try Self.simulatedMarshalTactic(for: .dashun)
+        let daxiTactic = try Self.simulatedMarshalTactic(for: .daxi)
+        let mingTactic = try Self.simulatedMarshalTactic(for: .ming)
+
+        XCTAssertEqual(qingTactic, .spearhead)
+        XCTAssertEqual(dashunTactic, .breakthrough)
+        XCTAssertEqual(daxiTactic, .guerrillaWarfare)
+        XCTAssertEqual(mingTactic, .fireCoverage)
+    }
+
     func testV036TacticConditionCheckerAlwaysAllowsCurrentTactics() throws {
         let state = Self.commandScenario(germanCount: 1, alliedCount: 1)
         let zone = try XCTUnwrap(state.warDeploymentState.frontZones[Self.germanFront])
@@ -518,6 +530,97 @@ final class CommandSystemTests: XCTestCase {
         let zone = try XCTUnwrap(state.warDeploymentState.frontZones[Self.germanFront])
         let agent = ZoneCommanderAgent(config: TheaterCommanderPool.defaultConfig(for: zone))
         return try XCTUnwrap(agent.makeDirective(for: zone, in: state))
+    }
+
+    private static func simulatedMarshalTactic(for faction: Faction) throws -> TacticName? {
+        let raw = try SimulatedMarshalLLMClient().completeTheaterDirectiveJSON(
+            summary: marshalDoctrineSummary(for: faction),
+            config: marshalDoctrineConfig(for: faction)
+        )
+        let state = doctrineScenario(friendly: faction, enemy: .ming)
+        let envelope = try TheaterDirectiveDecoder().parse(
+            raw,
+            expectedIssuerId: "marshal_\(faction.rawValue)",
+            expectedTurn: 1,
+            expectedFaction: faction,
+            state: state
+        )
+        return try XCTUnwrap(envelope.directives.first).tactic
+    }
+
+    private static func marshalDoctrineConfig(for faction: Faction) -> MarshalAgentConfig {
+        let bias: MarshalAgentConfig.StrategicBias
+        switch faction {
+        case .ming,
+             .localNeutral:
+            bias = .defensive
+        case .germany,
+             .qing,
+             .dashun,
+             .daxi:
+            bias = .offensive
+        case .allies:
+            bias = .balanced
+        }
+        return MarshalAgentConfig(
+            id: "marshal_\(faction.rawValue)",
+            name: "\(faction.displayName) doctrine marshal",
+            faction: faction,
+            personality: "Doctrine test marshal.",
+            strategicBias: bias
+        )
+    }
+
+    private static func marshalDoctrineSummary(for faction: Faction) -> MarshalBattlefieldSummary {
+        MarshalBattlefieldSummary(
+            schemaVersion: 9,
+            turn: 1,
+            faction: faction,
+            marshalId: "marshal_\(faction.rawValue)",
+            marshalName: "\(faction.displayName) doctrine marshal",
+            personality: "Doctrine test marshal.",
+            strategicBias: marshalDoctrineConfig(for: faction).strategicBias,
+            overallSupply: "adequate",
+            friendlyLowSupplyCount: 0,
+            friendlyEncircledCount: 0,
+            economySummary: EconomyAISummary(
+                stockpile: EconomyResources(manpower: 100, industry: 100, supplies: 100),
+                lastIncome: EconomyResources(manpower: 0, industry: 0, supplies: 0),
+                lastUpkeep: EconomyResources(manpower: 0, industry: 0, supplies: 0),
+                lastReinforcementSpend: EconomyResources(manpower: 0, industry: 0, supplies: 0),
+                grainShortfall: 0,
+                silverShortfall: 0,
+                manpowerShortfall: 0,
+                governanceSummary: .empty
+            ),
+            courtSummary: .empty,
+            campaignSummary: .empty,
+            objectivesHeld: [],
+            objectivesLost: [],
+            fronts: [
+                MarshalFrontSummary(
+                    id: Self.germanFront,
+                    name: "Doctrine Front",
+                    state: .highIntensity,
+                    pressure: 0,
+                    frontRegionIds: ["ardennes"],
+                    enemyRegionIds: ["sedan"],
+                    enemyZoneIds: [Self.frenchFront],
+                    friendlyFrontStrength: 18,
+                    friendlyDepthStrength: 6,
+                    visibleEnemyStrength: 10,
+                    strengthRatio: 1.8,
+                    frontUnitCount: 3,
+                    depthUnitCount: 1,
+                    garrisonUnitCount: 0,
+                    supplyWarningCount: 0,
+                    keyObjectivesHeld: [],
+                    keyObjectivesLost: ["Enemy city"],
+                    status: "advantage"
+                )
+            ],
+            recentEvents: []
+        )
     }
 
     private static func doctrineScenario(friendly: Faction, enemy: Faction) -> GameState {

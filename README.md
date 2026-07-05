@@ -4,7 +4,7 @@
 
 > v4.7 最新增量：`DataLoader` 会把 `ScenarioDefinition.victoryConditions` 写入 `GameState.victoryConditions`，`BattleObjectiveSummary` 优先从剧本条件编译明末胜负线和 objective points 领先方，并额外派生松锦余波、催饷安民、粮道告急、军机复盘、开封围城压力和目标线压力等只读战役提示；结束回合时这些 cue 会以去重 `relatedRecordId` 入塘报日志；同一摘要还派生只读天下五线态势、本旬任务链和阶段战局链，让目标面板用天下、政策、经济、科技、军事五线压力，以及守山海关与京师、救援开封压力、定征饷安民尺度、巡河南湖广粮根、补火器与城防、终局名分线等任务解释当前可玩重点。`CampaignAISummary` 会把同一五线态势转成 Codable 摘要，进入 `AgentContext`、`AgentPromptBuilder`、`TurnManager.contextSummary` 和 `MarshalBattlefieldSummary`，使 AI/军机链路也能看到当前中华世界局势压力；`CourtStrategySummary` 也会读取同一胜负线压力，把破关入京、河南秦陕粮链、湖广粮道和终局名分线加权到朝廷主议与备议。回合末还会把急务/主线任务最多 3 条写入任务塘报，帮助玩家在塘报战记里复盘当旬军政钱粮火器重点，但不执行事件效果。`VictoryRules` 与新增“目标”信息面板共用该摘要，玩家现在可在局内查看清破关入京、大顺据中原秦陕、大西据湖广粮区和明廷守京师关口各差哪些城关，并可点击目标城关 chip 或任务定位按钮定位对应 hex / 州府，便于从胜负线回到舆图和州府牌。明末 objective 因真实移动占领换手时，`CommandExecutor` 还会追加目标换手塘报，让北京、山海关、开封等关键城关变化进入复盘。开封围城压力当前只是只读提示和任务，不新增多回合围城状态或城防损耗。
 
-> v4.7 AI doctrine 最新增量：新增 `ZoneCommanderDoctrine`，让默认 `TheaterCommanderPool`、`AppContainer` 空将领 registry fallback、显式 `.zoneDirective` 路径和 `MockAICommander` 按明末势力生成不同 `ZoneCommanderAgentConfig`：明廷谨慎守京畿和粮道，清方进取偏旗骑合围与截援，大顺进取偏破弱城扩粮，大西进取偏流动作战与夺粮，地方中立谨慎自保。`ZoneCommanderAgent` 还会在分类后按 doctrine 映射 tactic，让同态进攻下清方偏突骑破阵/合围、大顺偏破围、大西偏流动作战。该片只影响 directive 生成时的攻守边界、技能标签和 tactic 偏置，最终仍必须走 `ZoneDirective -> WarCommandExecutor -> RuleEngine`。
+> v4.7 AI doctrine 最新增量：新增 `ZoneCommanderDoctrine`，让默认 `TheaterCommanderPool`、`AppContainer` 空将领 registry fallback、显式 `.zoneDirective` 路径和 `MockAICommander` 按明末势力生成不同 `ZoneCommanderAgentConfig`：明廷谨慎守京畿和粮道，清方进取偏旗骑合围与截援，大顺进取偏破弱城扩粮，大西进取偏流动作战与夺粮，地方中立谨慎自保。`ZoneCommanderAgent` 还会在分类后按 doctrine 映射 tactic，让同态进攻下清方偏突骑破阵/合围、大顺偏破围、大西偏流动作战。`SimulatedMarshalLLMClient` 的默认元帅 JSON 上游也读取同一势力 doctrine，在相同 front 摘要下区分明廷火器压制、清方合围/突骑、大顺破围和大西流动作战。该片只影响 directive 生成时的攻守边界、技能标签和 tactic 偏置，最终仍必须走 `TheaterDirective -> TheaterDirectiveCompiler -> ZoneDirective -> WarCommandExecutor -> RuleEngine`。
 
 ---
 
@@ -123,7 +123,7 @@ WWIIHexV0/
 - v4.6 势力旗号首片继续 polish 地图和部队归属：`Faction.bannerGlyph` 为明廷、后金/清、大顺、大西和地方中立提供“明/清/顺/西/乡”短旗号，`UnitNode` 在地图军牌顶端显示势力旗，`UnitInspectorView` 与 `CommandPanelView` 的军牌印面同步显示旗号，`RootGameView` 舆图图例新增“势力旗”。该片只影响 UI/SpriteKit 展示，不改变阵营、外交、单位、命令或规则执行。
 - v4.7 目标定位首片补齐目标面板到舆图的交互：`BattleObjectivePanelView` 的目标城关 chip 可调用 `AppContainer.focusObjective(_:)`，只更新 `selectedHex`、`selectedRegionId` 和 UI 高亮，并在紧凑信息面板切到州府牌；它不会提交 `Command`、不会改变 objective 控制权、hex 控制、胜负判定或任何规则权威。
 - v4.7 目标换手塘报首片补齐关键城关变化反馈：明末剧本中单位通过合法移动占领 objective hex 后，`CommandExecutor` 按占领前后的 `HexTile.controller` 追加 `regionOwnerChange` 类塘报，记录原控制方、新控制方和要冲分；该片只追加日志，不新增事件效果，不改变胜负判定、占领规则或目标摘要来源。
-- v4.7 AI doctrine 首片让 `TheaterCommanderPool`、`AppContainer` 空将领 registry fallback、显式 `.zoneDirective` 和 `MockAICommander` 共用 `ZoneCommanderDoctrine`：明廷默认谨慎，清/大顺/大西默认进取，地方中立默认谨慎自保；同态进攻下清方、大顺、大西会分别偏向突骑破阵/合围、破围和流动作战。这只改变 `ZoneCommanderAgentConfig.commandStyle`、`skills`、战术分类边界和 tactic 偏置，不改变执行权威。
+- v4.7 AI doctrine 首片让 `TheaterCommanderPool`、`AppContainer` 空将领 registry fallback、显式 `.zoneDirective`、`MockAICommander` 和 `SimulatedMarshalLLMClient` 共用明末势力 doctrine：明廷默认谨慎，清/大顺/大西默认进取，地方中立默认谨慎自保；同态进攻下清方、大顺、大西会分别偏向突骑破阵/合围、破围和流动作战，元帅 JSON 上游也能输出同样的势力战术差异。这只改变 `ZoneCommanderAgentConfig.commandStyle`、`skills`、战术分类边界和 tactic 偏置，不改变执行权威。
 - 明末生产完成后会生成明末组件单位；legacy Germany / Allies 生产仍使用旧 `.infantry/.panzer/.motorized/.artillery` 工厂方法。
 - 当前朝廷摘要仍是派生建议层；朝廷项目是一次性轻量执行入口，不是完整政策法令、科技树或统治者 Agent。灾荒、民心扩展、拖欠军饷影响士气/忠诚和多回合围城链仍属于后续 v4.5+。
 
