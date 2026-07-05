@@ -12,6 +12,7 @@ struct BattleObjectivePanelView: View {
             if summary.isMingScenario {
                 BattleObjectiveScoreboard(summary: summary)
                 BattleObjectiveCueBoard(cues: summary.cues)
+                BattleObjectiveStageBoard(stages: summary.stages)
 
                 VStack(alignment: .leading, spacing: MingDesignTokens.compactSpacing) {
                     Text("胜负线")
@@ -94,6 +95,104 @@ private struct BattleObjectiveHeader: View {
         }
         .padding(MingDesignTokens.compactSpacing)
         .background(MingDesignTokens.sectionBackground, in: RoundedRectangle(cornerRadius: MingDesignTokens.cornerRadius))
+    }
+}
+
+private struct BattleObjectiveStageBoard: View {
+    let stages: [BattleObjectiveSummary.CampaignStage]
+
+    var body: some View {
+        if !stages.isEmpty {
+            VStack(alignment: .leading, spacing: MingDesignTokens.compactSpacing) {
+                Text("阶段战局链")
+                    .font(.subheadline.bold())
+                    .foregroundStyle(MingDesignTokens.ink)
+
+                ForEach(stages) { stage in
+                    BattleObjectiveStageRow(stage: stage)
+                }
+            }
+            .padding(MingDesignTokens.compactSpacing)
+            .background(MingDesignTokens.sectionBackground, in: RoundedRectangle(cornerRadius: MingDesignTokens.cornerRadius))
+        }
+    }
+}
+
+private struct BattleObjectiveStageRow: View {
+    let stage: BattleObjectiveSummary.CampaignStage
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            HStack(alignment: .top, spacing: 8) {
+                Label(stage.line.displayName, systemImage: stage.line.systemImage)
+                    .font(.caption.bold())
+                    .foregroundStyle(tint)
+                    .labelStyle(.iconOnly)
+                    .frame(width: 24, height: 24)
+                    .background(tint.opacity(0.12), in: RoundedRectangle(cornerRadius: 6))
+                    .accessibilityLabel(stage.line.displayName)
+
+                VStack(alignment: .leading, spacing: 2) {
+                    HStack(spacing: 6) {
+                        Text(stage.title)
+                            .font(.caption.bold())
+                            .foregroundStyle(MingDesignTokens.ink)
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.78)
+                        Text(stage.turnWindow)
+                            .font(.caption2.monospacedDigit())
+                            .foregroundStyle(.secondary)
+                            .lineLimit(1)
+                    }
+
+                    Text(stage.summary)
+                        .font(.caption)
+                        .foregroundStyle(tint)
+                        .lineLimit(1)
+                }
+
+                Spacer(minLength: 8)
+
+                Text(stage.status.displayName)
+                    .font(.caption.bold())
+                    .foregroundStyle(tint)
+                    .lineLimit(1)
+                    .padding(.horizontal, 7)
+                    .padding(.vertical, 4)
+                    .background(tint.opacity(0.12), in: RoundedRectangle(cornerRadius: 6))
+            }
+
+            Text(stage.detail)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+
+            ProgressView(value: stage.progress, total: 1)
+                .tint(tint)
+        }
+        .padding(.horizontal, 7)
+        .padding(.vertical, 7)
+        .background(MingDesignTokens.panelBackground.opacity(0.58), in: RoundedRectangle(cornerRadius: 6))
+        .overlay {
+            RoundedRectangle(cornerRadius: 6)
+                .stroke(tint.opacity(stage.status == .warning ? 0.42 : 0.18), lineWidth: 1)
+        }
+        .accessibilityElement(children: .combine)
+    }
+
+    private var tint: Color {
+        switch stage.line {
+        case .world:
+            return MingDesignTokens.cinnabar
+        case .policy:
+            return MingDesignTokens.porcelainBlue
+        case .economy:
+            return MingDesignTokens.jade
+        case .technology:
+            return MingDesignTokens.imperialGold
+        case .military:
+            return MingDesignTokens.ink
+        }
     }
 }
 

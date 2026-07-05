@@ -86,6 +86,75 @@ struct BattleObjectiveSummary: Equatable {
         }
     }
 
+    enum CampaignLine: String, Equatable {
+        case world
+        case policy
+        case economy
+        case technology
+        case military
+
+        var displayName: String {
+            switch self {
+            case .world:
+                return "天下"
+            case .policy:
+                return "政策"
+            case .economy:
+                return "经济"
+            case .technology:
+                return "科技"
+            case .military:
+                return "军事"
+            }
+        }
+
+        var systemImage: String {
+            switch self {
+            case .world:
+                return "globe.asia.australia"
+            case .policy:
+                return "building.columns"
+            case .economy:
+                return "shippingbox"
+            case .technology:
+                return "hammer"
+            case .military:
+                return "shield.lefthalf.filled"
+            }
+        }
+    }
+
+    enum CampaignStageStatus: String, Equatable {
+        case watch
+        case focus
+        case warning
+        case achieved
+
+        var displayName: String {
+            switch self {
+            case .watch:
+                return "观察"
+            case .focus:
+                return "主线"
+            case .warning:
+                return "告急"
+            case .achieved:
+                return "已成"
+            }
+        }
+    }
+
+    struct CampaignStage: Equatable, Identifiable {
+        let id: String
+        let line: CampaignLine
+        let title: String
+        let turnWindow: String
+        let summary: String
+        let detail: String
+        let status: CampaignStageStatus
+        let progress: Double
+    }
+
     struct Cue: Equatable, Identifiable {
         enum Kind: String, Equatable {
             case history
@@ -154,6 +223,7 @@ struct BattleObjectiveSummary: Equatable {
     let tracks: [Track]
     let scoreRows: [ScoreRow]
     let leadingFaction: Faction?
+    let stages: [CampaignStage]
     let cues: [Cue]
 
     static func from(state: GameState) -> BattleObjectiveSummary {
@@ -165,6 +235,7 @@ struct BattleObjectiveSummary: Equatable {
                 tracks: [],
                 scoreRows: [],
                 leadingFaction: nil,
+                stages: [],
                 cues: []
             )
         }
@@ -172,13 +243,15 @@ struct BattleObjectiveSummary: Equatable {
         let rows = scoreRows(in: state)
         let dataDrivenTracks = tracks(from: state)
         let tracks = dataDrivenTracks.isEmpty ? fallbackTracks(from: state) : dataDrivenTracks
+        let leader = leadingFaction(from: rows)
         return BattleObjectiveSummary(
             title: "崇祯十五年 · 天下目标",
             subtitle: "破关、据中原、控湖广与守京师关口共同构成当前胜负线。",
             isMingScenario: true,
             tracks: tracks,
             scoreRows: rows,
-            leadingFaction: leadingFaction(from: rows),
+            leadingFaction: leader,
+            stages: campaignStages(from: state, tracks: tracks, leadingFaction: leader),
             cues: cues(from: state, tracks: tracks)
         )
     }
@@ -347,6 +420,148 @@ struct BattleObjectiveSummary: Equatable {
     private static func priority(of faction: Faction) -> Int {
         let factions: [Faction] = [.ming, .qing, .dashun, .daxi]
         return factions.firstIndex(of: faction) ?? factions.endIndex
+    }
+
+    private static func campaignStages(
+        from state: GameState,
+        tracks: [Track],
+        leadingFaction: Faction?
+    ) -> [CampaignStage] {
+        let qingTrack = tracks.first { $0.id == .qingPassCapital }
+        let dashunTrack = tracks.first { $0.id == .dashunCentralPlain }
+        let daxiTrack = tracks.first { $0.id == .daxiHuguang }
+        let mingTrack = tracks.first { $0.id == .mingMandateLine }
+        let mingFireSupportCount = state.divisions.filter {
+            $0.faction == .ming && $0.components.contains { $0.type.isFireSupportComponent }
+        }.count
+        let finalPressure = max(0, min(1, Double(state.turn) / Double(max(1, state.maxTurns))))
+
+        return [
+            CampaignStage(
+                id: "pass_capital_screen",
+                line: .military,
+                title: "山海关屏障",
+                turnWindow: "1-5 回合",
+                summary: "清军破关入京线",
+                detail: stageDetail(
+                    track: qingTrack,
+                    empty: "山海关和北京仍是明廷北线命门；清方一旦先取关口，畿辅压力会立刻上升。",
+                    active: "清方已摸到破关入京链，明廷需调兵固关或用朝廷项目补城防粮道。",
+                    complete: "清方破关入京条件已成，当前战局已进入京畿崩解风险。"
+                ),
+                status: pressureStatus(for: qingTrack),
+                progress: qingTrack?.progress ?? 0
+            ),
+            CampaignStage(
+                id: "central_plain_grain_chain",
+                line: .economy,
+                title: "河南秦陕粮链",
+                turnWindow: "3-10 回合",
+                summary: "大顺扩粮与中原立足",
+                detail: stageDetail(
+                    track: dashunTrack,
+                    empty: "开封、洛阳、西安尚未连成大顺粮链；河南秦陕仍是明廷可争取的缓冲区。",
+                    active: "大顺已取得部分中原秦陕要冲，粮草和民变压力会逼迫明廷在剿抚之间取舍。",
+                    complete: "大顺已连起中原秦陕粮链，后续目标应转向救援、招抚或南线保全。"
+                ),
+                status: pressureStatus(for: dashunTrack),
+                progress: dashunTrack?.progress ?? 0
+            ),
+            CampaignStage(
+                id: "huguang_grain_base",
+                line: .economy,
+                title: "湖广粮道",
+                turnWindow: "6-14 回合",
+                summary: "荆州武昌与南线粮根",
+                detail: stageDetail(
+                    track: daxiTrack,
+                    empty: "湖广粮区暂未被大西打通；武昌和荆州仍是南线军粮与终局分值核心。",
+                    active: "大西已切入湖广粮区，府库、粮台和南线军令需要提前联动。",
+                    complete: "大西已据湖广粮区，明廷终局名分和南线粮草同时承压。"
+                ),
+                status: pressureStatus(for: daxiTrack),
+                progress: daxiTrack?.progress ?? 0
+            ),
+            CampaignStage(
+                id: "court_four_line_balance",
+                line: .policy,
+                title: "朝廷四线取舍",
+                turnWindow: "全局",
+                summary: "政策、经济、科技、军事联动",
+                detail: courtStageDetail(leadingFaction: leadingFaction, turn: state.turn),
+                status: state.turn <= 2 ? .focus : .watch,
+                progress: min(1, Double(state.turn) / Double(max(1, state.maxTurns)))
+            ),
+            CampaignStage(
+                id: "firearms_fortification",
+                line: .technology,
+                title: "火器修城",
+                turnWindow: "4-12 回合",
+                summary: "红衣炮、城防与围城准备",
+                detail: mingFireSupportCount > 0
+                    ? "明廷现有 \(mingFireSupportCount) 支火器/炮队可支撑守城或反围；后续要看银两、粮草和部署位置。"
+                    : "明廷当前缺少火器/炮队支点；遇到围城或关隘压力时，应考虑火器整备或修城固守。",
+                status: mingFireSupportCount > 0 ? .focus : .warning,
+                progress: min(1, Double(mingFireSupportCount) / 2)
+            ),
+            CampaignStage(
+                id: "final_mandate_line",
+                line: .world,
+                title: "终局名分线",
+                turnWindow: "\(max(1, state.maxTurns - 3))-\(state.maxTurns) 回合",
+                summary: "北京、山海关、武昌终局判定",
+                detail: stageDetail(
+                    track: mingTrack,
+                    empty: "明廷终局线尚未稳住；北京、山海关和武昌必须同时保住，才有名分续命空间。",
+                    active: "明廷已守住部分终局要冲，但仍需同时兼顾北门和湖广。",
+                    complete: "明廷终局要冲暂时完整；临近终局时仍需防止清、大顺、大西改写局势。"
+                ),
+                status: finalPressure > 0.82 && !(mingTrack?.isSatisfied ?? false) ? .warning : pressureStatus(for: mingTrack),
+                progress: mingTrack?.progress ?? 0
+            )
+        ]
+    }
+
+    private static func pressureStatus(for track: Track?) -> CampaignStageStatus {
+        guard let track else {
+            return .watch
+        }
+        if track.isSatisfied {
+            return .achieved
+        }
+        if track.progress >= 0.5 {
+            return .warning
+        }
+        if track.controlledCount > 0 {
+            return .focus
+        }
+        return .watch
+    }
+
+    private static func stageDetail(
+        track: Track?,
+        empty: String,
+        active: String,
+        complete: String
+    ) -> String {
+        guard let track else {
+            return empty
+        }
+        if track.isSatisfied {
+            return complete
+        }
+        if track.controlledCount > 0 {
+            return active
+        }
+        return empty
+    }
+
+    private static func courtStageDetail(leadingFaction: Faction?, turn: Int) -> String {
+        let leaderText = leadingFaction.map { "当前要冲分暂由 \($0.displayName) 领先" } ?? "当前要冲分尚未拉开"
+        if turn <= 2 {
+            return "\(leaderText)；开局应先看天下、朝廷、府库和粮道，再决定征饷、赈济、修城或整训。"
+        }
+        return "\(leaderText)；后续朝议要把民变、银两、粮草、火器和方面军令连成同一条决策链。"
     }
 
     private static func cues(from state: GameState, tracks: [Track]) -> [Cue] {

@@ -792,6 +792,54 @@ final class RuleEngineCoreTests: XCTestCase {
         XCTAssertEqual(summary.cues.first?.kind, .economy)
     }
 
+    func testMingBattleObjectiveSummaryShowsCampaignStageChain() {
+        let state = Self.mingVictoryState(objectiveControllers: [:])
+
+        let summary = BattleObjectiveSummary.from(state: state)
+
+        XCTAssertEqual(
+            summary.stages.map(\.id),
+            [
+                "pass_capital_screen",
+                "central_plain_grain_chain",
+                "huguang_grain_base",
+                "court_four_line_balance",
+                "firearms_fortification",
+                "final_mandate_line"
+            ]
+        )
+        XCTAssertEqual(summary.stages.first?.line, .military)
+        XCTAssertEqual(summary.stages.first { $0.id == "court_four_line_balance" }?.line, .policy)
+        XCTAssertEqual(summary.stages.first { $0.id == "firearms_fortification" }?.status, .warning)
+    }
+
+    func testMingCampaignStageChainReflectsPressureAndFireSupport() {
+        var artillery = Self.division(
+            id: "ming_fire_support",
+            faction: .ming,
+            coord: HexCoord(q: 1, r: 0)
+        )
+        artillery.components = [
+            DivisionComponent(type: .firearm, weight: 0.6),
+            DivisionComponent(type: .siegeEngine, weight: 0.4)
+        ]
+        let state = Self.mingVictoryState(
+            objectiveControllers: [
+                "obj_shanhaiguan": .qing,
+                "obj_kaifeng": .dashun,
+                "obj_luoyang": .dashun
+            ],
+            divisions: [artillery]
+        )
+
+        let summary = BattleObjectiveSummary.from(state: state)
+
+        XCTAssertEqual(summary.stages.first { $0.id == "pass_capital_screen" }?.status, .warning)
+        XCTAssertEqual(summary.stages.first { $0.id == "central_plain_grain_chain" }?.status, .warning)
+        XCTAssertEqual(summary.stages.first { $0.id == "firearms_fortification" }?.status, .focus)
+        XCTAssertTrue(summary.stages.first { $0.id == "central_plain_grain_chain" }?.detail.contains("大顺已取得部分") == true)
+    }
+
     func testMingEndTurnRecordsBattleCuesAsReports() {
         let state = Self.mingVictoryState(objectiveControllers: [:])
 
