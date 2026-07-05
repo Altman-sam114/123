@@ -80,6 +80,9 @@ struct AgentPromptBuilder {
         Court policy, technology, and military debate:
         \(context.courtSummary.displaySummary)
 
+        Campaign mandate and five-line pressure:
+        \(context.campaignSummary.displaySummary)
+
         Recent events:
         \(recentEvents)
 

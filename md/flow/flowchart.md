@@ -18,7 +18,7 @@
   -> v4.5 朝廷首片把政策、经济、科技、军事四线压力派生为 CourtStrategySummary，并进入 UI / AI 摘要
   -> v4.6 UI 首片用 MingDesignTokens、独立 CourtPanelView、朝议争点、朝报令条、军令牌、将印军令、将领名帖、军机复盘牌、塘报战记、部队军情牌、州府牌、府库牌、天下急势、中文军牌、势力旗号、城/关/粮 badge、粮道虚线/开关、军令计划线、舆图图例和四线项目分组 polish 主界面、地图部队和朝廷/将领/军令/AI 面板
   -> v4.6 朝廷项目首片把六类主议/备议落到 Command.enactCourtProject 和 EconomyRules
-  -> v4.7 明末胜负链首片把 ScenarioDefinition.victoryConditions 写入 GameState，并让清破关入京、大顺据中原秦陕、大西据湖广粮区、明廷守住京师关口等条件进入 BattleObjectiveSummary / VictoryRules，在“目标”面板显示进度、只读战役提示、天下五线态势、本旬任务链和阶段战局链，回合末把提示和急务/主线任务入塘报；目标 chip 和任务按钮可只读定位对应 hex / 州府；目标 hex 换手会写塘报
+  -> v4.7 明末胜负链首片把 ScenarioDefinition.victoryConditions 写入 GameState，并让清破关入京、大顺据中原秦陕、大西据湖广粮区、明廷守住京师关口等条件进入 BattleObjectiveSummary / VictoryRules，在“目标”面板显示进度、只读战役提示、天下五线态势、本旬任务链和阶段战局链，回合末把提示和急务/主线任务入塘报；CampaignAISummary 把同一五线态势送入 AgentContext 和 MarshalBattlefieldSummary；CourtStrategySummary 读取同一战役线压力加权朝廷主议；目标 chip 和任务按钮可只读定位对应 hex / 州府；目标 hex 换手会写塘报
   -> v0.5 元帅层是战略意图层，不替代战术权威
   -> 玩家和 AI 都必须把命令交给 RuleEngine
   -> 命令执行后再同步刷新战略层和 UI
@@ -54,16 +54,17 @@ flowchart TD
     ECO["钱粮总账<br/>EconomyState / EconomyRules<br/>民力、银两、粮草、治理修正、生产队列、自动补员"]:::economy
     HUDINFO["朝报令条<br/>HUDView<br/>回合、势力、胜负、钱粮、入账、营造和四线压力"]:::ui
     ECONINFO["府库牌<br/>EconomyPanelView<br/>库存、入账、维护、补员、募兵筹粮和营造队列"]:::ui
-    COURT["朝廷摘要<br/>CourtStrategySummary<br/>政策、经济、科技、军事四线压力和议题建议"]:::economy
+    COURT["朝廷摘要<br/>CourtStrategySummary<br/>政策、经济、科技、军事四线压力、战役线加权和议题建议"]:::economy
     COURTDEBATE["朝议争点<br/>CourtPanelView / CourtDebateSection<br/>安民与征饷、火器与团练、粮道与城防只读展示"]:::ui
     COURTPROJ["朝廷四线项目<br/>CourtProjectDomain + CourtProjectKind / Command.enactCourtProject<br/>政策、经济、科技、军事分组；征饷、赈济、修城、团练、火器、粮台"]:::command
     OBJINFO["战役目标<br/>GameState.victoryConditions -> BattleObjectiveSummary + BattleObjectivePanelView<br/>胜负线、城关控制方、战役提示、天下五线态势、本旬任务链、阶段战局链、终局要冲分和目标定位只读展示"]:::ui
+    CAMPAIGNAI["AI 五线态势摘要<br/>CampaignAISummary<br/>把中华世界局势、领先势力、急务/主线任务转入 AgentContext 和元帅摘要"]:::derived
     OBJFOCUS["目标定位<br/>AppContainer.focusObjective<br/>只更新 selectedHex / selectedRegionId / 高亮和交互日志"]:::ui
     CUELOG["战役提示入塘报<br/>CommandExecutor.appendBattleCueEvents<br/>battle-cue relatedRecordId 去重，只写 eventLog"]:::rules
     TASKLOG["本旬任务入塘报<br/>CommandExecutor.appendBattleTaskEvents<br/>battle-task relatedRecordId 去重，只写 eventLog"]:::rules
     OBJLOG["目标换手塘报<br/>CommandExecutor.appendObjectiveControlEventIfNeeded<br/>objective-control relatedRecordId，只记录已发生的 hex 控制变化"]:::rules
     PLAYER["玩家输入<br/>点击地图、移动、攻击、结束回合"]:::input
-    AI["AI 元帅系统<br/>MarshalAgent + TheaterDirective JSON<br/>读取前线、补给、钱粮和朝议摘要"]:::input
+    AI["AI 元帅系统<br/>MarshalAgent + TheaterDirective JSON<br/>读取前线、补给、钱粮、朝议和五线态势摘要"]:::input
     DEC["元帅 JSON 解码<br/>TheaterDirectiveDecoder<br/>提取 fenced JSON、校验 id 与 schema"]:::command
     COMP["元帅意图编译<br/>TheaterDirectiveCompiler<br/>把 TheaterDirective 降级成 ZoneDirective"]:::command
     ZD["战争指令<br/>ZoneDirective<br/>战区级 attack/defend 意图"]:::command
@@ -105,6 +106,8 @@ flowchart TD
     COURT --> COURTDEBATE
     COURT --> HUDINFO
     GS --> OBJINFO
+    OBJINFO --> COURT
+    OBJINFO --> CAMPAIGNAI
     OBJINFO --> OBJFOCUS --> REGIONINFO
     GS --> CUELOG
     GS --> TASKLOG
@@ -114,6 +117,7 @@ flowchart TD
     TURN --> AI
     ECO --> AI
     COURT --> AI
+    CAMPAIGNAI --> AI
     DIP --> RE
     PLAYER --> CMD
     COURT --> COURTPROJ

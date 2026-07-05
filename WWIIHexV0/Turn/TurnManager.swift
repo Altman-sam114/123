@@ -419,7 +419,14 @@ struct TurnManager {
     }
 
     static func contextSummary(_ context: AgentContext) -> String {
-        "\(context.agentId) turn \(context.turn): \(context.friendlyDivisions.count) friendly divisions, \(context.enemyDivisions.count) known enemy divisions, \(context.objectives.count) objectives visible, \(context.economySummary.displaySummary); \(context.courtSummary.displaySummary)."
+        [
+            "\(context.agentId) turn \(context.turn): \(context.friendlyDivisions.count) friendly divisions",
+            "\(context.enemyDivisions.count) known enemy divisions",
+            "\(context.objectives.count) objectives visible",
+            context.economySummary.displaySummary,
+            context.courtSummary.displaySummary,
+            context.campaignSummary.displaySummary
+        ].joined(separator: "; ")
     }
 
     static func canonicalJSON(_ envelope: AgentDecisionEnvelope) throws -> String {

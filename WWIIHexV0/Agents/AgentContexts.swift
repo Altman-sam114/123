@@ -322,13 +322,14 @@ struct CourtStrategySummary: Codable, Equatable {
                 encircledCount * 25
         )
         let trainingPressure = clamp(max(25, 55 - min(policyPressure, militaryPressure)))
+        let campaignPressure = campaignPolicyPressure(from: state)
 
         let ranked = [
-            (CourtPolicyFocus.grainTransport, grainTransportPressure),
-            (.relief, policyPressure),
-            (.fortify, militaryPressure),
-            (.raiseTax, economyPressure),
-            (.firearmReform, technologyPressure),
+            (CourtPolicyFocus.grainTransport, clamp(grainTransportPressure + campaignPressure.grainTransport)),
+            (.relief, clamp(policyPressure + campaignPressure.relief)),
+            (.fortify, clamp(militaryPressure + campaignPressure.fortify)),
+            (.raiseTax, clamp(economyPressure + campaignPressure.raiseTax)),
+            (.firearmReform, clamp(technologyPressure + campaignPressure.firearmReform)),
             (.trainMilitia, trainingPressure)
         ]
         .sorted {
@@ -361,7 +362,8 @@ struct CourtStrategySummary: Codable, Equatable {
                 governance: governance,
                 lowSupplyCount: lowSupplyCount,
                 encircledCount: encircledCount,
-                averagePressure: averagePressure
+                averagePressure: averagePressure,
+                campaignPressure: campaignPressure
             )
         )
     }
@@ -391,6 +393,29 @@ struct CourtStrategySummary: Codable, Equatable {
         governance: GovernanceAISummary,
         lowSupplyCount: Int,
         encircledCount: Int,
+        averagePressure: Int,
+        campaignPressure: CampaignPolicyPressure
+    ) -> String {
+        if campaignPressure.hasSignal {
+            return "\(campaignPressure.rationale)；\(baseRationale(focus: focus, economy: economy, governance: governance, lowSupplyCount: lowSupplyCount, encircledCount: encircledCount, averagePressure: averagePressure))"
+        }
+
+        return baseRationale(
+            focus: focus,
+            economy: economy,
+            governance: governance,
+            lowSupplyCount: lowSupplyCount,
+            encircledCount: encircledCount,
+            averagePressure: averagePressure
+        )
+    }
+
+    private static func baseRationale(
+        focus: CourtPolicyFocus,
+        economy: EconomyAISummary,
+        governance: GovernanceAISummary,
+        lowSupplyCount: Int,
+        encircledCount: Int,
         averagePressure: Int
     ) -> String {
         switch focus {
@@ -411,6 +436,130 @@ struct CourtStrategySummary: Codable, Equatable {
 
     private static func clamp(_ value: Int) -> Int {
         max(0, min(100, value))
+    }
+
+    private struct CampaignPolicyPressure {
+        var grainTransport: Int = 0
+        var relief: Int = 0
+        var fortify: Int = 0
+        var raiseTax: Int = 0
+        var firearmReform: Int = 0
+        var rationale: String = ""
+
+        var hasSignal: Bool {
+            grainTransport > 0 ||
+                relief > 0 ||
+                fortify > 0 ||
+                raiseTax > 0 ||
+                firearmReform > 0
+        }
+    }
+
+    private static func campaignPolicyPressure(from state: GameState) -> CampaignPolicyPressure {
+        let objectiveSummary = BattleObjectiveSummary.from(state: state)
+        guard objectiveSummary.isMingScenario else {
+            return CampaignPolicyPressure()
+        }
+
+        var pressure = CampaignPolicyPressure()
+        var reasons: [String] = []
+
+        if let qingTrack = objectiveSummary.track(id: .qingPassCapital),
+           qingTrack.controlledCount > 0 {
+            pressure.fortify += 42
+            pressure.grainTransport += 24
+            pressure.firearmReform += 18
+            reasons.append("破关入京线已动")
+        }
+
+        if let dashunTrack = objectiveSummary.track(id: .dashunCentralPlain),
+           dashunTrack.controlledCount > 0 {
+            let bonus = dashunTrack.progress >= 0.5 ? 36 : 24
+            pressure.grainTransport += bonus
+            pressure.relief += 18
+            pressure.raiseTax += 12
+            reasons.append("河南秦陕粮链承压")
+        }
+
+        if let daxiTrack = objectiveSummary.track(id: .daxiHuguang),
+           daxiTrack.controlledCount > 0 {
+            pressure.grainTransport += daxiTrack.progress >= 0.5 ? 32 : 20
+            pressure.fortify += 14
+            reasons.append("湖广粮道承压")
+        }
+
+        if state.turn >= max(1, state.maxTurns - 3),
+           let mingTrack = objectiveSummary.track(id: .mingMandateLine),
+           !mingTrack.isSatisfied {
+            pressure.fortify += 36
+            pressure.firearmReform += 16
+            reasons.append("终局名分线未稳")
+        }
+
+        pressure.rationale = reasons.isEmpty ? "" : "战役线提示：" + reasons.joined(separator: "、")
+        return pressure
+    }
+}
+
+struct CampaignLineAISummary: Codable, Equatable {
+    let line: String
+    let status: String
+    let pressure: Int
+    let title: String
+    let detail: String
+    let activeTaskCount: Int
+    let urgentTaskCount: Int
+}
+
+struct CampaignAISummary: Codable, Equatable {
+    let isMingScenario: Bool
+    let leadingFaction: Faction?
+    let lineBriefs: [CampaignLineAISummary]
+    let activeTasks: [String]
+    let displaySummary: String
+
+    static var empty: CampaignAISummary {
+        CampaignAISummary(
+            isMingScenario: false,
+            leadingFaction: nil,
+            lineBriefs: [],
+            activeTasks: [],
+            displaySummary: "旧剧本目标摘要未启用明末五线态势。"
+        )
+    }
+
+    static func from(state: GameState) -> CampaignAISummary {
+        let summary = BattleObjectiveSummary.from(state: state)
+        guard summary.isMingScenario else {
+            return .empty
+        }
+
+        let lineBriefs = summary.lineBriefs.map { brief in
+            CampaignLineAISummary(
+                line: brief.line.displayName,
+                status: brief.status.displayName,
+                pressure: brief.pressure,
+                title: brief.title,
+                detail: brief.detail,
+                activeTaskCount: brief.activeTaskCount,
+                urgentTaskCount: brief.urgentTaskCount
+            )
+        }
+        let activeTasks = summary.tasks
+            .filter { $0.priority != .watch }
+            .map { "\($0.line.displayName)·\($0.priority.displayName)·\($0.title)" }
+        let leaderText = summary.leadingFaction?.displayName ?? "未定"
+        let lineText = lineBriefs
+            .map { "\($0.line) \($0.status) \($0.pressure)" }
+            .joined(separator: "；")
+
+        return CampaignAISummary(
+            isMingScenario: true,
+            leadingFaction: summary.leadingFaction,
+            lineBriefs: lineBriefs,
+            activeTasks: activeTasks,
+            displaySummary: "要冲领先 \(leaderText)；五线 \(lineText)"
+        )
     }
 }
 
@@ -476,6 +625,7 @@ struct AgentContext: Codable, Equatable {
     let supplySummary: SupplySummary
     let economySummary: EconomyAISummary
     let courtSummary: CourtStrategySummary
+    let campaignSummary: CampaignAISummary
     let recentEvents: [EventSummary]
     let frontZones: [AgentFrontZoneSnapshot]
     let playerDirective: String?
@@ -517,6 +667,7 @@ struct AgentContextBuilder {
             supplySummary: supplySummary(for: agent.faction, state: state),
             economySummary: economySummary(for: agent.faction, state: state),
             courtSummary: CourtStrategySummary.from(faction: agent.faction, state: state),
+            campaignSummary: CampaignAISummary.from(state: state),
             recentEvents: recentEvents(state: state),
             frontZones: frontZoneSnapshots(for: agent.faction, state: state),
             playerDirective: playerDirective

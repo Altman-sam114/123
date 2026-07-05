@@ -863,6 +863,54 @@ final class RuleEngineCoreTests: XCTestCase {
         XCTAssertTrue(economyBrief?.detail.contains("河南秦陕粮链") == true)
     }
 
+    func testMingCampaignSummaryEntersAgentAndMarshalSummaries() {
+        let state = Self.mingVictoryState(
+            objectiveControllers: [
+                "obj_shanhaiguan": .qing,
+                "obj_kaifeng": .dashun,
+                "obj_luoyang": .dashun
+            ]
+        )
+        let agent = GameAgent.sample(
+            id: "ming_court_agent",
+            name: "明廷督师",
+            faction: .ming,
+            role: .fieldMarshal
+        )
+
+        let context = AgentContextBuilder().agentContext(for: agent, state: state, playerDirective: nil)
+        let prompt = AgentPromptBuilder().makeRequest(context: context, model: "test-model")
+        let marshalSummary = MarshalBattlefieldSummarizer().summary(
+            for: .automatic(for: .ming, state: state),
+            in: state
+        )
+
+        XCTAssertTrue(context.campaignSummary.isMingScenario)
+        XCTAssertTrue(context.campaignSummary.displaySummary.contains("五线"))
+        XCTAssertTrue(context.campaignSummary.lineBriefs.contains { $0.line == "军事" && $0.status == "告急" })
+        XCTAssertTrue(context.campaignSummary.activeTasks.contains { $0.contains("截断河南秦陕粮链") })
+        XCTAssertTrue(prompt.userPrompt.contains("Campaign mandate and five-line pressure"))
+        XCTAssertTrue(prompt.userPrompt.contains("五线"))
+        XCTAssertTrue(TurnManager.contextSummary(context).contains("五线"))
+        XCTAssertEqual(marshalSummary.schemaVersion, 9)
+        XCTAssertTrue(marshalSummary.campaignSummary.isMingScenario)
+        XCTAssertTrue(marshalSummary.campaignSummary.activeTasks.contains { $0.contains("堵住破关入京") })
+    }
+
+    func testMingCampaignPressureInfluencesCourtFocus() {
+        let state = Self.mingVictoryState(
+            objectiveControllers: [
+                "obj_shanhaiguan": .qing
+            ]
+        )
+
+        let summary = CourtStrategySummary.from(faction: .ming, state: state)
+
+        XCTAssertEqual(summary.recommendedFocus, .fortify)
+        XCTAssertTrue(summary.secondaryFocuses.contains(.grainTransport))
+        XCTAssertTrue(summary.rationale.contains("破关入京线已动"))
+    }
+
     func testMingBattleObjectiveSummaryShowsCurrentTaskChain() {
         let state = Self.mingVictoryState(objectiveControllers: [:])
 
