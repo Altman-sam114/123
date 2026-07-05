@@ -16,7 +16,7 @@
   -> v4.3 默认明末单位使用明末 template，战术展示名开始明末化
   -> v4.4 钱粮、治理与天下局势首片把 economy 展示为民力、银两、粮草，民变/行政掌控影响收入，天下面板展示战和关系，并进入 AI 摘要
   -> v4.5 朝廷首片把政策、经济、科技、军事四线压力派生为 CourtStrategySummary，并进入 UI / AI 摘要
-  -> v4.6 UI 首片用 MingDesignTokens、独立 CourtPanelView、朝议争点、朝报令条、军令牌、将印军令、将领名帖、军机复盘牌、塘报战记、部队军情牌、州府牌、府库牌、天下急势、中文军牌、势力旗号、城/关/粮 badge、粮道虚线/开关、军令计划线、舆图图例和四线项目分组 polish 主界面、地图部队和朝廷/将领/军令/AI 面板
+  -> v4.6 UI 首片用 MingDesignTokens、独立 CourtPanelView、朝议争点、朝报令条、军令牌、将印军令、将领名帖、军机复盘牌、塘报战记、部队军情牌、州府牌、府库牌、天下急势、中文军牌、势力旗号、城/关/粮 badge、粮道虚线/开关、军令计划线、舆图图例、兵种/粮草/堆叠图例和四线交叉项目分组 polish 主界面、地图部队和朝廷/将领/军令/AI 面板
   -> v4.6 朝廷项目首片把征饷、赈济、招抚、农政、修城、团练、火器、红衣炮、粮台驿道等主议/备议落到 Command.enactCourtProject 和 EconomyRules
   -> v4.7 明末胜负链首片把 ScenarioDefinition.victoryConditions 写入 GameState，并让清破关入京、大顺据中原秦陕、大西据湖广粮区、明廷守住京师关口等条件进入 BattleObjectiveSummary / VictoryRules，在“目标”面板显示进度、只读战役提示、开封围城压力、天下五线态势、本旬任务链和阶段战局链，回合末把提示和急务/主线任务入塘报；CampaignAISummary 把同一五线态势送入 AgentContext 和 MarshalBattlefieldSummary；CourtStrategySummary 读取同一战役线压力加权朝廷主议；ZoneCommanderDoctrine 让明廷谨慎、清/大顺/大西进取、地方自保，并贯通 TheaterCommanderPool、AppContainer 空将领 registry fallback、MockAICommander、SimulatedMarshalLLMClient 和不同 tactic 映射；目标 chip 和任务按钮可只读定位对应 hex / 州府；目标 hex 换手会写塘报
   -> v0.5 元帅层是战略意图层，不替代战术权威
@@ -80,7 +80,7 @@ flowchart TD
     GENERALINFO["将印军令 / 将领名帖<br/>GeneralCommandPanelView + GeneralProfileView<br/>防区、主将、忠诚、军心、麾下军伍和军令计划"]:::ui
     UNITINFO["部队军情牌<br/>UnitInspectorView<br/>兵力、粮草、攻守行程察、兵种编成和驻防归属只读展示"]:::ui
     REGIONINFO["州府牌<br/>RegionInspectorView<br/>城关粮坊、治理、钱粮城防、战局归属和当前格只读展示"]:::ui
-    UI["地图和面板显示<br/>SpriteKit / SwiftUI Overlay<br/>v4.6 明末舆图、朝报令条、军令牌、将印军令、将领名帖、军机复盘牌、塘报战记、天下急势、朝议争点、部队军情牌、州府牌、府库牌、中文图层名、城/关/粮/步/势力旗/军令计划图例、粮道虚线/开关、中文军牌、朝廷四线项目、AI 面板 polish"]:::ui
+    UI["地图和面板显示<br/>SpriteKit / SwiftUI Overlay<br/>v4.6 明末舆图、朝报令条、军令牌、将印军令、将领名帖、军机复盘牌、塘报战记、天下急势、朝议争点、部队军情牌、州府牌、府库牌、中文图层名、城/关/粮/兵种军牌/粮草堆叠/势力旗/军令计划图例、粮道虚线/开关、中文军牌、朝廷四线兼线项目、AI 面板 polish"]:::ui
     LOG["日志和复盘记录<br/>EventLog / WarDirectiveRecord / AgentDecisionRecord / RulerDecisionRecord<br/>用于 UI 展示和后续调试"]:::ui
 
     ME --> JSON --> DL --> GS
@@ -478,7 +478,7 @@ flowchart TD
     ROOT["主界面<br/>RootGameView<br/>HUD + 信息 tabs + MingDesignTokens"]:::ui
     LOG["塘报战记<br/>EventLogView<br/>最近 60 条 LogDisplayEntry + 战事/粮草/州府/天下计数"]:::ui
     AIUI["军机复盘牌<br/>AgentPanelView<br/>最高意志 + 决策摘要 + 战区指令 + 命令回执 + 原始 JSON"]:::ui
-    BOARD["地图场景<br/>BoardScene + UnitNode<br/>中文军牌徽记 + 势力旗号 + 守/退状态"]:::ui
+    BOARD["地图场景<br/>BoardScene + UnitNode<br/>中文军牌徽记 + 势力旗号 + 旗色侧条 + 兵力小签 + 守/退状态"]:::ui
     MARSHAL["模拟元帅 / MockAI<br/>MarshalAgent + SimulatedMarshalLLMClient"]:::ai
     ZD["战区指令<br/>ZoneDirective<br/>tactic / focus / intensity"]:::command
     WCE["执行解释<br/>WarCommandExecutor<br/>infiltration 限制默认投入"]:::command

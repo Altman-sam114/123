@@ -303,7 +303,8 @@ private struct MingMapLegendView: View {
                     MapLegendBadge(text: "城", title: "城池", tint: MingDesignTokens.imperialGold)
                     MapLegendBadge(text: "关", title: "关隘", tint: MingDesignTokens.cinnabar)
                     MapLegendBadge(text: "粮", title: "粮台", tint: MingDesignTokens.jade)
-                    MapLegendBadge(text: "步", title: "军牌", tint: MingDesignTokens.porcelainBlue)
+                    UnitTypeLegendBadge()
+                    UnitStateLegendBadge()
                     FactionBannerLegendBadge()
                     OperationPlanLegendBadge()
 
@@ -366,6 +367,93 @@ private struct MapLegendBadge: View {
         .padding(.vertical, 6)
         .background(MingDesignTokens.sectionBackground.opacity(0.82), in: RoundedRectangle(cornerRadius: MingDesignTokens.cornerRadius))
         .accessibilityElement(children: .combine)
+    }
+}
+
+private struct UnitTypeLegendBadge: View {
+    private let unitTypes: [UnitTypeLegendSymbol] = [
+        UnitTypeLegendSymbol(text: "步", tint: MingDesignTokens.porcelainBlue),
+        UnitTypeLegendSymbol(text: "骑", tint: MingDesignTokens.jade),
+        UnitTypeLegendSymbol(text: "火", tint: MingDesignTokens.cinnabar),
+        UnitTypeLegendSymbol(text: "城", tint: MingDesignTokens.imperialGold),
+        UnitTypeLegendSymbol(text: "旗", tint: .purple)
+    ]
+
+    var body: some View {
+        HStack(spacing: 8) {
+            HStack(spacing: 3) {
+                ForEach(unitTypes, id: \.text) { item in
+                    Text(item.text)
+                        .font(.caption.bold())
+                        .foregroundStyle(.white)
+                        .frame(width: 19, height: 17)
+                        .background(item.tint, in: RoundedRectangle(cornerRadius: 4))
+                }
+            }
+
+            VStack(alignment: .leading, spacing: 1) {
+                Text("兵种军牌")
+                    .font(.caption.bold())
+                Text("步 / 骑 / 火 / 城 / 旗")
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+            }
+        }
+        .padding(.horizontal, 8)
+        .padding(.vertical, 6)
+        .background(MingDesignTokens.sectionBackground.opacity(0.82), in: RoundedRectangle(cornerRadius: MingDesignTokens.cornerRadius))
+        .accessibilityElement(children: .combine)
+    }
+}
+
+private struct UnitTypeLegendSymbol {
+    let text: String
+    let tint: Color
+}
+
+private struct UnitStateLegendBadge: View {
+    var body: some View {
+        HStack(spacing: 8) {
+            HStack(spacing: 4) {
+                SupplyDot(color: .green)
+                SupplyDot(color: .orange)
+                SupplyDot(color: MingDesignTokens.cinnabar)
+                Text("2")
+                    .font(.caption2.bold())
+                    .foregroundStyle(.white)
+                    .frame(width: 16, height: 16)
+                    .background(.black.opacity(0.88), in: Circle())
+            }
+
+            VStack(alignment: .leading, spacing: 1) {
+                Text("粮草与堆叠")
+                    .font(.caption.bold())
+                Text("满 / 低 / 断 / 数")
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+            }
+        }
+        .padding(.horizontal, 8)
+        .padding(.vertical, 6)
+        .background(MingDesignTokens.sectionBackground.opacity(0.82), in: RoundedRectangle(cornerRadius: MingDesignTokens.cornerRadius))
+        .accessibilityElement(children: .combine)
+    }
+}
+
+private struct SupplyDot: View {
+    let color: Color
+
+    var body: some View {
+        Circle()
+            .fill(color)
+            .frame(width: 10, height: 10)
+            .overlay {
+                Circle()
+                    .stroke(.white.opacity(0.75), lineWidth: 1)
+            }
+            .accessibilityHidden(true)
     }
 }
 

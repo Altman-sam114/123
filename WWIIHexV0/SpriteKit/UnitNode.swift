@@ -38,15 +38,9 @@ final class UnitNode: SKNode {
         body.zPosition = 0
         addChild(body)
 
+        addFactionSideStrip(for: division, width: width, height: height)
         addMingUnitEmblem(for: division, width: width, height: height)
-
-        addLabel(
-            text: division.markerReadinessText,
-            y: -height * 0.28,
-            fontSize: max(7, layout.hexSize * 0.16),
-            weight: "AvenirNext-Regular",
-            color: SKColor(white: 0.97, alpha: 1)
-        )
+        addReadinessPill(for: division, layout: layout, bodyWidth: width, bodyHeight: height)
 
         addSupplyMarker(for: division, layout: layout, bodyWidth: width, bodyHeight: height)
         addStackMarker(placement: placement, layout: layout, bodyWidth: width, bodyHeight: height)
@@ -54,6 +48,20 @@ final class UnitNode: SKNode {
 
     required init?(coder aDecoder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
+    }
+
+    private func addFactionSideStrip(for division: Division, width: CGFloat, height: CGFloat) {
+        let stripWidth = max(4, width * 0.09)
+        let strip = SKShapeNode(
+            rectOf: CGSize(width: stripWidth, height: height * 0.76),
+            cornerRadius: min(3, stripWidth / 2)
+        )
+        strip.fillColor = TerrainStyle.unitStrokeColor(for: division.faction).withAlphaComponent(0.92)
+        strip.strokeColor = SKColor(white: 1, alpha: 0.20)
+        strip.lineWidth = 0.8
+        strip.position = CGPoint(x: -width / 2 + stripWidth * 0.78, y: 0)
+        strip.zPosition = 1
+        addChild(strip)
     }
 
     private func addMingUnitEmblem(for division: Division, width: CGFloat, height: CGFloat) {
@@ -73,11 +81,41 @@ final class UnitNode: SKNode {
             color: SKColor(red: 0.20, green: 0.10, blue: 0.05, alpha: 0.96)
         )
 
+        let medallion = SKShapeNode(ellipseOf: CGSize(width: width * 0.46, height: height * 0.38))
+        medallion.fillColor = SKColor(white: 0.04, alpha: 0.20)
+        medallion.strokeColor = SKColor(white: 1, alpha: 0.20)
+        medallion.lineWidth = 0.8
+        medallion.position = CGPoint(x: 0, y: height * 0.02)
+        medallion.zPosition = 1
+        addChild(medallion)
+
         addLabel(
             text: division.markerEmblemText,
             y: height * 0.02,
             fontSize: max(12, height * 0.38),
             weight: "PingFangSC-Semibold",
+            color: SKColor(white: 0.97, alpha: 1)
+        )
+    }
+
+    private func addReadinessPill(for division: Division, layout: HexLayout, bodyWidth: CGFloat, bodyHeight: CGFloat) {
+        let pillHeight = max(10, bodyHeight * 0.21)
+        let pill = SKShapeNode(
+            rectOf: CGSize(width: bodyWidth * 0.66, height: pillHeight),
+            cornerRadius: min(4, pillHeight / 2)
+        )
+        pill.fillColor = SKColor(white: 0.02, alpha: 0.26)
+        pill.strokeColor = SKColor(white: 1, alpha: 0.18)
+        pill.lineWidth = 0.7
+        pill.position = CGPoint(x: 0, y: -bodyHeight * 0.28)
+        pill.zPosition = 1
+        addChild(pill)
+
+        addLabel(
+            text: division.markerReadinessText,
+            y: -bodyHeight * 0.28,
+            fontSize: max(7, layout.hexSize * 0.16),
+            weight: "AvenirNext-Regular",
             color: SKColor(white: 0.97, alpha: 1)
         )
     }

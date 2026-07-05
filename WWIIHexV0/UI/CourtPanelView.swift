@@ -359,7 +359,7 @@ private struct CourtProjectSection: View {
     }
 
     private func projects(for domain: CourtProjectDomain) -> [CourtProjectKind] {
-        orderedProjects.filter { $0.primaryDomain == domain }
+        orderedProjects.filter { $0.domains.contains(domain) }
     }
 
     private func pressure(for domain: CourtProjectDomain) -> Int {
@@ -450,7 +450,8 @@ private struct CourtProjectRow: View {
     private var detailText: String {
         let gain = project.resourceGain.isEmpty ? "" : " / 得 \(project.resourceGain.compactDisplaySummary)"
         let tag = isRecommended ? "主议 / " : ""
-        return "\(tag)\(project.domainDisplayName) / 耗 \(project.cost.compactDisplaySummary)\(gain)。\(project.benefitSummary) 风险：\(project.riskSummary)"
+        let domainTag = project.domains.count > 1 ? "兼线 \(project.domainDisplayName)" : project.domainDisplayName
+        return "\(tag)\(domainTag) / 耗 \(project.cost.compactDisplaySummary)\(gain)。\(project.benefitSummary) 风险：\(project.riskSummary)"
     }
 }
 
