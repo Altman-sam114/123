@@ -15,6 +15,71 @@ struct ZoneCommanderAgentConfig: Codable, Equatable, Identifiable {
     }
 }
 
+struct ZoneCommanderDoctrine: Equatable {
+    let title: String
+    let commandStyle: ZoneCommanderAgentConfig.CommandStyle
+    let skills: [String]
+
+    static func profile(for faction: Faction) -> ZoneCommanderDoctrine {
+        switch faction {
+        case .germany:
+            return ZoneCommanderDoctrine(
+                title: "German Commander",
+                commandStyle: .aggressive,
+                skills: ["armored_thrust", "operational_breakthrough"]
+            )
+        case .allies:
+            return ZoneCommanderDoctrine(
+                title: "Allied Commander",
+                commandStyle: .balanced,
+                skills: ["coalition_coordination", "reserve_control"]
+            )
+        case .ming:
+            return ZoneCommanderDoctrine(
+                title: "明廷督师",
+                commandStyle: .cautious,
+                skills: ["capital_defense", "grain_conservation", "fortress_coordination"]
+            )
+        case .qing:
+            return ZoneCommanderDoctrine(
+                title: "清方旗营统帅",
+                commandStyle: .aggressive,
+                skills: ["banner_cavalry", "encirclement", "relief_route_cutting"]
+            )
+        case .dashun:
+            return ZoneCommanderDoctrine(
+                title: "大顺军议",
+                commandStyle: .aggressive,
+                skills: ["grain_expansion", "weak_city_breakthrough", "rapid_consolidation"]
+            )
+        case .daxi:
+            return ZoneCommanderDoctrine(
+                title: "大西军议",
+                commandStyle: .aggressive,
+                skills: ["mobile_raiding", "supply_capture", "rear_disruption"]
+            )
+        case .localNeutral:
+            return ZoneCommanderDoctrine(
+                title: "地方团练",
+                commandStyle: .cautious,
+                skills: ["town_security", "militia_defense"]
+            )
+        }
+    }
+
+    static func defaultConfig(for zone: FrontZone, idPrefix: String = "auto") -> ZoneCommanderAgentConfig {
+        let profile = profile(for: zone.faction)
+        return ZoneCommanderAgentConfig(
+            id: "\(idPrefix)_\(zone.id.rawValue)",
+            name: "\(profile.title) (\(zone.id.rawValue))",
+            faction: zone.faction,
+            assignedZoneId: zone.id,
+            skills: profile.skills,
+            commandStyle: profile.commandStyle
+        )
+    }
+}
+
 struct TacticConditionChecker {
     func canUseTactic(
         _ tactic: TacticName,
@@ -272,21 +337,69 @@ struct ZoneCommanderAgent: ZoneCommanderProviding {
             supplyWarningCount: supplyWarningCount(zone: zone, state: state),
             visibleEnemyRegionCount: visibleEnemy.count
         )
+        let tactic = doctrineTactic(
+            classifiedTactic: classification.tactic,
+            category: classification.category,
+            zone: zone,
+            visibleEnemy: visibleEnemy,
+            state: state
+        )
 
-        guard conditionChecker.canUseTactic(classification.tactic, commander: config, zone: zone, state: state) else {
+        guard conditionChecker.canUseTactic(tactic, commander: config, zone: zone, state: state) else {
             return makeDefenseDirective(tactic: .holdPosition, zone: zone)
         }
 
         switch classification.category {
         case .offense:
             return makeOffenseDirective(
-                tactic: classification.tactic,
+                tactic: tactic,
                 zone: zone,
                 visibleEnemy: visibleEnemy,
                 state: state
             )
         case .defense:
-            return makeDefenseDirective(tactic: classification.tactic, zone: zone)
+            return makeDefenseDirective(tactic: tactic, zone: zone)
+        }
+    }
+
+    private func doctrineTactic(
+        classifiedTactic: TacticName,
+        category: CommandCategory,
+        zone: FrontZone,
+        visibleEnemy: [RegionId: Int],
+        state: GameState
+    ) -> TacticName {
+        func firstUsable(_ candidates: [TacticName]) -> TacticName {
+            for tactic in candidates where tactic.category == category {
+                if conditionChecker.canUseTactic(tactic, commander: config, zone: zone, state: state) {
+                    return tactic
+                }
+            }
+            return classifiedTactic
+        }
+
+        switch (zone.faction, category) {
+        case (.ming, .offense):
+            return firstUsable([.fireCoverage, classifiedTactic])
+        case (.ming, .defense):
+            return firstUsable([.defenseInDepth, .holdPosition, classifiedTactic])
+        case (.qing, .offense):
+            let openingTactic: TacticName = visibleEnemy.count >= 2 ? .pincerMovement : .spearhead
+            return firstUsable([openingTactic, .spearhead, .breakthrough, classifiedTactic])
+        case (.dashun, .offense):
+            return firstUsable([.breakthrough, .standardAttack, classifiedTactic])
+        case (.daxi, .offense):
+            return firstUsable([.guerrillaWarfare, .feint, .standardAttack, classifiedTactic])
+        case (.localNeutral, .offense):
+            return firstUsable([.feint, .standardAttack, classifiedTactic])
+        case (.localNeutral, .defense):
+            return firstUsable([.holdPosition, classifiedTactic])
+        case (.germany, _),
+             (.allies, _),
+             (.qing, .defense),
+             (.dashun, .defense),
+             (.daxi, .defense):
+            return classifiedTactic
         }
     }
 
@@ -838,16 +951,7 @@ struct TheaterCommanderPool {
     }
 
     static func defaultConfig(for zone: FrontZone) -> ZoneCommanderAgentConfig {
-        let style: ZoneCommanderAgentConfig.CommandStyle = zone.faction == .germany ? .aggressive : .balanced
-        let factionName = zone.faction == .germany ? "German" : "Allied"
-        return ZoneCommanderAgentConfig(
-            id: "auto_\(zone.id.rawValue)",
-            name: "\(factionName) Commander (\(zone.id.rawValue))",
-            faction: zone.faction,
-            assignedZoneId: zone.id,
-            skills: [],
-            commandStyle: style
-        )
+        ZoneCommanderDoctrine.defaultConfig(for: zone)
     }
 
     private func contextSummary(for faction: Faction, directives: [ZoneDirective]) -> String {

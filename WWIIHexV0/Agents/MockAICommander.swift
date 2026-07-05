@@ -90,14 +90,7 @@ struct MockAICommander {
     }
 
     private static func defaultConfig(for zone: FrontZone) -> ZoneCommanderAgentConfig {
-        ZoneCommanderAgentConfig(
-            id: "mock_\(zone.id.rawValue)",
-            name: "Mock Commander (\(zone.id.rawValue))",
-            faction: zone.faction,
-            assignedZoneId: zone.id,
-            skills: [],
-            commandStyle: .balanced
-        )
+        ZoneCommanderDoctrine.defaultConfig(for: zone, idPrefix: "mock")
     }
 
     private func attackIntensity(for zone: FrontZone, state: GameState) -> AttackIntensity {

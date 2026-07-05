@@ -77,6 +77,70 @@ final class CommandSystemTests: XCTestCase {
         XCTAssertEqual(strong.tactic, .standardAttack)
     }
 
+    func testMingFactionDoctrineProfilesDriveDefaultTacticalBias() {
+        let classifier = BinaryTacticClassifier(attackThreshold: 1.2)
+        let mingConfig = TheaterCommanderPool.defaultConfig(
+            for: FrontZone(id: "ming_zone", name: "畿辅防区", faction: .ming)
+        )
+        let qingConfig = TheaterCommanderPool.defaultConfig(
+            for: FrontZone(id: "qing_zone", name: "关外旗营", faction: .qing)
+        )
+        let dashunConfig = TheaterCommanderPool.defaultConfig(
+            for: FrontZone(id: "dashun_zone", name: "河南老营", faction: .dashun)
+        )
+        let daxiConfig = TheaterCommanderPool.defaultConfig(
+            for: FrontZone(id: "daxi_zone", name: "湖广机动营", faction: .daxi)
+        )
+        let localConfig = TheaterCommanderPool.defaultConfig(
+            for: FrontZone(id: "local_zone", name: "乡绅团练", faction: .localNeutral)
+        )
+
+        let mingChoice = classifier.classify(
+            friendlyStrength: 8,
+            visibleEnemyStrength: 7,
+            hasContestedForwardPresence: false,
+            hasStaticDefense: false,
+            config: mingConfig
+        )
+        let qingChoice = classifier.classify(
+            friendlyStrength: 8,
+            visibleEnemyStrength: 7,
+            hasContestedForwardPresence: false,
+            hasStaticDefense: false,
+            config: qingConfig
+        )
+
+        XCTAssertEqual(mingConfig.commandStyle, .cautious)
+        XCTAssertTrue(mingConfig.skills.contains("capital_defense"))
+        XCTAssertEqual(mingChoice.category, .defense)
+        XCTAssertEqual(mingChoice.tactic, .holdPosition)
+        XCTAssertEqual(qingConfig.commandStyle, .aggressive)
+        XCTAssertTrue(qingConfig.skills.contains("banner_cavalry"))
+        XCTAssertEqual(qingChoice.category, .offense)
+        XCTAssertEqual(dashunConfig.commandStyle, .aggressive)
+        XCTAssertTrue(dashunConfig.skills.contains("grain_expansion"))
+        XCTAssertEqual(daxiConfig.commandStyle, .aggressive)
+        XCTAssertTrue(daxiConfig.skills.contains("mobile_raiding"))
+        XCTAssertEqual(localConfig.commandStyle, .cautious)
+        XCTAssertTrue(localConfig.skills.contains("town_security"))
+    }
+
+    func testMingFactionDoctrineProducesDistinctDirectiveTactics() throws {
+        let qingDirective = try Self.directiveForDoctrine(friendly: .qing, enemy: .ming)
+        let dashunDirective = try Self.directiveForDoctrine(friendly: .dashun, enemy: .ming)
+        let daxiDirective = try Self.directiveForDoctrine(friendly: .daxi, enemy: .ming)
+        let mingDirective = try Self.directiveForDoctrine(friendly: .ming, enemy: .qing)
+
+        XCTAssertEqual(qingDirective.type, .attack)
+        XCTAssertEqual(qingDirective.tactic, .spearhead)
+        XCTAssertEqual(dashunDirective.type, .attack)
+        XCTAssertEqual(dashunDirective.tactic, .breakthrough)
+        XCTAssertEqual(daxiDirective.type, .attack)
+        XCTAssertEqual(daxiDirective.tactic, .guerrillaWarfare)
+        XCTAssertEqual(mingDirective.type, .attack)
+        XCTAssertEqual(mingDirective.tactic, .fireCoverage)
+    }
+
     func testV036TacticConditionCheckerAlwaysAllowsCurrentTactics() throws {
         let state = Self.commandScenario(germanCount: 1, alliedCount: 1)
         let zone = try XCTUnwrap(state.warDeploymentState.frontZones[Self.germanFront])
@@ -447,6 +511,98 @@ final class CommandSystemTests: XCTestCase {
             turn: 1
         )
         return state
+    }
+
+    private static func directiveForDoctrine(friendly: Faction, enemy: Faction) throws -> ZoneDirective {
+        let state = doctrineScenario(friendly: friendly, enemy: enemy)
+        let zone = try XCTUnwrap(state.warDeploymentState.frontZones[Self.germanFront])
+        let agent = ZoneCommanderAgent(config: TheaterCommanderPool.defaultConfig(for: zone))
+        return try XCTUnwrap(agent.makeDirective(for: zone, in: state))
+    }
+
+    private static func doctrineScenario(friendly: Faction, enemy: Faction) -> GameState {
+        let friendlyHexes = [
+            HexCoord(q: 2, r: 0),
+            HexCoord(q: 2, r: 1)
+        ]
+        let enemyHexes = [
+            HexCoord(q: 3, r: 0)
+        ]
+        let friendlyComponents = [
+            DivisionComponent(type: .cavalry, weight: 0.65),
+            DivisionComponent(type: .firearm, weight: 0.20),
+            DivisionComponent(type: .infantry, weight: 0.15)
+        ]
+        let enemyComponents = [
+            DivisionComponent(type: .infantry, weight: 0.80),
+            DivisionComponent(type: .militia, weight: 0.20)
+        ]
+        let divisions: [Division] = friendlyHexes.enumerated().map { index, hex in
+            Division(
+                id: "friendly_\(index)",
+                name: "friendly_\(index)",
+                faction: friendly,
+                coord: hex,
+                components: friendlyComponents
+            )
+        } + enemyHexes.enumerated().map { index, hex in
+            Division(
+                id: "enemy_\(index)",
+                name: "enemy_\(index)",
+                faction: enemy,
+                coord: hex,
+                components: enemyComponents
+            )
+        }
+
+        var map = commandMap()
+        for regionId in map.regions.keys {
+            let faction = regionId == "ardennes" ? friendly : enemy
+            map.regions[regionId]?.owner = faction
+            map.regions[regionId]?.controller = faction
+        }
+        for coord in map.tiles.keys {
+            guard let regionId = map.hexToRegion[coord] else {
+                continue
+            }
+            map.tiles[coord]?.controller = regionId == "ardennes" ? friendly : enemy
+        }
+
+        var theaterState = commandTheaters()
+        theaterState.theaters[TheaterId(Self.germanFront.rawValue)]?.controllingFaction = friendly
+        theaterState.theaters[TheaterId(Self.frenchFront.rawValue)]?.controllingFaction = enemy
+        let deployment = WarDeploymentManager().makeInitialState(
+            map: map,
+            theaterState: theaterState,
+            divisions: divisions,
+            turn: 1
+        )
+        let frontLineState = FrontLineManager().makeInitialState(
+            map: map,
+            theaterState: theaterState,
+            divisions: divisions,
+            turn: 1
+        )
+
+        return GameState(
+            scenarioId: "v4_7_doctrine",
+            turn: 1,
+            maxTurns: 8,
+            activeFaction: friendly,
+            phase: .aiAction,
+            map: map,
+            theaterState: theaterState,
+            frontLineState: frontLineState,
+            warDeploymentState: deployment,
+            diplomacyState: DiplomacyState.initial(for: [friendly, enemy], turn: 1),
+            turnOrder: [friendly, enemy],
+            humanControlledFactions: [],
+            aiControlledFactions: [friendly, enemy],
+            divisions: divisions,
+            victoryState: .ongoing,
+            selectedUnitSummary: nil,
+            eventLog: []
+        )
     }
 
     private static func commandMap() -> MapState {
