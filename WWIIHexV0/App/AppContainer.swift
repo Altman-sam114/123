@@ -292,6 +292,19 @@ final class AppContainer: ObservableObject {
         showsSupplyRoutes = enabled
     }
 
+    func focusObjective(_ objectiveId: String) {
+        guard let objective = gameState.map.objective(id: objectiveId) else {
+            appendInteractionEvent("Objective focus rejected: missing objective \(objectiveId).")
+            return
+        }
+
+        selectedUnitId = nil
+        selectedHex = objective.coord
+        selectedRegionId = mapDisplayAdapter.regionId(for: objective.coord)
+        clearHighlights()
+        appendInteractionEvent("Objective located: \(objective.name).")
+    }
+
     func resetGame() {
         isRunningAI = false
         gameState = refreshGeneralAssignments(

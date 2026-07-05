@@ -2,6 +2,12 @@ import SwiftUI
 
 struct BattleObjectivePanelView: View {
     let gameState: GameState
+    let onFocusObjective: (String) -> Void
+
+    init(gameState: GameState, onFocusObjective: @escaping (String) -> Void = { _ in }) {
+        self.gameState = gameState
+        self.onFocusObjective = onFocusObjective
+    }
 
     var body: some View {
         let summary = BattleObjectiveSummary.from(state: gameState)
@@ -22,7 +28,8 @@ struct BattleObjectivePanelView: View {
                     ForEach(summary.tracks) { track in
                         BattleObjectiveTrackCard(
                             track: track,
-                            isFinalTurn: gameState.turn >= gameState.maxTurns
+                            isFinalTurn: gameState.turn >= gameState.maxTurns,
+                            onFocusObjective: onFocusObjective
                         )
                     }
                 }
@@ -336,6 +343,7 @@ private struct BattleObjectiveScoreRowView: View {
 private struct BattleObjectiveTrackCard: View {
     let track: BattleObjectiveSummary.Track
     let isFinalTurn: Bool
+    let onFocusObjective: (String) -> Void
 
     var body: some View {
         VStack(alignment: .leading, spacing: MingDesignTokens.compactSpacing) {
@@ -373,7 +381,13 @@ private struct BattleObjectiveTrackCard: View {
 
             LazyVGrid(columns: [GridItem(.adaptive(minimum: 104), spacing: 6)], alignment: .leading, spacing: 6) {
                 ForEach(track.targets) { target in
-                    BattleObjectiveTargetChip(target: target, tint: track.faction.mingBannerTint)
+                    Button {
+                        onFocusObjective(target.objectiveId)
+                    } label: {
+                        BattleObjectiveTargetChip(target: target, tint: track.faction.mingBannerTint)
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityHint("定位到\(target.name)")
                 }
             }
         }

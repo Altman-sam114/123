@@ -246,7 +246,13 @@ struct RootGameView: View {
                         onEnactProject: container.enactCourtProject
                     )
                 case .objective:
-                    BattleObjectivePanelView(gameState: container.gameState)
+                    BattleObjectivePanelView(
+                        gameState: container.gameState,
+                        onFocusObjective: { objectiveId in
+                            container.focusObjective(objectiveId)
+                            selectedCompactPanel = .region
+                        }
+                    )
                 case .diplomacy:
                     DiplomacyPanelView(
                         diplomacyState: container.gameState.diplomacyState,

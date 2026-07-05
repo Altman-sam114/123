@@ -58,6 +58,30 @@ final class BoardInteractionTests: XCTestCase {
         XCTAssertEqual(handler.commands, [.attack(attackerId: "allied", targetId: "german")])
     }
 
+    func testFocusingObjectiveSelectsTargetHexAndClearsUnitHighlights() {
+        let handler = MockCommandHandler()
+        let container = AppContainer(
+            gameState: Self.objectiveTestState(),
+            commandHandler: handler,
+            dataLoader: DataLoader(),
+            playerFaction: .allies
+        )
+
+        container.handleBoardTap(HexCoord(q: 1, r: 1))
+        XCTAssertEqual(container.selectedUnitId, "allied")
+        XCTAssertFalse(container.movementHighlights.isEmpty)
+
+        container.focusObjective("capital")
+
+        XCTAssertNil(container.selectedUnitId)
+        XCTAssertEqual(container.selectedHex, HexCoord(q: 3, r: 3))
+        XCTAssertEqual(container.selectedRegionId, "capital_region")
+        XCTAssertTrue(container.movementHighlights.isEmpty)
+        XCTAssertTrue(container.attackHighlights.isEmpty)
+        XCTAssertTrue(handler.commands.isEmpty)
+        XCTAssertTrue(container.displayEventLog.contains { $0.message == "Objective located: Capital Gate." })
+    }
+
     func testEndTurnSubmitsCommandThroughHandler() {
         let handler = MockCommandHandler()
         let container = makeContainer(handler: handler)
@@ -148,6 +172,29 @@ final class BoardInteractionTests: XCTestCase {
         )
     }
 
+    private static func objectiveTestState() -> GameState {
+        GameState(
+            scenarioId: "objective_focus_test",
+            turn: 1,
+            maxTurns: 8,
+            activeFaction: .allies,
+            phase: .alliedPlayer,
+            map: objectiveMap(),
+            divisions: [
+                Division(
+                    id: "allied",
+                    name: "Allied Test Division",
+                    faction: .allies,
+                    coord: HexCoord(q: 1, r: 1),
+                    components: [DivisionComponent(type: .infantry, weight: 1.0)]
+                )
+            ],
+            victoryState: .ongoing,
+            selectedUnitSummary: nil,
+            eventLog: []
+        )
+    }
+
     private static func basicMap(width: Int, height: Int) -> MapState {
         var tiles: [HexCoord: HexTile] = [:]
         for q in 0..<width {
@@ -158,6 +205,52 @@ final class BoardInteractionTests: XCTestCase {
         }
 
         return MapState(width: width, height: height, tiles: tiles, supplySources: [], objectives: [])
+    }
+
+    private static func objectiveMap() -> MapState {
+        let width = 5
+        let height = 5
+        let objectiveCoord = HexCoord(q: 3, r: 3)
+        let regionId: RegionId = "capital_region"
+        var tiles: [HexCoord: HexTile] = [:]
+
+        for q in 0..<width {
+            for r in 0..<height {
+                let coord = HexCoord(q: q, r: r)
+                let tileRegionId = coord == objectiveCoord ? regionId : RegionId("field_region")
+                tiles[coord] = HexTile(coord: coord, controller: .allies, regionId: tileRegionId)
+            }
+        }
+
+        let region = RegionNode(
+            id: regionId,
+            name: "Capital Region",
+            owner: .allies,
+            controller: .allies,
+            terrain: .city,
+            neighbors: [],
+            displayHexes: [objectiveCoord],
+            representativeHex: objectiveCoord,
+            city: CityInfo(name: "Capital Gate", victoryPoints: 5, isCapital: true)
+        )
+
+        return MapState(
+            width: width,
+            height: height,
+            tiles: tiles,
+            supplySources: [],
+            objectives: [
+                Objective(
+                    id: "capital",
+                    name: "Capital Gate",
+                    coord: objectiveCoord,
+                    type: .city,
+                    points: 5
+                )
+            ],
+            regions: [regionId: region],
+            hexToRegion: [objectiveCoord: regionId]
+        )
     }
 }
 
