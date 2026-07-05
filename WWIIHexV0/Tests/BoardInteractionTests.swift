@@ -74,6 +74,7 @@ final class BoardInteractionTests: XCTestCase {
         container.focusObjective("capital")
 
         XCTAssertNil(container.selectedUnitId)
+        XCTAssertEqual(container.focusedObjectiveId, "capital")
         XCTAssertEqual(container.selectedHex, HexCoord(q: 3, r: 3))
         XCTAssertEqual(container.selectedRegionId, "capital_region")
         XCTAssertTrue(container.movementHighlights.isEmpty)

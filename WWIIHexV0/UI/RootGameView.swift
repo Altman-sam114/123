@@ -307,6 +307,7 @@ private struct MingMapLegendView: View {
                     UnitStateLegendBadge()
                     FactionBannerLegendBadge()
                     OperationPlanLegendBadge()
+                    ObjectiveFocusLegendBadge()
 
                     if showsSupplyRoutes {
                         SupplyRouteLegendBadge()
@@ -510,6 +511,32 @@ private struct OperationPlanLegendBadge: View {
                 Text("军令计划")
                     .font(.caption.bold())
                 Text("进取 / 固守")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+            }
+            Spacer(minLength: 0)
+        }
+        .padding(.horizontal, 8)
+        .padding(.vertical, 6)
+        .background(MingDesignTokens.sectionBackground.opacity(0.82), in: RoundedRectangle(cornerRadius: MingDesignTokens.cornerRadius))
+        .accessibilityElement(children: .combine)
+    }
+}
+
+private struct ObjectiveFocusLegendBadge: View {
+    var body: some View {
+        HStack(spacing: 8) {
+            Text("标")
+                .font(.caption.bold())
+                .foregroundStyle(.white)
+                .frame(width: 19, height: 17)
+                .background(MingDesignTokens.cinnabar, in: RoundedRectangle(cornerRadius: 4))
+
+            VStack(alignment: .leading, spacing: 1) {
+                Text("目标定位")
+                    .font(.caption.bold())
+                Text("胜负线城关")
                     .font(.caption)
                     .foregroundStyle(.secondary)
                     .lineLimit(1)

@@ -224,6 +224,7 @@ final class BoardScene: SKScene {
         drawRivers(map: state.map, layout: layout)
         drawSupplyRoutes(renderState: renderState, layout: layout)
         drawPlannedOperations(renderState: renderState, layout: layout)
+        drawFocusedObjective(renderState: renderState, layout: layout)
         drawUnits(renderState: renderState, layout: layout)
     }
 
@@ -613,6 +614,199 @@ final class BoardScene: SKScene {
         case .defend:
             return SKColor(red: 0.04, green: 0.18, blue: 0.12, alpha: 0.34)
         }
+    }
+
+    private func drawFocusedObjective(renderState: BoardRenderState, layout: HexLayout) {
+        guard let objectiveId = renderState.focusedObjectiveId,
+              let objective = renderState.gameState.map.objective(id: objectiveId) else {
+            return
+        }
+
+        let summary = BattleObjectiveSummary.from(state: renderState.gameState)
+        let track = summary.tracks.first { track in
+            track.targets.contains { $0.objectiveId == objectiveId }
+        }
+        let tint = objectiveFocusColor(for: track)
+        let targetIds = track?.targets.map(\.objectiveId) ?? [objectiveId]
+        let center = layout.hexToPixel(objective.coord)
+
+        for targetId in targetIds where targetId != objectiveId {
+            guard let targetObjective = renderState.gameState.map.objective(id: targetId) else {
+                continue
+            }
+            let targetPoint = layout.hexToPixel(targetObjective.coord)
+            drawObjectiveLink(from: center, to: targetPoint, tint: tint)
+            drawObjectiveCompanionMarker(
+                at: targetPoint,
+                objective: targetObjective,
+                tint: tint
+            )
+        }
+
+        drawFocusedObjectiveMarker(
+            at: center,
+            objective: objective,
+            track: track,
+            controller: renderState.gameState.map.tile(at: objective.coord)?.controller,
+            tint: tint,
+            layout: layout
+        )
+    }
+
+    private func drawObjectiveLink(from start: CGPoint, to end: CGPoint, tint: SKColor) {
+        let path = CGMutablePath()
+        path.move(to: start)
+        path.addLine(to: end)
+
+        let glow = SKShapeNode(path: path)
+        glow.strokeColor = SKColor(red: 0.08, green: 0.04, blue: 0.02, alpha: 0.42)
+        glow.lineWidth = 7
+        glow.lineCap = .round
+        glow.zPosition = 31
+        addChild(glow)
+
+        let line = SKShapeNode(path: path)
+        line.strokeColor = tint.withAlphaComponent(0.78)
+        line.lineWidth = 2.8
+        line.lineCap = .round
+        line.zPosition = 32
+        addChild(line)
+    }
+
+    private func drawObjectiveCompanionMarker(at point: CGPoint, objective: Objective, tint: SKColor) {
+        let marker = SKShapeNode(circleOfRadius: 9)
+        marker.position = point
+        marker.fillColor = tint.withAlphaComponent(0.30)
+        marker.strokeColor = tint.withAlphaComponent(0.88)
+        marker.lineWidth = 2
+        marker.zPosition = 33
+        addChild(marker)
+
+        let dot = SKShapeNode(circleOfRadius: 3.5)
+        dot.position = point
+        dot.fillColor = SKColor(white: 0.98, alpha: 0.94)
+        dot.strokeColor = tint
+        dot.lineWidth = 0.8
+        dot.zPosition = 34
+        addChild(dot)
+
+        let label = objectiveLabel(text: objective.name, point: CGPoint(x: point.x, y: point.y - 17), fontSize: 9)
+        label.zPosition = 35
+        addChild(label)
+    }
+
+    private func drawFocusedObjectiveMarker(
+        at point: CGPoint,
+        objective: Objective,
+        track: BattleObjectiveSummary.Track?,
+        controller: Faction?,
+        tint: SKColor,
+        layout: HexLayout
+    ) {
+        let pulse = SKShapeNode(circleOfRadius: layout.hexSize * 0.62)
+        pulse.position = point
+        pulse.fillColor = tint.withAlphaComponent(0.10)
+        pulse.strokeColor = tint.withAlphaComponent(0.80)
+        pulse.lineWidth = max(2.4, layout.hexSize * 0.06)
+        pulse.zPosition = 36
+        addChild(pulse)
+        let pulseAction = SKAction.sequence([
+            SKAction.group([
+                SKAction.scale(to: 1.20, duration: 0.72),
+                SKAction.fadeAlpha(to: 0.38, duration: 0.72)
+            ]),
+            SKAction.group([
+                SKAction.scale(to: 1.00, duration: 0.72),
+                SKAction.fadeAlpha(to: 1.00, duration: 0.72)
+            ])
+        ])
+        pulse.run(SKAction.repeatForever(pulseAction))
+
+        let ring = SKShapeNode(circleOfRadius: layout.hexSize * 0.42)
+        ring.position = point
+        ring.fillColor = SKColor(white: 0.02, alpha: 0.16)
+        ring.strokeColor = tint
+        ring.lineWidth = max(2.8, layout.hexSize * 0.07)
+        ring.zPosition = 37
+        addChild(ring)
+
+        let seal = SKShapeNode(rectOf: CGSize(width: 30, height: 24), cornerRadius: 5)
+        seal.position = CGPoint(x: point.x, y: point.y + layout.hexSize * 0.48)
+        seal.fillColor = tint.withAlphaComponent(0.94)
+        seal.strokeColor = SKColor(red: 0.22, green: 0.10, blue: 0.04, alpha: 0.92)
+        seal.lineWidth = 1.2
+        seal.zPosition = 46
+        addChild(seal)
+
+        let sealText = SKLabelNode(text: "标")
+        sealText.fontName = "PingFangSC-Semibold"
+        sealText.fontSize = 14
+        sealText.fontColor = SKColor(white: 0.98, alpha: 1)
+        sealText.horizontalAlignmentMode = .center
+        sealText.verticalAlignmentMode = .center
+        sealText.position = seal.position
+        sealText.zPosition = 47
+        addChild(sealText)
+
+        let name = objectiveLabel(
+            text: objective.name,
+            point: CGPoint(x: point.x, y: point.y - layout.hexSize * 0.54),
+            fontSize: max(10, layout.hexSize * 0.18)
+        )
+        name.zPosition = 47
+        addChild(name)
+
+        if let controller {
+            let controllerLabel = objectiveLabel(
+                text: controller.displayName,
+                point: CGPoint(x: point.x, y: point.y - layout.hexSize * 0.78),
+                fontSize: max(8, layout.hexSize * 0.14)
+            )
+            controllerLabel.fontColor = TerrainStyle.controllerColor(for: controller)
+            controllerLabel.zPosition = 47
+            addChild(controllerLabel)
+        }
+
+        if let track {
+            let trackLabel = objectiveLabel(
+                text: track.title,
+                point: CGPoint(x: point.x, y: point.y + layout.hexSize * 0.78),
+                fontSize: max(8, layout.hexSize * 0.14)
+            )
+            trackLabel.zPosition = 47
+            addChild(trackLabel)
+        }
+    }
+
+    private func objectiveLabel(text: String, point: CGPoint, fontSize: CGFloat) -> SKLabelNode {
+        let label = SKLabelNode(text: text)
+        label.fontName = "PingFangSC-Semibold"
+        label.fontSize = fontSize
+        label.fontColor = SKColor(white: 0.98, alpha: 1)
+        label.horizontalAlignmentMode = .center
+        label.verticalAlignmentMode = .center
+        label.position = point
+        let background = SKShapeNode(
+            rectOf: CGSize(
+                width: max(34, CGFloat(text.count) * fontSize * 0.92),
+                height: fontSize + 8
+            ),
+            cornerRadius: 4
+        )
+        background.fillColor = SKColor(white: 0.04, alpha: 0.64)
+        background.strokeColor = SKColor(white: 1, alpha: 0.18)
+        background.lineWidth = 0.8
+        background.position = CGPoint.zero
+        background.zPosition = -1
+        label.addChild(background)
+        return label
+    }
+
+    private func objectiveFocusColor(for track: BattleObjectiveSummary.Track?) -> SKColor {
+        guard let track else {
+            return SKColor(red: 0.96, green: 0.72, blue: 0.24, alpha: 1)
+        }
+        return TerrainStyle.controllerColor(for: track.faction)
     }
 
     private func drawUnits(renderState: BoardRenderState, layout: HexLayout) {
