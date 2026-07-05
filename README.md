@@ -107,6 +107,7 @@ WWIIHexV0/
 - v4.6 府库牌首片继续 polish 钱粮界面：`EconomyPanelView` 从表格/按钮列表升级为府库牌，读取 `FactionEconomyLedger` 展示民力、银两、粮草库存、本回合入账、军粮维护、补员消耗、募兵筹粮和营造队列；生产按钮仍只调用 `onQueueProduction -> AppContainer.queueProduction -> Command.queueProduction`，不直接改经济账本。
 - v4.6 部队军情牌首片继续 polish 部队界面：`UnitInspectorView` 以军情牌展示选中部队，读取 `Division` 的兵力、补给、退守、行动、`effectiveStats` 和兵种组件，以及 `UnitInspectorStrategicState` 的州府、动态方面、防区、部署和前线归属；该片只影响 SwiftUI 展示，不改变战斗、补给、部署或命令规则。
 - v4.6 军令牌首片继续 polish 军事指令界面：`CommandPanelView` 从简单按钮列表升级为军令牌，展示当前势力/阶段、选中军情、兵力、粮草、退守、行动、固守/退守/补给处置和最近军令回执；固守、准许退守、就地补给和结束回合仍只调用 `RootGameView` 注入的 `AppContainer` 回调，不直接改 `GameState`。
+- v4.6 军机复盘牌首片继续 polish AI 决策界面：`AgentPanelView` 从调试字段列表升级为军机复盘牌，展示最高意志、决策摘要、战区指令、命令回执、异常塘报和原始 JSON；它只读取 `AgentDecisionRecord`、`RulerDecisionRecord` 与 `WarDirectiveRecord`，不改变 AI、命令或规则执行链。
 - v4.6 州府牌首片继续 polish 州府界面：`RegionInspectorView` 从字段列表升级为州府牌，读取 `RegionInspectorState` 展示城关粮坊、地方治理、钱粮城防、方面/防区/目标、友敌军和当前格；该片只影响 SwiftUI 展示，不改变 hex 控制、region 聚合、经济结算、动态战区、前线或命令规则。
 - v4.6 天下急势首片继续 polish 天下局势面板：顶部摘要从 `DiplomacyState` 和只读 `CourtStrategySummary` 派生当前势力、战局态势、主要对手、战意和政策/经济/科技/军事四线压力；诸方势力列表改为带势力色和战意条，仍不改变外交规则或朝廷项目执行链。
 - v4.6 第二片新增 `CourtProjectKind` 与 `Command.enactCourtProject(kind:)`，朝廷面板可按主议推荐执行征饷、赈济、修城、团练、火器和粮台项目；执行层统一走 `CommandValidator` 与 `EconomyRules`，轻量影响民力/银两/粮草、地方治理、城防/粮道、生产队列、火器/炮队补整和缺粮部队。第五片新增 `CourtProjectDomain`，把可行项目按政策、经济、科技、军事四线分组展示；后续片新增只读“朝议争点”，把安民与征饷、火器与团练、粮道与城防的压力差做成可扫读摘要，让玩家更快看出朝廷项目的取舍。
@@ -150,7 +151,7 @@ WWIIHexV0/
 | `Agents/AgentPromptBuilder.swift` | prompt 构造 | system + user prompt，强制 JSON 输出 |
 | `Turn/TurnManager.swift` | legacy 方法名下的 AI 回合编排 | `runGermanAITurn(state:) async -> AgentTurnOutcome` 仍保留兼容名，实际调用方按当前 active faction 构造 commander pool 并推进 endTurn |
 | `App/AppContainer.swift` | AI 接线 | `runAIIfNeeded()` 读取 `activeFaction`、`phase`、`aiControlledFactions` / `humanControlledFactions`，为当前 AI 势力触发 Task 并写 state/record |
-| `UI/AgentPanelView.swift` | 决策展示 | 读 `record`（agent/provider/intent/context/command results/errors/raw JSON） |
+| `UI/AgentPanelView.swift` | 军机复盘 | 读 `AgentDecisionRecord`、`RulerDecisionRecord`、`WarDirectiveRecord`，展示最高意志、战区指令、命令回执、异常和原始 JSON |
 | `UI/RootGameView.swift` | 玩家入口 | 结束回合按钮走 `advanceOrRunAI()`；当前开局不自动 `.task` 跑 AI |
 
 **Legacy MockAI 行为（guderian，装甲突破风格）：**

@@ -16,167 +16,144 @@ struct AgentPanelView: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            Text("AI 决策")
-                .font(.headline)
+        VStack(alignment: .leading, spacing: MingDesignTokens.sectionSpacing) {
+            AgentPanelHeader(
+                statusTitle: panelStatusTitle,
+                statusTint: panelStatusTint,
+                executedCount: executedCommandCount,
+                rejectedCount: rejectedCommandCount,
+                directiveCount: directiveRecords.count
+            )
 
-            LabeledContent("主事") {
-                Text(record?.agentId ?? "暂无主事")
-            }
-
-            LabeledContent("来源") {
-                Text(record?.provider ?? "模拟 AI")
-            }
-
-            LabeledContent("意图") {
-                Text(record?.parsedIntent ?? "尚无决策。")
-                    .multilineTextAlignment(.trailing)
-            }
-
-            if let contextSummary = record?.contextSummary {
-                LabeledContent("摘要") {
-                    Text(contextSummary)
-                        .multilineTextAlignment(.trailing)
-                }
-            }
+            decisionSection
 
             if let rulerRecord {
-                Divider()
-                LabeledContent("最高意志") {
-                    Text(rulerRecord.rulerAgentId)
-                }
-                LabeledContent("姿态") {
-                    Text(rulerRecord.posture.displayName)
-                }
-                if let zoneId = rulerRecord.preferredFrontZoneId {
-                    LabeledContent("重心") {
-                        Text(zoneId.rawValue)
-                    }
-                }
+                AgentRulerCard(record: rulerRecord)
             }
 
-            if let record, !record.commandResults.isEmpty {
-                Text("命令结果")
+            directiveSection
+            commandResultSection
+            errorSection
+            rawJSONSection
+        }
+        .padding(MingDesignTokens.panelPadding)
+        .background(MingDesignTokens.panelBackground)
+        .overlay {
+            RoundedRectangle(cornerRadius: MingDesignTokens.cornerRadius)
+                .stroke(MingDesignTokens.courtStroke.opacity(0.72), lineWidth: 1)
+        }
+        .clipShape(RoundedRectangle(cornerRadius: MingDesignTokens.cornerRadius))
+    }
+
+    @ViewBuilder
+    private var decisionSection: some View {
+        if let record {
+            AgentDecisionSummaryCard(record: record)
+        } else {
+            AgentSectionCard(title: "塘报空缺", systemImage: "tray", tint: .secondary) {
+                Label("暂无军机复盘记录。", systemImage: "hourglass")
                     .font(.caption)
                     .foregroundStyle(.secondary)
-
-                VStack(alignment: .leading, spacing: 6) {
-                    ForEach(record.commandResults) { result in
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text(result.commandDisplayName ?? result.orderType?.rawValue ?? "军令")
-                                .font(.caption)
-                                .bold()
-                            Text(resultLine(result))
-                                .font(.caption)
-                                .foregroundStyle(result.executed ? .primary : .secondary)
-                        }
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                    }
-                }
+                    .frame(maxWidth: .infinity, minHeight: MingDesignTokens.minimumTapSize, alignment: .leading)
             }
+        }
+    }
 
-            if !directiveRecords.isEmpty {
-                Text("战区指令")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-
-                VStack(alignment: .leading, spacing: 6) {
+    @ViewBuilder
+    private var directiveSection: some View {
+        if !directiveRecords.isEmpty {
+            AgentSectionCard(title: "战区指令", systemImage: "map", tint: MingDesignTokens.cinnabar) {
+                LazyVStack(alignment: .leading, spacing: MingDesignTokens.compactSpacing) {
                     ForEach(directiveRecords) { directive in
-                        VStack(alignment: .leading, spacing: 3) {
-                            HStack(spacing: 6) {
-                                Text(directive.zoneId?.rawValue ?? "全局")
-                                    .font(.caption.bold())
-                                    .padding(.horizontal, 6)
-                                    .padding(.vertical, 2)
-                                    .background(MingDesignTokens.subtleSeal)
-                                    .clipShape(RoundedRectangle(cornerRadius: 4))
-
-                                Text(directiveSummary(directive))
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
-                                    .lineLimit(1)
-                                    .minimumScaleFactor(0.75)
-                            }
-
-                            if !directive.diagnostics.isEmpty {
-                                Text(directive.diagnostics.joined(separator: " / "))
-                                    .font(.caption)
-                                    .foregroundStyle(.orange)
-                            }
-                        }
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .padding(6)
-                        .background(MingDesignTokens.sectionBackground)
-                        .clipShape(RoundedRectangle(cornerRadius: MingDesignTokens.cornerRadius))
+                        AgentDirectiveCard(directive: directive)
                     }
                 }
             }
+        }
+    }
 
-            if let record, !record.errors.isEmpty {
-                Text("错误")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+    @ViewBuilder
+    private var commandResultSection: some View {
+        if !allCommandResults.isEmpty {
+            AgentSectionCard(title: "命令回执", systemImage: "checklist", tint: MingDesignTokens.jade) {
+                LazyVStack(alignment: .leading, spacing: MingDesignTokens.compactSpacing) {
+                    ForEach(allCommandResults) { result in
+                        AgentCommandResultCard(result: result)
+                    }
+                }
+            }
+        }
+    }
 
-                VStack(alignment: .leading, spacing: 4) {
+    @ViewBuilder
+    private var errorSection: some View {
+        if let record, !record.errors.isEmpty {
+            AgentSectionCard(title: "异常塘报", systemImage: "exclamationmark.triangle", tint: MingDesignTokens.cinnabar) {
+                VStack(alignment: .leading, spacing: 6) {
                     ForEach(record.errors, id: \.self) { error in
-                        Text(error)
+                        Label(error, systemImage: "xmark.octagon")
                             .font(.caption)
-                            .foregroundStyle(.red)
+                            .foregroundStyle(MingDesignTokens.cinnabar)
+                            .fixedSize(horizontal: false, vertical: true)
                     }
                 }
             }
+        }
+    }
 
-            Text("原始 JSON")
-                .font(.caption)
-                .foregroundStyle(.secondary)
-
+    private var rawJSONSection: some View {
+        AgentSectionCard(title: "原始 JSON", systemImage: "curlybraces", tint: MingDesignTokens.porcelainBlue) {
             Text(record?.rawJSON ?? rawJSONPlaceholder)
                 .font(.system(.caption, design: .monospaced))
                 .foregroundStyle(.secondary)
                 .textSelection(.enabled)
                 .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(8)
-                .background(MingDesignTokens.sectionBackground)
-                .clipShape(RoundedRectangle(cornerRadius: MingDesignTokens.cornerRadius))
+                .padding(MingDesignTokens.compactSpacing)
+                .background(MingDesignTokens.panelBackground.opacity(0.58), in: RoundedRectangle(cornerRadius: 6))
+                .fixedSize(horizontal: false, vertical: true)
         }
-        .padding(MingDesignTokens.panelPadding)
-        .background(MingDesignTokens.panelBackground)
-        .clipShape(RoundedRectangle(cornerRadius: MingDesignTokens.cornerRadius))
     }
 
-    private func directiveSummary(_ directive: WarDirectiveRecord) -> String {
-        let type = directive.directiveType.map(directiveTypeText) ?? "诊断"
-        let tactic = directive.tactic?.displayName ?? directive.category?.rawValue ?? "无战术"
-        let executed = directive.commandResults.filter(\.executed).count
-        let rejected = directive.commandResults.count - executed
-        let targets = directive.targetRegionIds.map(\.rawValue).joined(separator: ", ")
-        let targetText = targets.isEmpty ? "无目标" : targets
-        return "\(type) / \(tactic) / 成功 \(executed)，拒绝 \(rejected) / \(targetText)"
+    private var allCommandResults: [CommandResultSummary] {
+        (record?.commandResults ?? []) + directiveRecords.flatMap(\.commandResults)
     }
 
-    private func resultLine(_ result: CommandResultSummary) -> String {
-        if !result.mappingSucceeded {
-            return "映射失败：\(result.errors.joined(separator: ", "))"
-        }
-
-        if result.executed {
-            return result.message
-        }
-
-        if !result.errors.isEmpty {
-            return "被拒绝：\(result.errors.joined(separator: ", "))"
-        }
-
-        return result.message
+    private var executedCommandCount: Int {
+        allCommandResults.filter(\.executed).count
     }
 
-    private func directiveTypeText(_ type: DirectiveType) -> String {
-        switch type {
-        case .attack:
-            return "进攻"
-        case .defend:
-            return "防御"
+    private var rejectedCommandCount: Int {
+        allCommandResults.filter { !$0.executed }.count
+    }
+
+    private var errorCount: Int {
+        record?.errors.count ?? 0
+    }
+
+    private var panelStatusTitle: String {
+        if errorCount > 0 {
+            return "有异常"
         }
+        if rejectedCommandCount > 0 {
+            return "有驳回"
+        }
+        if executedCommandCount > 0 {
+            return "已成令"
+        }
+        if record == nil && directiveRecords.isEmpty {
+            return "候报"
+        }
+        return "已记录"
+    }
+
+    private var panelStatusTint: Color {
+        if errorCount > 0 || rejectedCommandCount > 0 {
+            return MingDesignTokens.cinnabar
+        }
+        if executedCommandCount > 0 {
+            return MingDesignTokens.jade
+        }
+        return .secondary
     }
 
     private var rawJSONPlaceholder: String {
@@ -187,5 +164,451 @@ struct AgentPanelView: View {
           "orders": []
         }
         """
+    }
+}
+
+private struct AgentPanelHeader: View {
+    let statusTitle: String
+    let statusTint: Color
+    let executedCount: Int
+    let rejectedCount: Int
+    let directiveCount: Int
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: MingDesignTokens.compactSpacing) {
+            HStack(alignment: .center, spacing: 10) {
+                Text("机")
+                    .font(.title3.bold())
+                    .foregroundStyle(MingDesignTokens.cinnabar)
+                    .frame(width: 44, height: 44)
+                    .background(MingDesignTokens.subtleSeal)
+                    .clipShape(RoundedRectangle(cornerRadius: MingDesignTokens.cornerRadius))
+                    .overlay {
+                        RoundedRectangle(cornerRadius: MingDesignTokens.cornerRadius)
+                            .stroke(MingDesignTokens.courtStroke, lineWidth: 1)
+                    }
+                    .accessibilityHidden(true)
+
+                VStack(alignment: .leading, spacing: 3) {
+                    Text("军机复盘")
+                        .font(.headline)
+                        .lineLimit(1)
+                    Text("最高意志、督师指令、命令回执与原始 JSON")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(2)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+
+                Spacer(minLength: 8)
+
+                Text(statusTitle)
+                    .font(.caption.bold())
+                    .foregroundStyle(statusTint)
+                    .lineLimit(1)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 6)
+                    .background(MingDesignTokens.sectionBackground, in: RoundedRectangle(cornerRadius: 6))
+            }
+
+            LazyVGrid(columns: [GridItem(.adaptive(minimum: 78), spacing: 6)], alignment: .leading, spacing: 6) {
+                AgentMetricChip(title: "成令", value: "\(executedCount)", systemImage: "checkmark.seal", tint: MingDesignTokens.jade)
+                AgentMetricChip(title: "驳回", value: "\(rejectedCount)", systemImage: "xmark.seal", tint: rejectedCount > 0 ? MingDesignTokens.cinnabar : .secondary)
+                AgentMetricChip(title: "战区", value: "\(directiveCount)", systemImage: "map", tint: MingDesignTokens.porcelainBlue)
+            }
+        }
+        .accessibilityElement(children: .combine)
+    }
+}
+
+private struct AgentDecisionSummaryCard: View {
+    let record: AgentDecisionRecord
+
+    var body: some View {
+        AgentSectionCard(title: "决策摘要", systemImage: "scroll", tint: MingDesignTokens.imperialGold) {
+            LazyVGrid(columns: [GridItem(.adaptive(minimum: 118), spacing: 6)], alignment: .leading, spacing: 6) {
+                AgentInfoChip(title: "主事", value: record.agentId, systemImage: "person.crop.square", tint: MingDesignTokens.cinnabar)
+                AgentInfoChip(title: "来源", value: record.provider, systemImage: "antenna.radiowaves.left.and.right", tint: MingDesignTokens.porcelainBlue)
+                AgentInfoChip(title: "意图", value: record.parsedIntent ?? "尚无定策", systemImage: "scope", tint: MingDesignTokens.imperialGold)
+            }
+
+            VStack(alignment: .leading, spacing: 5) {
+                Label("局势摘要", systemImage: "doc.text")
+                    .font(.caption.bold())
+                    .foregroundStyle(MingDesignTokens.jade)
+                Text(record.contextSummary.isEmpty ? "暂无战场摘要。" : record.contextSummary)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(MingDesignTokens.compactSpacing)
+            .background(MingDesignTokens.panelBackground.opacity(0.52), in: RoundedRectangle(cornerRadius: 6))
+        }
+    }
+}
+
+private struct AgentRulerCard: View {
+    let record: RulerDecisionRecord
+
+    var body: some View {
+        AgentSectionCard(title: "最高意志", systemImage: "crown", tint: MingDesignTokens.cinnabar) {
+            LazyVGrid(columns: [GridItem(.adaptive(minimum: 118), spacing: 6)], alignment: .leading, spacing: 6) {
+                AgentInfoChip(title: "主上", value: record.rulerAgentId, systemImage: "person.text.rectangle", tint: MingDesignTokens.cinnabar)
+                AgentInfoChip(title: "姿态", value: record.posture.displayName, systemImage: "flag", tint: MingDesignTokens.imperialGold)
+                AgentInfoChip(title: "重心", value: record.preferredFrontZoneId?.rawValue ?? "未指定", systemImage: "scope", tint: MingDesignTokens.porcelainBlue)
+                AgentInfoChip(title: "目标", value: targetText, systemImage: "mappin.and.ellipse", tint: MingDesignTokens.jade)
+                AgentInfoChip(title: "攻势阈", value: attackThresholdText, systemImage: "gauge.with.dots.needle.bottom.50percent", tint: MingDesignTokens.imperialGold)
+                AgentInfoChip(title: "留营", value: reserveBiasText, systemImage: "shield.lefthalf.filled", tint: MingDesignTokens.porcelainBlue)
+            }
+
+            if !record.diplomacySummary.isEmpty {
+                AgentTextNote(title: "天下判断", systemImage: "globe.asia.australia", text: record.diplomacySummary, tint: MingDesignTokens.porcelainBlue)
+            }
+
+            if !record.rationale.isEmpty {
+                AgentTextNote(title: "朱批理由", systemImage: "seal", text: record.rationale, tint: MingDesignTokens.cinnabar)
+            }
+        }
+    }
+
+    private var targetText: String {
+        let text = record.targetRegionIds.map(\.rawValue).joined(separator: "、")
+        return text.isEmpty ? "未指定" : text
+    }
+
+    private var attackThresholdText: String {
+        if record.attackThresholdAdjustment == 0 {
+            return "不变"
+        }
+        return String(format: "%+.2f", record.attackThresholdAdjustment)
+    }
+
+    private var reserveBiasText: String {
+        if record.reserveBias == 0 {
+            return "不变"
+        }
+        return record.reserveBias > 0 ? "+\(record.reserveBias)" : "\(record.reserveBias)"
+    }
+}
+
+private struct AgentDirectiveCard: View {
+    let directive: WarDirectiveRecord
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: MingDesignTokens.compactSpacing) {
+            HStack(alignment: .center, spacing: 8) {
+                Text(directive.zoneId?.rawValue ?? "全局")
+                    .font(.caption.bold())
+                    .foregroundStyle(MingDesignTokens.cinnabar)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.72)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 5)
+                    .background(MingDesignTokens.subtleSeal, in: RoundedRectangle(cornerRadius: 6))
+
+                Text(directive.directiveType.map(AgentPanelFormat.directiveTypeText) ?? "诊断")
+                    .font(.caption.bold())
+                    .foregroundStyle(directive.directiveType == .attack ? MingDesignTokens.cinnabar : MingDesignTokens.jade)
+
+                Spacer(minLength: 8)
+
+                Text("\(executedCount) 成 / \(rejectedCount) 驳")
+                    .font(.caption.monospacedDigit())
+                    .foregroundStyle(rejectedCount > 0 ? MingDesignTokens.cinnabar : .secondary)
+            }
+
+            LazyVGrid(columns: [GridItem(.adaptive(minimum: 104), spacing: 6)], alignment: .leading, spacing: 6) {
+                AgentInfoChip(title: "势力", value: directive.faction.displayName, systemImage: "flag.2.crossed", tint: MingDesignTokens.imperialGold)
+                AgentInfoChip(title: "军机", value: directive.issuerId, systemImage: "person.crop.square", tint: MingDesignTokens.porcelainBlue)
+                AgentInfoChip(title: "督师", value: directive.commanderAgentId ?? "未署", systemImage: "person.line.dotted.person", tint: MingDesignTokens.jade)
+                AgentInfoChip(title: "战术", value: tacticText, systemImage: "scope", tint: MingDesignTokens.cinnabar)
+                AgentInfoChip(title: "目标", value: targetText, systemImage: "mappin.and.ellipse", tint: MingDesignTokens.porcelainBlue)
+                AgentInfoChip(title: "指向", value: commandTargetText, systemImage: "arrow.up.right.circle", tint: MingDesignTokens.imperialGold)
+            }
+
+            if !directive.diagnostics.isEmpty {
+                AgentTextNote(
+                    title: "塘报诊断",
+                    systemImage: "waveform.path.ecg",
+                    text: directive.diagnostics.joined(separator: " / "),
+                    tint: MingDesignTokens.imperialGold
+                )
+            }
+        }
+        .padding(MingDesignTokens.compactSpacing)
+        .background(MingDesignTokens.panelBackground.opacity(0.52), in: RoundedRectangle(cornerRadius: MingDesignTokens.cornerRadius))
+        .accessibilityElement(children: .combine)
+    }
+
+    private var executedCount: Int {
+        directive.commandResults.filter(\.executed).count
+    }
+
+    private var rejectedCount: Int {
+        directive.commandResults.count - executedCount
+    }
+
+    private var tacticText: String {
+        directive.tactic?.displayName ?? directive.category.map(AgentPanelFormat.commandCategoryText) ?? "未定"
+    }
+
+    private var targetText: String {
+        let text = directive.targetRegionIds.map(\.rawValue).joined(separator: "、")
+        return text.isEmpty ? "无目标" : text
+    }
+
+    private var commandTargetText: String {
+        guard let target = directive.commandTarget else {
+            return "未指定"
+        }
+
+        switch target {
+        case .theater(let theaterId):
+            return "方面 \(theaterId.rawValue)"
+        case .region(let regionId):
+            return "州府 \(regionId.rawValue)"
+        }
+    }
+}
+
+private struct AgentCommandResultCard: View {
+    let result: CommandResultSummary
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 7) {
+            HStack(alignment: .center, spacing: 8) {
+                Label(result.agentPanelStatusText, systemImage: result.agentPanelStatusImage)
+                    .font(.caption.bold())
+                    .foregroundStyle(result.agentPanelStatusTint)
+                    .lineLimit(1)
+
+                Spacer(minLength: 8)
+
+                Text(result.commandDisplayName ?? result.orderType?.displayName ?? "军令")
+                    .font(.caption.bold())
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.72)
+            }
+
+            Text(result.agentPanelDetailText)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+
+            LazyVGrid(columns: [GridItem(.adaptive(minimum: 78), spacing: 6)], alignment: .leading, spacing: 6) {
+                AgentInfoChip(title: "部队", value: result.divisionId ?? "全局", systemImage: "shield", tint: MingDesignTokens.porcelainBlue)
+                AgentInfoChip(title: "令序", value: result.orderIndex.map { "第 \($0 + 1) 道" } ?? "无", systemImage: "number", tint: MingDesignTokens.imperialGold)
+                AgentInfoChip(title: "校验", value: result.agentPanelValidationText, systemImage: "checkmark.shield", tint: result.agentPanelStatusTint)
+            }
+        }
+        .padding(MingDesignTokens.compactSpacing)
+        .background(MingDesignTokens.panelBackground.opacity(0.52), in: RoundedRectangle(cornerRadius: MingDesignTokens.cornerRadius))
+        .accessibilityElement(children: .combine)
+    }
+}
+
+private struct AgentSectionCard<Content: View>: View {
+    let title: String
+    let systemImage: String
+    let tint: Color
+    let content: Content
+
+    init(
+        title: String,
+        systemImage: String,
+        tint: Color,
+        @ViewBuilder content: () -> Content
+    ) {
+        self.title = title
+        self.systemImage = systemImage
+        self.tint = tint
+        self.content = content()
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: MingDesignTokens.compactSpacing) {
+            Label(title, systemImage: systemImage)
+                .font(.subheadline.bold())
+                .foregroundStyle(tint)
+                .lineLimit(1)
+
+            content
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(MingDesignTokens.compactSpacing)
+        .background(MingDesignTokens.sectionBackground)
+        .clipShape(RoundedRectangle(cornerRadius: MingDesignTokens.cornerRadius))
+    }
+}
+
+private struct AgentMetricChip: View {
+    let title: String
+    let value: String
+    let systemImage: String
+    let tint: Color
+
+    var body: some View {
+        Label {
+            VStack(alignment: .leading, spacing: 1) {
+                Text(title)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                Text(value)
+                    .font(.caption.bold().monospacedDigit())
+                    .foregroundStyle(tint)
+                    .lineLimit(1)
+            }
+        } icon: {
+            Image(systemName: systemImage)
+                .font(.caption)
+                .foregroundStyle(tint)
+        }
+        .padding(.horizontal, 8)
+        .padding(.vertical, 6)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(MingDesignTokens.sectionBackground, in: RoundedRectangle(cornerRadius: 6))
+        .accessibilityElement(children: .combine)
+    }
+}
+
+private struct AgentInfoChip: View {
+    let title: String
+    let value: String
+    let systemImage: String
+    let tint: Color
+
+    var body: some View {
+        Label {
+            VStack(alignment: .leading, spacing: 2) {
+                Text(title)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+                Text(value)
+                    .font(.caption.bold())
+                    .foregroundStyle(tint)
+                    .lineLimit(2)
+                    .minimumScaleFactor(0.72)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        } icon: {
+            Image(systemName: systemImage)
+                .font(.caption)
+                .foregroundStyle(tint)
+                .frame(width: 16)
+        }
+        .padding(.horizontal, 8)
+        .padding(.vertical, 6)
+        .frame(maxWidth: .infinity, minHeight: 42, alignment: .leading)
+        .background(MingDesignTokens.panelBackground.opacity(0.58), in: RoundedRectangle(cornerRadius: 6))
+        .accessibilityElement(children: .combine)
+    }
+}
+
+private struct AgentTextNote: View {
+    let title: String
+    let systemImage: String
+    let text: String
+    let tint: Color
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 5) {
+            Label(title, systemImage: systemImage)
+                .font(.caption.bold())
+                .foregroundStyle(tint)
+            Text(text)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(MingDesignTokens.compactSpacing)
+        .background(MingDesignTokens.panelBackground.opacity(0.52), in: RoundedRectangle(cornerRadius: 6))
+    }
+}
+
+private enum AgentPanelFormat {
+    static func directiveTypeText(_ type: DirectiveType) -> String {
+        switch type {
+        case .attack:
+            return "进攻"
+        case .defend:
+            return "防御"
+        }
+    }
+
+    static func commandCategoryText(_ category: CommandCategory) -> String {
+        switch category {
+        case .offense:
+            return "攻势"
+        case .defense:
+            return "守势"
+        }
+    }
+}
+
+private extension CommandResultSummary {
+    var agentPanelStatusText: String {
+        if !mappingSucceeded {
+            return "映射失败"
+        }
+        return executed ? "已执行" : "被驳回"
+    }
+
+    var agentPanelStatusImage: String {
+        if !mappingSucceeded {
+            return "exclamationmark.triangle"
+        }
+        return executed ? "checkmark.seal" : "xmark.seal"
+    }
+
+    var agentPanelStatusTint: Color {
+        if executed {
+            return MingDesignTokens.jade
+        }
+        if !mappingSucceeded || !(validationSucceeded ?? true) {
+            return MingDesignTokens.cinnabar
+        }
+        return MingDesignTokens.imperialGold
+    }
+
+    var agentPanelDetailText: String {
+        if !mappingSucceeded {
+            let text = errors.joined(separator: "、")
+            return text.isEmpty ? "军令未能映射到底层命令。" : "映射失败：\(text)"
+        }
+        if executed {
+            return message
+        }
+        if !errors.isEmpty {
+            return "被规则驳回：\(errors.joined(separator: "、"))"
+        }
+        return message
+    }
+
+    var agentPanelValidationText: String {
+        if !mappingSucceeded {
+            return "未成令"
+        }
+        guard let validationSucceeded else {
+            return "未校验"
+        }
+        return validationSucceeded ? "合规" : "未准"
+    }
+}
+
+private extension AgentOrderType {
+    var displayName: String {
+        switch self {
+        case .move:
+            return "行军"
+        case .attack:
+            return "进攻"
+        case .hold:
+            return "固守"
+        case .resupply:
+            return "补给"
+        }
     }
 }
