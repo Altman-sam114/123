@@ -28,6 +28,7 @@ struct UnitInspectorView: View {
             UnitCommandHeader(division: division, playerFaction: playerFaction)
             UnitReadinessSection(division: division)
             UnitWarReadinessSection(division: division)
+            UnitFirepowerSection(division: division)
             UnitStatsGrid(stats: division.effectiveStats)
             UnitComponentSection(components: division.components)
             if let strategicState {
@@ -212,6 +213,56 @@ private struct UnitWarSignalTile: View {
         .padding(7)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(MingDesignTokens.panelBackground.opacity(0.52), in: RoundedRectangle(cornerRadius: 6))
+        .accessibilityElement(children: .combine)
+    }
+}
+
+private struct UnitFirepowerSection: View {
+    let division: Division
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: MingDesignTokens.compactSpacing) {
+            HStack(spacing: 6) {
+                Label("军械火力", systemImage: division.firepowerSystemImageName)
+                    .font(.caption.bold())
+                    .foregroundStyle(division.firepowerTint)
+                Spacer(minLength: 8)
+                Text(division.firepowerPostureText)
+                    .font(.caption)
+                    .foregroundStyle(division.firepowerTint)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.78)
+            }
+
+            Text(division.firepowerBrief)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+
+            VStack(alignment: .leading, spacing: 4) {
+                HStack {
+                    Text("军械占比")
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                    Spacer()
+                    Text("\(division.firepowerSharePercent)%")
+                        .font(.caption2.monospacedDigit())
+                        .foregroundStyle(division.firepowerTint)
+                }
+
+                ProgressView(value: Double(division.firepowerSharePercent), total: 100)
+                    .tint(division.firepowerTint)
+            }
+
+            LazyVGrid(columns: [GridItem(.adaptive(minimum: 82), spacing: 6)], alignment: .leading, spacing: 6) {
+                ForEach(division.firepowerSignals, id: \.title) { signal in
+                    UnitWarSignalTile(signal: signal)
+                }
+            }
+        }
+        .padding(MingDesignTokens.compactSpacing)
+        .background(MingDesignTokens.sectionBackground)
+        .clipShape(RoundedRectangle(cornerRadius: MingDesignTokens.cornerRadius))
         .accessibilityElement(children: .combine)
     }
 }
@@ -559,6 +610,131 @@ private extension Division {
             return MingDesignTokens.imperialGold
         }
         return MingDesignTokens.jade
+    }
+
+    var firepowerSharePercent: Int {
+        componentSharePercent(for: [.artillery, .firearm, .siegeEngine])
+    }
+
+    var firearmSharePercent: Int {
+        componentSharePercent(for: [.firearm])
+    }
+
+    var artillerySharePercent: Int {
+        componentSharePercent(for: [.artillery])
+    }
+
+    var siegeSharePercent: Int {
+        componentSharePercent(for: [.siegeEngine])
+    }
+
+    var firepowerPostureText: String {
+        if isDestroyed {
+            return "军械散失"
+        }
+        if supplyState == .encircled {
+            return "断粮难用"
+        }
+        if supplyState == .lowSupply {
+            return "缺粮限火"
+        }
+        if isSiegeCapable && hasFireSupport {
+            return "攻城重器"
+        }
+        if isSiegeCapable {
+            return "攻城主力"
+        }
+        if hasFireSupport {
+            return "火器支援"
+        }
+        if firepowerSharePercent > 0 {
+            return "辅火"
+        }
+        return "冷兵守线"
+    }
+
+    var firepowerBrief: String {
+        if isDestroyed {
+            return "军伍已溃，火器炮车只作战损记录，不能再支撑城防或攻坚。"
+        }
+        if supplyState == .encircled {
+            return "军械需粮药驮运，断粮被围时射程和攻势价值难以发挥。"
+        }
+        if supplyState == .lowSupply {
+            return "火器炮队仍可压阵，但粮草偏紧会限制连续攻坚和守城久战。"
+        }
+        if isSiegeCapable {
+            return "炮队与攻城器械可压城关、破堡寨，适合配合主力争夺要冲。"
+        }
+        if hasFireSupport {
+            return "火器营可支援邻近战线，适合守关、截援或短程压制敌军。"
+        }
+        if firepowerSharePercent > 0 {
+            return "军械只作辅兵，主要仍靠步骑接战；攻城和远程压制能力有限。"
+        }
+        return "本部未成火器炮队，适合守线、驻防或依托主力承接军令。"
+    }
+
+    var firepowerSignals: [UnitWarReadinessSignal] {
+        [
+            UnitWarReadinessSignal(
+                title: "火器",
+                value: "\(firearmSharePercent)%",
+                systemImage: "scope",
+                tint: firearmSharePercent > 0 ? MingDesignTokens.porcelainBlue : .secondary
+            ),
+            UnitWarReadinessSignal(
+                title: "炮队",
+                value: "\(artillerySharePercent)%",
+                systemImage: "target",
+                tint: artillerySharePercent > 0 ? MingDesignTokens.cinnabar : .secondary
+            ),
+            UnitWarReadinessSignal(
+                title: "攻城",
+                value: "\(siegeSharePercent)%",
+                systemImage: "building.2",
+                tint: siegeSharePercent > 0 ? MingDesignTokens.imperialGold : .secondary
+            ),
+            UnitWarReadinessSignal(
+                title: "射程",
+                value: "\(effectiveStats.range) 格",
+                systemImage: "ruler",
+                tint: effectiveStats.range > 1 ? MingDesignTokens.porcelainBlue : .secondary
+            )
+        ]
+    }
+
+    var firepowerSystemImageName: String {
+        if isSiegeCapable {
+            return "building.2"
+        }
+        if hasFireSupport || firepowerSharePercent > 0 {
+            return "scope"
+        }
+        return "shield"
+    }
+
+    var firepowerTint: Color {
+        if isDestroyed || supplyState == .encircled {
+            return MingDesignTokens.cinnabar
+        }
+        if supplyState == .lowSupply {
+            return MingDesignTokens.imperialGold
+        }
+        if isSiegeCapable {
+            return MingDesignTokens.cinnabar
+        }
+        if hasFireSupport || firepowerSharePercent > 0 {
+            return MingDesignTokens.porcelainBlue
+        }
+        return MingDesignTokens.jade
+    }
+
+    private func componentSharePercent(for types: Set<ComponentType>) -> Int {
+        let share = components
+            .filter { types.contains($0.type) }
+            .reduce(0.0) { $0 + $1.weight }
+        return max(0, min(100, Int((share * 100).rounded())))
     }
 }
 
