@@ -20,6 +20,7 @@ struct DiplomacyPanelView: View {
             )
 
             situationSection
+            worldOrderSection
 
             if let rulerRecord = diplomacyState.latestRulerRecord {
                 Divider()
@@ -63,6 +64,51 @@ struct DiplomacyPanelView: View {
             }
         }
         .font(.caption)
+    }
+
+    private var worldOrderSection: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("天下牵引")
+                .font(.subheadline.weight(.semibold))
+
+            WorldOrderReadingRow(
+                title: "战和格局",
+                value: warRelationSummary,
+                detail: hostilePowerText,
+                systemImageName: "bolt.horizontal",
+                tint: MingDesignTokens.cinnabar
+            )
+
+            if let courtSummary {
+                WorldOrderReadingRow(
+                    title: "朝议牵引",
+                    value: courtSummary.recommendedFocus.displayName,
+                    detail: courtSummary.rationale,
+                    systemImageName: courtSummary.recommendedFocus.systemImageName,
+                    tint: courtSummary.recommendedFocus.displayTint
+                )
+
+                WorldOrderPressureStrip(summary: courtSummary)
+            } else {
+                WorldOrderReadingRow(
+                    title: "朝议牵引",
+                    value: "暂无朝议",
+                    detail: "尚未形成政策、经济、科技、军事四线摘要。",
+                    systemImageName: "scroll",
+                    tint: MingDesignTokens.imperialGold
+                )
+            }
+
+            if let diplomacySummary = latestDiplomacySummary {
+                WorldOrderReadingRow(
+                    title: "御前奏报",
+                    value: "最新判断",
+                    detail: diplomacySummary,
+                    systemImageName: "seal",
+                    tint: MingDesignTokens.porcelainBlue
+                )
+            }
+        }
     }
 
     private var countrySection: some View {
@@ -185,6 +231,30 @@ struct DiplomacyPanelView: View {
         return names.isEmpty ? "暂无公开敌对" : names.joined(separator: "、")
     }
 
+    private var warRelationSummary: String {
+        let hostileCount = diplomacyState.relations.filter(\.status.isHostile).count
+        let truceCount = diplomacyState.relations.filter { $0.status == .truce }.count
+        let passageCount = diplomacyState.relations.filter { $0.status == .passage }.count
+
+        var parts: [String] = []
+        parts.append("敌对 \(hostileCount)")
+        if truceCount > 0 {
+            parts.append("停战 \(truceCount)")
+        }
+        if passageCount > 0 {
+            parts.append("借道 \(passageCount)")
+        }
+        return parts.joined(separator: " / ")
+    }
+
+    private var latestDiplomacySummary: String? {
+        guard let summary = diplomacyState.latestRulerRecord?.diplomacySummary,
+              !summary.isEmpty else {
+            return nil
+        }
+        return summary
+    }
+
     private var worldPressureText: String {
         switch hostileRelations.count {
         case 0:
@@ -219,6 +289,63 @@ struct DiplomacyPanelView: View {
         case .neutral, .truce:
             return .secondary
         }
+    }
+}
+
+private struct WorldOrderReadingRow: View {
+    let title: String
+    let value: String
+    let detail: String
+    let systemImageName: String
+    let tint: Color
+
+    var body: some View {
+        HStack(alignment: .top, spacing: 8) {
+            Image(systemName: systemImageName)
+                .font(.caption.bold())
+                .foregroundStyle(tint)
+                .frame(width: 20, height: 20)
+                .background(tint.opacity(0.12), in: RoundedRectangle(cornerRadius: 5))
+                .accessibilityHidden(true)
+
+            VStack(alignment: .leading, spacing: 3) {
+                HStack(alignment: .firstTextBaseline, spacing: 6) {
+                    Text(title)
+                        .font(.caption.bold())
+                    Text(value)
+                        .font(.caption.monospacedDigit())
+                        .foregroundStyle(tint)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.82)
+                }
+
+                Text(detail)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(2)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+
+            Spacer(minLength: 0)
+        }
+        .padding(.horizontal, MingDesignTokens.compactSpacing)
+        .padding(.vertical, 7)
+        .background(MingDesignTokens.sectionBackground.opacity(0.56), in: RoundedRectangle(cornerRadius: MingDesignTokens.cornerRadius))
+        .accessibilityElement(children: .combine)
+    }
+}
+
+private struct WorldOrderPressureStrip: View {
+    let summary: CourtStrategySummary
+
+    var body: some View {
+        LazyVGrid(columns: [GridItem(.adaptive(minimum: 58), spacing: 6)], spacing: 6) {
+            CourtPressureBadge(label: "政策", value: summary.policyPressure, tint: MingDesignTokens.jade)
+            CourtPressureBadge(label: "经济", value: summary.economyPressure, tint: MingDesignTokens.imperialGold)
+            CourtPressureBadge(label: "科技", value: summary.technologyPressure, tint: MingDesignTokens.porcelainBlue)
+            CourtPressureBadge(label: "军事", value: summary.militaryPressure, tint: MingDesignTokens.cinnabar)
+        }
+        .accessibilityElement(children: .contain)
     }
 }
 

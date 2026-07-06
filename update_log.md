@@ -1162,6 +1162,8 @@ guerrillaWarfare 额外参考 infrastructure
 
 以下提交不作为正式 v 版本，但影响项目资料完整性：
 
+- 2026-07-06：v4.6 明末天下牵引首片落地：`DiplomacyPanelView` 在“天下概览”后新增只读“天下牵引”区，复用现有 `DiplomacyState`、当前 active faction 的 `CourtStrategySummary` 和最近 `RulerDecisionRecord.diplomacySummary`，展示战和格局、主要敌手、朝议牵引、政策/经济/科技/军事四线压力和御前奏报，帮助玩家从天下局势回看朝廷、钱粮、科技和军令重点。该片只影响 SwiftUI 展示，不新增 `GameState` 或外交字段，不写塘报，不触发目标定位，不执行朝廷项目，不改变 `DiplomacyState`、`CourtStrategySummary`、`Command`、`CommandValidator`、`WarCommandExecutor`、`EconomyRules`、`VictoryRules`、`RuleEngine` 或任何 hex/region/theater/front/deploy 权威。并发子 Agent Pauli、Lovelace 分别只读探查外交面板插入点和文档同步边界；本轮采纳外交面板小切片。
+
 - 2026-07-06：v4.6 明末舆图判读图例增量落地：`RootGameView` 的非 hex 图层图例新增只读“舆图判读”芯片，按州府、初划、战局、前线、布防分别提示政令/钱粮/民变、开局方面/督抚分防、动态推进/军机方面、真实接敌/守关截援、前军/纵深/驻守等读局重点；hex 图层势力旗图例补齐明/清/顺/西/乡，强化明廷、后金/清、大顺、大西和地方势力同场角力的地图代入感。该片只影响 SwiftUI 展示，不新增状态，不改变 `MapDisplayLayer` rawValue、`MapLayerOverlayCalculator`、SpriteKit overlay 绘制、hex/region/theater/front/deploy 权威、补给、命令、AI 或 `RuleEngine`。并发子 Agent Jason、Franklin 分别只读探查地图图例和战线/朝廷/外交 UI 候选，主线程采纳地图图例小切片；同步更新 `README.md`、`md/flow/flow.md`、`md/flow/flowchart.md`、`md/prompt/README.md` 和 `v4.6_ming_ui_polish_record.md`。本轮仍未做本机 Xcode / XCTest / 模拟器 / Probe / Smoke / Stage Regression / Dynamic Theater Regression / Full 或截图验收。
 
 - 2026-07-06：v4.6 州府主值提示首片落地：`RegionInspectorView` 在州府牌头部后新增只读“州府主值”区，按目标、前线压力、关隘、粮台、工坊、驿道和治理压力优先说明该州府当前偏战局要冲、前线承压、城关屏障、粮台重地、工坊军械、驿道节点或治理承压，并用政/粮/械/兵四个 chip 联读政策、经济、科技、军事价值。该片只强化州府牌的中华世界局势和地方价值扫读，不新增 `RegionInspectorState` 字段，不改变 `RegionNode` schema、hex 控制、region 聚合、经济结算、动态战区、前线、部署、`Command`、`WarCommandExecutor`、`CommandValidator`、`RuleEngine` 或任何规则权威。并发子 Agent Euler、Mill 只读复核实现插入点、可用字段、UI-only 风险和文档同步位置；本轮采纳州府主值小切片。

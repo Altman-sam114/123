@@ -8,6 +8,8 @@
 
 > v4.6 舆图判读图例最新增量：`RootGameView` 的非 hex 图层图例新增“舆图判读”芯片，按州府、初划、战局、前线和布防分别提示政令/钱粮/民变、开局方面、动态推进、真实接敌和前军/纵深/驻守等读局重点；hex 图层的势力旗图例也从明/清/顺补齐为明/清/顺/西/乡。该增量只改变 SwiftUI 图例说明，不改变 `MapDisplayLayer` rawValue、`MapLayerOverlayCalculator`、SpriteKit 绘制、hex/region/theater/front/deploy 权威或任何命令规则。
 
+> v4.6 天下局势最新增量：`DiplomacyPanelView` 在“天下概览”后新增只读“天下牵引”区，从现有 `DiplomacyState`、当前势力的 `CourtStrategySummary` 和最近 `RulerDecisionRecord.diplomacySummary` 派生战和格局、朝议牵引、政策/经济/科技/军事四线压力和御前奏报，帮助玩家把天下关系、朝廷取舍和军令重点连起来。该增量只改变 SwiftUI 展示，不新增外交状态，不写塘报，不执行朝廷项目，不改变 `GameState`、`DiplomacyState`、`CourtStrategySummary`、`Command`、`CommandValidator`、`WarCommandExecutor`、`EconomyRules`、`RuleEngine` 或任何 hex/region/theater/front/deploy 权威。
+
 > v4.6 军机/塘报显示最新增量：`AgentPanelView` 在显示边界继续消除 raw 调试感，把 `AgentDecisionRecord.errors`、`CommandResultSummary.errors` 中的已知 `CommandValidationError.rawValue` 转为 `mingDisplayText`，把 `Mapping failed.`、`No AI faction was active.`、未知 provider 和未收录 doctrine skill 转成军机案卷口径；`EventLogView` 对非战役/急务/目标换手的 `relatedRecordId` 按前缀显示为战区军令、军机回执、朱批回执或系统回执，不再默认直出 raw id。该增量只改变 SwiftUI 展示，不修改 `AgentDecisionRecord`、`CommandResultSummary`、`GameLogEntry` 或任何 Codable schema，也不改变 AI、命令映射、校验、塘报写入或规则权威。
 
 > v4.6 军令牌 UI 最新增量：`CommandPanelView` 在“战术处置”区新增只读“舆图军令”提示，按观战、未选军、敌军、非本方阶段、已行动、缺粮/断粮等现有状态说明下一步应在舆图点目标格调动/攻击，还是在军令牌内批固守、准退、补给；坐标显示也统一走 `MingMapLabelFormat.coordinate` 的“舆图格”口径。该增量只帮助玩家理解地图落子与面板按钮的分工，不新增状态，不改变 `Command`、`CommandValidator`、`WarCommandExecutor`、`RuleEngine` 或任何移动/攻击/补给规则。
