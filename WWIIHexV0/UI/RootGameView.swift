@@ -276,7 +276,8 @@ struct RootGameView: View {
                         courtSummary: CourtStrategySummary.from(
                             faction: container.gameState.activeFaction,
                             state: container.gameState
-                        )
+                        ),
+                        objectiveSummary: BattleObjectiveSummary.from(state: container.gameState)
                     )
                 case .agent:
                     AgentPanelView(

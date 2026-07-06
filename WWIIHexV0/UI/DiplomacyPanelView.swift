@@ -4,6 +4,7 @@ struct DiplomacyPanelView: View {
     let diplomacyState: DiplomacyState
     let activeFaction: Faction
     let courtSummary: CourtStrategySummary?
+    let objectiveSummary: BattleObjectiveSummary?
 
     var body: some View {
         VStack(alignment: .leading, spacing: MingDesignTokens.sectionSpacing) {
@@ -78,6 +79,10 @@ struct DiplomacyPanelView: View {
                 systemImageName: "bolt.horizontal",
                 tint: MingDesignTokens.cinnabar
             )
+
+            if let objectiveContext = WorldObjectiveContext(summary: objectiveSummary) {
+                WorldObjectiveSection(context: objectiveContext)
+            }
 
             if let courtSummary {
                 WorldOrderReadingRow(
@@ -364,6 +369,163 @@ private struct WorldOrderPressureStrip: View {
             CourtPressureBadge(label: "军事", value: summary.militaryPressure, tint: MingDesignTokens.cinnabar)
         }
         .accessibilityElement(children: .contain)
+    }
+}
+
+private struct WorldObjectiveContext {
+    let leaderTitle: String
+    let leaderDetail: String
+    let lineTitle: String
+    let lineDetail: String
+    let taskTitle: String
+    let taskDetail: String
+    let scoreRows: [BattleObjectiveSummary.ScoreRow]
+    let lineTint: Color
+
+    init?(summary: BattleObjectiveSummary?) {
+        guard let summary, summary.isMingScenario else {
+            return nil
+        }
+
+        let leadingRow = summary.leadingFaction.flatMap { faction in
+            summary.scoreRows.first { $0.faction == faction }
+        }
+        let leaderName = summary.leadingFaction?.displayName ?? "未分胜势"
+        leaderTitle = leadingRow.map { "\(leaderName) \($0.points)" } ?? leaderName
+        leaderDetail = leadingRow.map { "控制要冲 \($0.objectiveCount) 处，当前只作天下态势读数。" } ?? "要冲分尚未拉开。"
+
+        let line = Self.urgentLine(in: summary)
+        lineTitle = line?.title ?? "五线待察"
+        lineDetail = line.map { "\($0.line.displayName) · \($0.status.displayName) · 压力 \($0.pressure)" } ?? "暂无告急五线。"
+        lineTint = Self.tint(for: line?.status)
+
+        let task = summary.tasks.sorted(by: Self.taskSort).first
+        let target = task?.targetObjectiveId.flatMap { objectiveId in
+            summary.tracks.flatMap(\.targets).first { $0.objectiveId == objectiveId }
+        }
+        taskTitle = task?.title ?? "本旬候报"
+        if let task, let target {
+            taskDetail = "\(task.line.displayName) · \(task.priority.displayName) · \(target.name) · \(target.controllerName)"
+        } else if let task {
+            taskDetail = "\(task.line.displayName) · \(task.priority.displayName)"
+        } else {
+            taskDetail = "暂无急务或主线任务。"
+        }
+
+        scoreRows = Array(summary.scoreRows.prefix(5))
+    }
+
+    private static func urgentLine(in summary: BattleObjectiveSummary) -> BattleObjectiveSummary.CampaignLineBrief? {
+        summary.lineBriefs.sorted {
+            if $0.status != $1.status {
+                return statusRank($0.status) < statusRank($1.status)
+            }
+            return $0.pressure > $1.pressure
+        }.first
+    }
+
+    private static func taskSort(_ lhs: BattleObjectiveSummary.CampaignTask, _ rhs: BattleObjectiveSummary.CampaignTask) -> Bool {
+        if lhs.priority.sortRank == rhs.priority.sortRank {
+            return lhs.title < rhs.title
+        }
+        return lhs.priority.sortRank < rhs.priority.sortRank
+    }
+
+    private static func statusRank(_ status: BattleObjectiveSummary.CampaignStageStatus) -> Int {
+        switch status {
+        case .warning:
+            return 0
+        case .focus:
+            return 1
+        case .watch:
+            return 2
+        case .achieved:
+            return 3
+        }
+    }
+
+    private static func tint(for status: BattleObjectiveSummary.CampaignStageStatus?) -> Color {
+        switch status {
+        case .warning:
+            return MingDesignTokens.cinnabar
+        case .focus:
+            return MingDesignTokens.imperialGold
+        case .watch:
+            return MingDesignTokens.porcelainBlue
+        case .achieved:
+            return MingDesignTokens.jade
+        case nil:
+            return .secondary
+        }
+    }
+}
+
+private struct WorldObjectiveSection: View {
+    let context: WorldObjectiveContext
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: MingDesignTokens.compactSpacing) {
+            WorldOrderReadingRow(
+                title: "天下棋势",
+                value: context.leaderTitle,
+                detail: context.leaderDetail,
+                systemImageName: "globe.asia.australia",
+                tint: MingDesignTokens.imperialGold
+            )
+
+            WorldOrderReadingRow(
+                title: "最急五线",
+                value: context.lineTitle,
+                detail: context.lineDetail,
+                systemImageName: "exclamationmark.triangle",
+                tint: context.lineTint
+            )
+
+            WorldOrderReadingRow(
+                title: "本旬落点",
+                value: context.taskTitle,
+                detail: context.taskDetail,
+                systemImageName: "scope",
+                tint: MingDesignTokens.porcelainBlue
+            )
+
+            if !context.scoreRows.isEmpty {
+                LazyVGrid(columns: [GridItem(.adaptive(minimum: 76), spacing: 6)], spacing: 6) {
+                    ForEach(context.scoreRows) { row in
+                        WorldObjectiveScoreChip(row: row)
+                    }
+                }
+                .accessibilityElement(children: .contain)
+            }
+        }
+    }
+}
+
+private struct WorldObjectiveScoreChip: View {
+    let row: BattleObjectiveSummary.ScoreRow
+
+    var body: some View {
+        HStack(spacing: 6) {
+            MingFactionFlagBadge(faction: row.faction)
+
+            VStack(alignment: .leading, spacing: 1) {
+                Text(row.faction.displayName)
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.78)
+
+                Text("\(row.points) / \(row.objectiveCount)")
+                    .font(.caption.monospacedDigit().bold())
+                    .foregroundStyle(row.faction.mingBannerTint)
+                    .lineLimit(1)
+            }
+        }
+        .padding(.horizontal, 7)
+        .padding(.vertical, 6)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(MingDesignTokens.sectionBackground.opacity(0.56), in: RoundedRectangle(cornerRadius: 6))
+        .accessibilityElement(children: .combine)
     }
 }
 
