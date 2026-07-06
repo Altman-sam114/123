@@ -14,6 +14,8 @@
 
 > v4.6 朝廷 UI 最新增量：`CourtPanelView` 在“朝议总纲”之后新增只读“朝议批票”，把 `CourtStrategySummary` 的推荐项目、四线最高压力和 `BattleObjectiveSummary.CampaignLineBrief` 中最急的天下五线态势合成票拟摘要，并展示项目成本、收益与风险。该增量只帮助玩家理解本旬为什么批某个政策/经济/科技/军事项目，不新增朝廷状态，不自动执行项目，不改变 `CourtStrategySummary` 排序、`CourtProjectKind` 成本收益、命令校验、经济规则或规则权威。
 
+> v4.6 军机/战区诊断最新增量：`CommandValidationError` 新增只读 `mingDisplayText`，供玩家回执、军机记录和战区军令日志统一显示中文驳回原因；`TurnManager` 会把无军令、战区指令为空、指令未生成可执行军令、军令被驳回、部署层缺防区和结束阶段失败等诊断写成明末军机口径；`WarCommandExecutor` 的战区军令驳回、州府控制权变化、单格动态方面推进和接敌线变化塘报也改为中文，并使用部队/州府/方面名称而不是裸英文命令包装。该增量只影响 `AgentDecisionRecord.errors`、`WarDirectiveRecord.diagnostics` 和 `eventLog` 可读文案，不改变 `CommandValidationError.rawValue`、`Command.displayName`、Codable schema、AI JSON、`ZoneDirective` 生成、命令校验、执行结果、hex/region/theater/front/deploy 权威或规则链。
+
 ---
 
 ## 项目定位

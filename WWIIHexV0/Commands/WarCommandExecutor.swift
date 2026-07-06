@@ -1086,9 +1086,9 @@ struct WarCommandExecutor {
         results.append(result)
 
         if !result.succeeded {
-            let rejectionReasons = result.validation.errors.map(\.rawValue).joined(separator: ", ")
+            let rejectionReasons = validationSummary(result.validation)
             state.appendEvent(
-                "Directive command rejected: \(rejectionReasons) for \(command.displayName).",
+                "战区军令被驳回：\(rejectionReasons)；命令：\(eventCommandTitle(command, state: state))。",
                 category: .frontChange,
                 relatedRecordId: relatedRecordId
             )
@@ -1131,7 +1131,7 @@ struct WarCommandExecutor {
                 continue
             }
             state.appendEvent(
-                "Region \(regionId.rawValue) controller changed to \(region.controller.displayName) via \(command.displayName).",
+                "州府 \(region.name) 控制权改归 \(region.controller.displayName)；触发军令：\(eventCommandTitle(command, state: state))。",
                 category: .regionOwnerChange,
                 relatedRecordId: relatedRecordId
             )
@@ -1224,12 +1224,12 @@ struct WarCommandExecutor {
             )
         }
         state.appendEvent(
-            "Hex \(hex.q),\(hex.r) reassigned to dynamic theater \(advancingTheaterId.rawValue).",
+            "舆图格 \(hex.q)-\(hex.r) 已划入动态方面 \(theaterTitle(advancingTheaterId, state: state))。",
             category: .theaterChange,
             relatedRecordId: relatedRecordId
         )
         state.appendEvent(
-            "Front changed around region \(regionId.rawValue).",
+            "州府 \(regionTitle(regionId, state: state)) 周边接敌线已变化。",
             category: .frontChange,
             relatedRecordId: relatedRecordId
         )
@@ -1284,6 +1284,44 @@ struct WarCommandExecutor {
                     || $0.unitsGarrison.contains(divisionId)
             }?
             .id
+    }
+
+    private func eventCommandTitle(_ command: Command, state: GameState) -> String {
+        switch command {
+        case .move(let divisionId, let destination):
+            return "调动 \(divisionTitle(divisionId, state: state)) 至舆图格 \(destination.q)-\(destination.r)"
+        case .attack(let attackerId, let targetId):
+            return "令 \(divisionTitle(attackerId, state: state)) 攻击 \(divisionTitle(targetId, state: state))"
+        case .hold(let divisionId):
+            return "令 \(divisionTitle(divisionId, state: state)) 固守"
+        case .allowRetreat(let divisionId):
+            return "准 \(divisionTitle(divisionId, state: state)) 必要时退却"
+        case .resupply(let divisionId):
+            return "令 \(divisionTitle(divisionId, state: state)) 补给整备"
+        case .queueProduction(let kind):
+            return "筹造 \(kind.displayName)"
+        case .enactCourtProject(let kind):
+            return "推行朝廷项目：\(kind.displayName)"
+        case .endTurn:
+            return "结束本阶段"
+        }
+    }
+
+    private func divisionTitle(_ id: String, state: GameState) -> String {
+        state.division(id: id)?.name ?? id
+    }
+
+    private func regionTitle(_ id: RegionId, state: GameState) -> String {
+        state.map.region(id: id)?.name ?? id.rawValue
+    }
+
+    private func theaterTitle(_ id: TheaterId, state: GameState) -> String {
+        state.theaterState.theaters[id]?.name ?? id.rawValue
+    }
+
+    private func validationSummary(_ validation: CommandValidation) -> String {
+        let text = validation.errors.map(\.mingDisplayText).joined(separator: "、")
+        return text.isEmpty ? "规则未准" : text
     }
 
     private func affectedRegionIds(for command: Command, state: GameState) -> [RegionId] {

@@ -78,7 +78,7 @@ struct TurnManager {
                     contextSummary: contextSummary,
                     rawJSON: nil,
                     parsedIntent: nil,
-                    errors: ["AI turn requested for \(faction.displayName), but manager agent belongs to \(agent.faction.displayName)."]
+                    errors: ["请求执行 \(faction.displayName) 军机回合，但当前军机主事属于 \(agent.faction.displayName)。"]
                 )
             )
         }
@@ -91,7 +91,7 @@ struct TurnManager {
                     contextSummary: contextSummary,
                     rawJSON: nil,
                     parsedIntent: nil,
-                    errors: ["\(faction.displayName) AI turn requested outside its controllable phase."]
+                    errors: ["请求执行 \(faction.displayName) 军机回合，但当前并非其可行令阶段。"]
                 )
             )
         }
@@ -125,7 +125,7 @@ struct TurnManager {
             let parsedDecision = try parser.parse(rawJSON, expectedAgentId: agent.id, expectedTurn: state.turn)
             var nextState = state
             var commandResults: [CommandResultSummary] = []
-            var errors: [String] = parsedDecision.orders.isEmpty ? ["Agent returned no orders."] : []
+            var errors: [String] = parsedDecision.orders.isEmpty ? ["军机未返回任何军令。"] : []
 
             for (index, order) in parsedDecision.orders.enumerated() {
                 do {
@@ -137,10 +137,10 @@ struct TurnManager {
                     )
 
                     if !result.succeeded {
-                        errors.append("Order \(index) rejected: \(result.validation.errors.map(\.rawValue).joined(separator: ", ")).")
+                        errors.append("第 \(index + 1) 道军令被规则驳回：\(Self.validationSummary(result.validation))。")
                     }
                 } catch {
-                    errors.append("Order \(index) mapping failed: \(error.localizedDescription)")
+                    errors.append("第 \(index + 1) 道军令映射失败：\(error.localizedDescription)")
                     commandResults.append(.mappingFailed(orderIndex: index, order: order, error: error))
                 }
             }
@@ -149,7 +149,7 @@ struct TurnManager {
             nextState = endTurnResult.state
             commandResults.append(.endTurn(result: endTurnResult))
             if !endTurnResult.succeeded {
-                errors.append("AI end turn failed: \(endTurnResult.validation.errors.map(\.rawValue).joined(separator: ", ")).")
+                errors.append("军机结束阶段失败：\(Self.validationSummary(endTurnResult.validation))。")
             }
 
             let record = AgentDecisionRecord(
@@ -193,7 +193,7 @@ struct TurnManager {
                 faction: faction,
                 contextSummary: contextSummary,
                 rawJSON: rawJSON,
-                parsedIntent: "zone directives",
+                parsedIntent: "战区指令",
                 providerSuffix: "Directive",
                 additionalDiagnostics: diagnostics
             )
@@ -230,7 +230,7 @@ struct TurnManager {
             )
             let compiledJSON = try Self.canonicalDirectiveJSON(resolution.directiveEnvelope)
             let rawJSON = resolution.rawTheaterJSON.map {
-                "\($0)\n\nCompiled ZoneDirective JSON:\n\(compiledJSON)"
+                "\($0)\n\n编译后的战区指令 JSON：\n\(compiledJSON)"
             } ?? compiledJSON
 
             return executeDirectiveEnvelope(
@@ -239,7 +239,7 @@ struct TurnManager {
                 faction: faction,
                 contextSummary: contextSummary,
                 rawJSON: rawJSON,
-                parsedIntent: resolution.theaterEnvelope?.strategicIntent ?? "marshal directives",
+                parsedIntent: resolution.theaterEnvelope?.strategicIntent ?? "元帅战区指令",
                 providerSuffix: "MarshalDirective",
                 additionalDiagnostics: diagnostics + resolution.diagnostics
             )
@@ -286,7 +286,7 @@ struct TurnManager {
         var directiveRecords: [WarDirectiveRecord] = []
         var errors = additionalDiagnostics
         if envelope.directives.isEmpty {
-            errors.append("Commander returned no directives.")
+            errors.append("督师未返回任何战区指令。")
         }
 
         for (directiveIndex, directive) in envelope.directives.enumerated() {
@@ -296,7 +296,7 @@ struct TurnManager {
             var perDirectiveDiagnostics: [String] = []
 
             if execution.generatedCommands.isEmpty {
-                let diagnostic = "Directive \(directiveIndex) generated no executable commands."
+                let diagnostic = "第 \(directiveIndex + 1) 道战区指令未生成可执行军令。"
                 errors.append(diagnostic)
                 perDirectiveDiagnostics.append(diagnostic)
             }
@@ -312,7 +312,7 @@ struct TurnManager {
                 commandResults.append(summary)
                 perDirectiveResults.append(summary)
                 if !pair.1.succeeded {
-                    let diagnostic = "Directive \(directiveIndex) command \(commandIndex) rejected: \(pair.1.validation.errors.map(\.rawValue).joined(separator: ", "))."
+                    let diagnostic = "第 \(directiveIndex + 1) 道战区指令的第 \(commandIndex + 1) 条军令被驳回：\(Self.validationSummary(pair.1.validation))。"
                     errors.append(diagnostic)
                     perDirectiveDiagnostics.append(diagnostic)
                 }
@@ -341,7 +341,7 @@ struct TurnManager {
         nextState = endTurnResult.state
         commandResults.append(.endTurn(result: endTurnResult))
         if !endTurnResult.succeeded {
-            errors.append("AI end turn failed: \(endTurnResult.validation.errors.map(\.rawValue).joined(separator: ", ")).")
+            errors.append("军机结束阶段失败：\(Self.validationSummary(endTurnResult.validation))。")
         }
 
         if envelope.directives.isEmpty || !additionalDiagnostics.isEmpty {
@@ -384,13 +384,13 @@ struct TurnManager {
     private func directiveDiagnostics(for faction: Faction, state: GameState) -> [String] {
         var diagnostics: [String] = []
         if state.warDeploymentState.frontZones.isEmpty {
-            diagnostics.append("ZoneDirective pipeline selected but WarDeploymentState has no FrontZone data; legacy pipeline was not invoked.")
+            diagnostics.append("已选择战区指令管线，但当前部署层没有防区数据；未退回旧管线。")
         }
 
         for division in state.divisions where division.faction == faction && !division.isDestroyed {
             guard let regionId = division.location(in: state.map),
                   state.warDeploymentState.regionToFrontZone[regionId] != nil else {
-                diagnostics.append("Division \(division.id) is not assigned to any FrontZone; no directive generated for this unit.")
+                diagnostics.append("部队 \(division.id) 未归入任何防区，本单位未生成战区指令。")
                 continue
             }
         }
@@ -421,13 +421,13 @@ struct TurnManager {
     static func contextSummary(_ context: AgentContext) -> String {
         if context.faction.isLegacyWWIIFaction {
             return [
-                "\(context.agentId) turn \(context.turn): \(context.friendlyDivisions.count) friendly divisions",
-                "\(context.enemyDivisions.count) known enemy divisions",
-                "\(context.objectives.count) objectives visible",
+                "\(context.agentId) 第 \(context.turn) 回合：友军 \(context.friendlyDivisions.count) 支",
+                "已知敌军 \(context.enemyDivisions.count) 支",
+                "可见目标 \(context.objectives.count) 处",
                 context.economySummary.displaySummary,
                 context.courtSummary.displaySummary,
                 context.campaignSummary.displaySummary
-            ].joined(separator: "; ")
+            ].joined(separator: "；")
         }
 
         return [
@@ -445,6 +445,11 @@ struct TurnManager {
         encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
         let data = try encoder.encode(envelope)
         return String(decoding: data, as: UTF8.self)
+    }
+
+    private static func validationSummary(_ validation: CommandValidation) -> String {
+        let text = validation.errors.map(\.mingDisplayText).joined(separator: "、")
+        return text.isEmpty ? "规则未准" : text
     }
 
     static func canonicalDirectiveJSON(_ envelope: DirectiveEnvelope) throws -> String {
