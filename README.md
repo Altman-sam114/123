@@ -4,6 +4,8 @@
 
 > v4.7 目标面板最新增量：`BattleObjectivePanelView` 在目标面板 header 后新增只读“天下棋眼”区，从 `BattleObjectiveSummary` 派生要冲分领先方、当前最急五线、本旬先手任务和可定位目标，让玩家进入“目标”tab 后先看到中华世界局势、政策/经济/科技/军事压力和本旬落点。该增量只改变 SwiftUI 展示；目标按钮仍沿用已有 `onFocusObjective -> AppContainer.focusObjective(_:)` UI 定位回调，不提交命令，不写塘报，不改变 `BattleObjectiveSummary`、`VictoryRules`、`Command`、`WarCommandExecutor`、`RuleEngine` 或任何 hex/region/theater/front/deploy 权威。
 
+> v4.7 目标面板最新增量：`BattleObjectivePanelView` 在“天下棋眼”后新增只读“要冲缺口”区，从 `BattleObjectiveSummary.tracks` 和 `Target.isControlled` 按胜负线展示尚缺城关、最高分缺口、现控制方和定位入口，让玩家能从清破关入京、大顺中原秦陕、大西湖广粮道、明廷名分线快速回到舆图落点。该增量只改变 SwiftUI 展示；定位按钮仍沿用已有 `onFocusObjective -> AppContainer.focusObjective(_:)` UI 定位回调，不提交命令，不写塘报，不新增任务进度，不改变 `BattleObjectiveSummary`、`VictoryRules`、`Command`、`WarCommandExecutor`、`RuleEngine` 或任何 hex/region/theater/front/deploy 权威。
+
 > v4.7 舆图要冲分布最新增量：`RootGameView` 顶部 `MingMapSituationStrip` 在“天下急势”内新增只读“要冲分布”横向小条，从 `BattleObjectiveSummary.scoreRows` 展示明廷、后金/清、大顺、大西等势力当前 objective points 和控制要冲数量，并用旗号与冠标标出领先方。该增量只改变 SwiftUI 展示，不提供目标定位按钮，不写塘报，不新增持久状态，不改变 `BattleObjectiveSummary`、`VictoryRules`、`Command`、`WarCommandExecutor`、`RuleEngine` 或任何 hex/region/theater/front/deploy 权威。
 
 > v4.7 朝廷面板最新增量：`CourtPanelView` 在“朝议批票”后新增只读“廷议要冲”区，从 `BattleObjectiveSummary.scoreRows` 和 `leadingFaction` 展示各势力要冲分、控制要冲数、本方分值与领先方，并把要冲归属写入“廷议会看”摘要，帮助朝廷面板把中华世界局势落回政策、经济、科技、军事取舍。该增量只改变 SwiftUI 展示，不提供定位按钮，不写塘报，不执行朝廷项目，不改变 `CourtStrategySummary`、`BattleObjectiveSummary`、`VictoryRules`、`Command.enactCourtProject`、`CommandValidator`、`EconomyRules`、`WarCommandExecutor`、`RuleEngine` 或任何 hex/region/theater/front/deploy 权威。

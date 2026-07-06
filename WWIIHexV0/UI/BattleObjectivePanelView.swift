@@ -17,6 +17,7 @@ struct BattleObjectivePanelView: View {
 
             if summary.isMingScenario {
                 BattleObjectiveStrategicEye(summary: summary, onFocusObjective: onFocusObjective)
+                BattleObjectiveGapBoard(tracks: summary.tracks, onFocusObjective: onFocusObjective)
                 BattleObjectiveScoreboard(summary: summary)
                 BattleObjectiveLineBriefBoard(briefs: summary.lineBriefs)
                 BattleObjectiveCueBoard(cues: summary.cues)
@@ -231,6 +232,147 @@ private extension BattleObjectiveSummary.CampaignStageStatus {
         case .achieved:
             return 3
         }
+    }
+}
+
+private struct BattleObjectiveGapBoard: View {
+    let tracks: [BattleObjectiveSummary.Track]
+    let onFocusObjective: (String) -> Void
+
+    var body: some View {
+        if !tracks.isEmpty {
+            VStack(alignment: .leading, spacing: MingDesignTokens.compactSpacing) {
+                HStack(alignment: .firstTextBaseline, spacing: 8) {
+                    Label("要冲缺口", systemImage: "flag.2.crossed")
+                        .font(.subheadline.bold())
+                        .foregroundStyle(MingDesignTokens.ink)
+
+                    Spacer(minLength: 8)
+
+                    Text(overallStatus)
+                        .font(.caption.bold())
+                        .foregroundStyle(MingDesignTokens.cinnabar)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.78)
+                }
+
+                Text("各路胜负线按未控城关扫读，先看最高分缺口，再回舆图定位落点。")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+
+                LazyVGrid(columns: [GridItem(.adaptive(minimum: 156), spacing: 8)], alignment: .leading, spacing: 8) {
+                    ForEach(tracks) { track in
+                        BattleObjectiveGapCard(track: track, onFocusObjective: onFocusObjective)
+                    }
+                }
+            }
+            .padding(MingDesignTokens.compactSpacing)
+            .background(MingDesignTokens.sectionBackground, in: RoundedRectangle(cornerRadius: MingDesignTokens.cornerRadius))
+        }
+    }
+
+    private var overallStatus: String {
+        let missingCount = tracks.reduce(0) { total, track in
+            total + track.targets.filter { !$0.isControlled }.count
+        }
+        if missingCount == 0 {
+            return "诸线已满"
+        }
+        return "尚缺 \(missingCount) 处"
+    }
+}
+
+private struct BattleObjectiveGapCard: View {
+    let track: BattleObjectiveSummary.Track
+    let onFocusObjective: (String) -> Void
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 7) {
+            HStack(alignment: .top, spacing: 7) {
+                MingFactionFlagBadge(faction: track.faction)
+
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(track.title)
+                        .font(.caption.bold())
+                        .foregroundStyle(MingDesignTokens.ink)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.78)
+
+                    Text(gapStatus)
+                        .font(.caption)
+                        .foregroundStyle(track.faction.mingBannerTint)
+                        .lineLimit(1)
+                }
+
+                Spacer(minLength: 4)
+            }
+
+            Text(gapDetail)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .lineLimit(3)
+                .fixedSize(horizontal: false, vertical: true)
+
+            if let focusTarget {
+                Button {
+                    onFocusObjective(focusTarget.objectiveId)
+                } label: {
+                    Label(focusTarget.name, systemImage: "mappin.and.ellipse")
+                        .font(.caption.bold())
+                        .foregroundStyle(track.faction.mingBannerTint)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.76)
+                        .frame(maxWidth: .infinity, minHeight: MingDesignTokens.minimumTapSize, alignment: .leading)
+                        .padding(.horizontal, 8)
+                        .background(track.faction.mingBannerTint.opacity(0.12), in: RoundedRectangle(cornerRadius: 6))
+                }
+                .buttonStyle(.plain)
+                .accessibilityHint("定位到\(focusTarget.name)")
+            }
+        }
+        .padding(8)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(track.isSatisfied ? MingDesignTokens.subtleSeal : MingDesignTokens.panelBackground.opacity(0.58), in: RoundedRectangle(cornerRadius: 6))
+        .overlay {
+            RoundedRectangle(cornerRadius: 6)
+                .stroke(track.faction.mingBannerTint.opacity(track.isSatisfied ? 0.48 : 0.22), lineWidth: 1)
+        }
+        .accessibilityElement(children: .combine)
+    }
+
+    private var missingTargets: [BattleObjectiveSummary.Target] {
+        track.targets.filter { !$0.isControlled }
+    }
+
+    private var focusTarget: BattleObjectiveSummary.Target? {
+        let candidates = missingTargets.isEmpty ? track.targets : missingTargets
+        return candidates.sorted {
+            if $0.points == $1.points {
+                return $0.name < $1.name
+            }
+            return $0.points > $1.points
+        }.first
+    }
+
+    private var gapStatus: String {
+        if track.isSatisfied {
+            return "已据 \(track.requiredCount) / \(track.requiredCount) 处"
+        }
+        return "尚缺 \(missingTargets.count) / \(track.requiredCount) 处"
+    }
+
+    private var gapDetail: String {
+        if track.isSatisfied {
+            return "\(track.faction.displayName)所需要冲已齐，仍需守住现有城关，防止终局前换手。"
+        }
+        guard let focusTarget else {
+            return "此线暂无可定位要冲。"
+        }
+
+        let missingNames = missingTargets.prefix(2).map(\.name).joined(separator: "、")
+        let prefix = missingNames.isEmpty ? "缺口未明" : "缺 \(missingNames)"
+        return "\(prefix)；最高缺口 \(focusTarget.name)，现 \(focusTarget.controllerName)，值 \(focusTarget.points) 分。"
     }
 }
 
