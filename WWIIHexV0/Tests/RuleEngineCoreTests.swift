@@ -766,6 +766,7 @@ final class RuleEngineCoreTests: XCTestCase {
 
         XCTAssertEqual(summary.cues.first?.id, "songjin_aftershock")
         XCTAssertTrue(summary.cues.contains { $0.id == "chongzhen_revenue_pressure" })
+        XCTAssertTrue(summary.cues.contains { $0.id == "firearms_fortification_pressure" && $0.kind == .technology })
         XCTAssertEqual(summary.cues.first?.kind, .history)
     }
 

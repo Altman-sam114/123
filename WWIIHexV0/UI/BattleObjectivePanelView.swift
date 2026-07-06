@@ -458,6 +458,8 @@ private struct BattleObjectiveCueRow: View {
             return MingDesignTokens.porcelainBlue
         case .economy:
             return MingDesignTokens.jade
+        case .technology:
+            return MingDesignTokens.porcelainBlue
         case .military:
             return MingDesignTokens.imperialGold
         case .agent:

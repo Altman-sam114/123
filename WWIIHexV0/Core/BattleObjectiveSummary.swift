@@ -239,6 +239,7 @@ struct BattleObjectiveSummary: Equatable {
             case history
             case policy
             case economy
+            case technology
             case military
             case agent
 
@@ -250,6 +251,8 @@ struct BattleObjectiveSummary: Equatable {
                     return "政务"
                 case .economy:
                     return "钱粮"
+                case .technology:
+                    return "军械"
                 case .military:
                     return "军务"
                 case .agent:
@@ -265,6 +268,8 @@ struct BattleObjectiveSummary: Equatable {
                     return "building.columns"
                 case .economy:
                     return "shippingbox"
+                case .technology:
+                    return "hammer"
                 case .military:
                     return "shield.lefthalf.filled"
                 case .agent:
@@ -290,7 +295,8 @@ struct BattleObjectiveSummary: Equatable {
                 return .frontChange
             case .agent,
                  .history,
-                 .policy:
+                 .policy,
+                 .technology:
                 return .event
             }
         }
@@ -942,6 +948,15 @@ struct BattleObjectiveSummary: Equatable {
                     kind: .policy,
                     title: "催饷与安民",
                     detail: "朝廷可短期征饷补军费，也可赈济压民变；两者会牵动政策、经济与军事压力。"
+                )
+            )
+
+            cues.append(
+                Cue(
+                    id: "firearms_fortification_pressure",
+                    kind: .technology,
+                    title: "火器与城防",
+                    detail: "红衣炮维护、火器整备和修城固守会影响山海关、北京、武昌等城关承压能力。"
                 )
             )
         }

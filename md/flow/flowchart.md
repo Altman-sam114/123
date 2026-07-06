@@ -18,7 +18,7 @@
   -> v4.5 朝廷首片把政策、经济、科技、军事四线压力派生为 CourtStrategySummary，并进入 UI / AI 摘要
   -> v4.6 UI 首片用 MingDesignTokens、MingMapLabelFormat、独立 CourtPanelView、朝议总纲、朝议争点、朝廷五线态势、朝报令条、军令牌、命令交互回执中文化、将印军令、将领名帖、军机复盘牌/军机五线/军机底稿、最高意志朱批中文化、塘报战记/急务战役分类、部队军情牌/军令战备/驻防归属可读化、舆图军牌浮签、州府牌归属旗号/方面防区可读化、府库牌收支急报、天下急势/朝议重心可读化、舆图天下急势、天下战和张力条、阵营名义卡、中文军牌、势力旗号、城/关/粮 badge、粮道虚线/开关、军令计划线、舆图图例、兵种/粮草/堆叠图例和四线交叉项目分组 polish 主界面、地图部队和朝廷/将领/军令/AI 面板
   -> v4.6 朝廷项目首片把征饷、赈济、招抚、农政、修城、整训团练/地方驻防、火器、红衣炮、粮台驿道等主议/备议落到 Command.enactCourtProject 和 EconomyRules
-  -> v4.7 明末胜负链首片把 ScenarioDefinition.victoryConditions 写入 GameState，并让清破关入京、大顺据中原秦陕、大西据湖广粮区、明廷守住京师关口等条件进入 BattleObjectiveSummary / VictoryRules，在“目标”“朝廷”和“军机复盘”面板显示只读天下五线态势，并在目标面板显示进度、控制方旗号、只读战役提示、开封围城压力、本旬任务链和阶段战局链，回合末把提示和急务/主线任务入塘报；CampaignAISummary 把同一五线态势送入 AgentContext、MarshalBattlefieldSummary 和 AgentPanelView；CourtStrategySummary 读取同一战役线压力加权朝廷主议；ZoneCommanderDoctrine 让明廷谨慎、清/大顺/大西进取、地方自保，并贯通 TheaterCommanderPool、AppContainer 空将领 registry fallback、MockAICommander、SimulatedMarshalLLMClient 和不同 tactic 映射；legacy Agent D 的 prompt、MockAI 理由和 contextSummary 也按明末势力转成军机/粮草/城关/五线语境；AgentPanelView 只读展示势力军略、风格、技能标签和战术偏向；目标 chip 和任务按钮可只读定位对应 hex / 州府，并在舆图显示“标”令牌、脉冲圈和同胜负线城关连线；目标 hex 换手会写塘报
+  -> v4.7 明末胜负链首片把 ScenarioDefinition.victoryConditions 写入 GameState，并让清破关入京、大顺据中原秦陕、大西据湖广粮区、明廷守住京师关口等条件进入 BattleObjectiveSummary / VictoryRules，在“目标”“朝廷”和“军机复盘”面板显示只读天下五线态势，并在目标面板显示进度、控制方旗号、只读战役提示、军械类火器城防提示、开封围城压力、本旬任务链和阶段战局链，回合末把提示和急务/主线任务入塘报；CampaignAISummary 把同一五线态势送入 AgentContext、MarshalBattlefieldSummary 和 AgentPanelView；CourtStrategySummary 读取同一战役线压力加权朝廷主议；ZoneCommanderDoctrine 让明廷谨慎、清/大顺/大西进取、地方自保，并贯通 TheaterCommanderPool、AppContainer 空将领 registry fallback、MockAICommander、SimulatedMarshalLLMClient 和不同 tactic 映射；legacy Agent D 的 prompt、MockAI 理由和 contextSummary 也按明末势力转成军机/粮草/城关/五线语境；AgentPanelView 只读展示势力军略、风格、技能标签和战术偏向；目标 chip 和任务按钮可只读定位对应 hex / 州府，并在舆图显示“标”令牌、脉冲圈和同胜负线城关连线；目标 hex 换手会写塘报
   -> v0.5 元帅层是战略意图层，不替代战术权威
   -> 玩家和 AI 都必须把命令交给 RuleEngine
   -> 命令执行后再同步刷新战略层和 UI
@@ -58,7 +58,7 @@ flowchart TD
     COURTDEBATE["朝议总纲 / 朝议争点<br/>CourtPanelView / CourtCouncilBriefSection + CourtDebateSection<br/>主议、备议、四线压力、安民与征饷、火器与团练、粮道与城防只读展示"]:::ui
     COURTFIVE["朝廷五线态势<br/>CourtPanelView / CourtCampaignLineSection<br/>复用 CampaignLineBrief 扫读天下、政策、经济、科技、军事压力"]:::ui
     COURTPROJ["朝廷四线项目<br/>CourtProjectDomain + CourtProjectKind / Command.enactCourtProject<br/>政策、经济、科技、军事分组；征饷、赈济、招抚、农政、修城、整训团练/地方驻防、火器、红衣炮、粮台驿道"]:::command
-    OBJINFO["战役目标<br/>GameState.victoryConditions -> BattleObjectiveSummary + BattleObjectivePanelView<br/>胜负线、城关控制方旗号、战役提示、开封围城压力、天下五线态势、本旬任务链、阶段战局链、终局要冲分和目标定位只读展示"]:::ui
+    OBJINFO["战役目标<br/>GameState.victoryConditions -> BattleObjectiveSummary + BattleObjectivePanelView<br/>胜负线、城关控制方旗号、史势/政务/钱粮/军械/军务/军机战役提示、开封围城压力、天下五线态势、本旬任务链、阶段战局链、终局要冲分和目标定位只读展示"]:::ui
     MAPSITUATION["舆图天下急势<br/>RootGameView / MingMapSituationStrip<br/>领先方、急务/主线任务数和五线压力只读前置到地图控件"]:::ui
     CAMPAIGNAI["AI 五线态势摘要<br/>CampaignAISummary + AgentPromptBuilder<br/>把中华世界局势、领先势力、急务/主线任务转入 AgentContext、元帅摘要、legacy prompt 和军机复盘牌"]:::derived
     OBJFOCUS["目标定位<br/>AppContainer.focusObjective + BoardScene.drawFocusedObjective<br/>只更新 selectedHex / selectedRegionId / focusedObjectiveId / 高亮和交互日志；舆图只读显示标令牌和同线城关"]:::ui
