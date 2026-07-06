@@ -95,6 +95,8 @@ struct RootGameView: View {
 
             MingMapSituationStrip(summary: BattleObjectiveSummary.from(state: container.gameState))
 
+            MingMapPointInspectionStrip(state: container.selectedRegionInspectorState)
+
             Picker("图层", selection: Binding(
                 get: { container.mapDisplayLayer },
                 set: { container.setMapDisplayLayer($0) }
@@ -277,6 +279,173 @@ struct RootGameView: View {
             .padding(.horizontal, 8)
             .padding(.bottom, 10)
         }
+    }
+}
+
+private struct MingMapPointInspectionStrip: View {
+    let state: RegionInspectorState?
+
+    var body: some View {
+        if let state {
+            VStack(alignment: .leading, spacing: 6) {
+                HStack(alignment: .center, spacing: 7) {
+                    Label("舆图点验", systemImage: "scope")
+                        .font(.caption.bold())
+                        .foregroundStyle(MingDesignTokens.ink)
+                        .lineLimit(1)
+
+                    Spacer(minLength: 6)
+
+                    MingFactionFlagBadge(faction: controller(for: state))
+
+                    Text(state.region.name)
+                        .font(.caption.bold())
+                        .foregroundStyle(controller(for: state).mingBannerTint)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.74)
+                }
+
+                LazyVGrid(columns: [GridItem(.adaptive(minimum: 116), spacing: 6)], alignment: .leading, spacing: 6) {
+                    MingMapPointInspectionChip(
+                        title: "格位",
+                        value: coordinateText(for: state),
+                        detail: controller(for: state).displayName,
+                        systemImageName: "hexagon",
+                        tint: controller(for: state).mingBannerTint
+                    )
+                    MingMapPointInspectionChip(
+                        title: "方面",
+                        value: MingMapLabelFormat.theaterTitle(theaterId(for: state)),
+                        detail: state.frontPressure > 0 ? frontPressureDisplay(for: state) : "动态归属",
+                        systemImageName: "point.topleft.down.curvedto.point.bottomright.up",
+                        tint: frontPressureTint(for: state)
+                    )
+                    MingMapPointInspectionChip(
+                        title: "防区",
+                        value: MingMapLabelFormat.frontZoneTitle(frontZoneId(for: state)),
+                        detail: "友军 \(state.friendlyDivisions.count) / 敌情 \(state.visibleEnemyDivisions.count)",
+                        systemImageName: "shield.lefthalf.filled",
+                        tint: frontPressureTint(for: state)
+                    )
+                    MingMapPointInspectionChip(
+                        title: "要冲",
+                        value: objectiveTitle(for: state),
+                        detail: state.objectiveStatus,
+                        systemImageName: "mappin.and.ellipse",
+                        tint: objectiveTint(for: state)
+                    )
+                }
+            }
+            .padding(8)
+            .background(MingDesignTokens.sectionBackground.opacity(0.78), in: RoundedRectangle(cornerRadius: MingDesignTokens.cornerRadius))
+            .overlay {
+                RoundedRectangle(cornerRadius: MingDesignTokens.cornerRadius)
+                    .stroke(controller(for: state).mingBannerTint.opacity(0.3), lineWidth: 1)
+            }
+            .accessibilityElement(children: .contain)
+            .accessibilityLabel(accessibilityText(for: state))
+        }
+    }
+
+    private func controller(for state: RegionInspectorState) -> Faction {
+        state.selectedHexController ?? state.region.controller
+    }
+
+    private func theaterId(for state: RegionInspectorState) -> TheaterId? {
+        state.selectedHexDynamicTheaterId ?? state.theaterId
+    }
+
+    private func frontZoneId(for state: RegionInspectorState) -> FrontZoneId? {
+        state.selectedHexFrontZoneId ?? state.frontZoneId
+    }
+
+    private func coordinateText(for state: RegionInspectorState) -> String {
+        guard let selectedHex = state.selectedHex else {
+            return "州府"
+        }
+        return MingMapLabelFormat.coordinate(selectedHex)
+    }
+
+    private func objectiveTitle(for state: RegionInspectorState) -> String {
+        guard !state.objectiveNames.isEmpty else {
+            return "无"
+        }
+        if state.objectiveNames.count == 1 {
+            return state.objectiveNames[0]
+        }
+        return "要冲 \(state.objectiveNames.count) 处"
+    }
+
+    private func objectiveTint(for state: RegionInspectorState) -> Color {
+        if !state.objectiveNames.isEmpty {
+            return MingDesignTokens.cinnabar
+        }
+        if state.frontPressure > 0 {
+            return MingDesignTokens.imperialGold
+        }
+        return MingDesignTokens.jade
+    }
+
+    private func frontPressureDisplay(for state: RegionInspectorState) -> String {
+        state.frontPressure <= 0 ? "无前线压力" : "压力 \(state.frontPressure.formatted(.number.precision(.fractionLength(2))))"
+    }
+
+    private func frontPressureTint(for state: RegionInspectorState) -> Color {
+        if state.frontPressure >= 3 {
+            return MingDesignTokens.cinnabar
+        }
+        if state.frontPressure > 0 {
+            return MingDesignTokens.imperialGold
+        }
+        return MingDesignTokens.jade
+    }
+
+    private func accessibilityText(for state: RegionInspectorState) -> String {
+        "舆图点验，\(coordinateText(for: state))，\(state.region.name)，控制 \(controller(for: state).displayName)，方面 \(MingMapLabelFormat.theaterTitle(theaterId(for: state)))，防区 \(MingMapLabelFormat.frontZoneTitle(frontZoneId(for: state)))，要冲 \(objectiveTitle(for: state))"
+    }
+}
+
+private struct MingMapPointInspectionChip: View {
+    let title: String
+    let value: String
+    let detail: String
+    let systemImageName: String
+    let tint: Color
+
+    var body: some View {
+        HStack(alignment: .top, spacing: 6) {
+            Image(systemName: systemImageName)
+                .font(.caption.bold())
+                .foregroundStyle(tint)
+                .frame(width: 16)
+                .accessibilityHidden(true)
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text(title)
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+
+                Text(value)
+                    .font(.caption.bold())
+                    .foregroundStyle(tint)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.72)
+
+                Text(detail)
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.72)
+            }
+
+            Spacer(minLength: 0)
+        }
+        .padding(.horizontal, 7)
+        .padding(.vertical, 6)
+        .frame(maxWidth: .infinity, minHeight: 56, alignment: .leading)
+        .background(MingDesignTokens.panelBackground.opacity(0.62), in: RoundedRectangle(cornerRadius: 6))
+        .accessibilityElement(children: .combine)
     }
 }
 
