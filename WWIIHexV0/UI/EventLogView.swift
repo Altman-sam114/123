@@ -212,7 +212,19 @@ private struct LogDisplayEntry: Identifiable {
         if relatedRecordId.hasPrefix("objective-control-") {
             return "目标换手"
         }
-        return "回执 \(relatedRecordId)"
+        if relatedRecordId.hasPrefix("war_directive_") {
+            return "战区军令"
+        }
+        if relatedRecordId.hasPrefix("directive_") {
+            return "战区回执"
+        }
+        if relatedRecordId.hasPrefix("agent_") {
+            return "军机回执"
+        }
+        if relatedRecordId.hasPrefix("ruler_") {
+            return "朱批回执"
+        }
+        return "系统回执"
     }
 }
 

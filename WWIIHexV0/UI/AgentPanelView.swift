@@ -95,7 +95,7 @@ struct AgentPanelView: View {
             AgentSectionCard(title: "异常塘报", systemImage: "exclamationmark.triangle", tint: MingDesignTokens.cinnabar) {
                 VStack(alignment: .leading, spacing: 6) {
                     ForEach(record.errors, id: \.self) { error in
-                        Label(error, systemImage: "xmark.octagon")
+                        Label(AgentPanelFormat.errorDisplayText(error), systemImage: "xmark.octagon")
                             .font(.caption)
                             .foregroundStyle(MingDesignTokens.cinnabar)
                             .fixedSize(horizontal: false, vertical: true)
@@ -368,7 +368,7 @@ private struct AgentDecisionSummaryCard: View {
                 Label("局势摘要", systemImage: "doc.text")
                     .font(.caption.bold())
                     .foregroundStyle(MingDesignTokens.jade)
-                Text(record.contextSummary.isEmpty ? "暂无战场摘要。" : record.contextSummary)
+                Text(AgentPanelFormat.contextSummaryText(record.contextSummary))
                     .font(.caption)
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
@@ -694,8 +694,22 @@ private enum AgentPanelFormat {
                     .map { providerTitle(String($0)) }
                     .joined(separator: " + ")
             }
-            return provider
+            if provider.localizedCaseInsensitiveContains("llm") {
+                return "外部军机案卷"
+            }
+            return readableFallback(provider, prefix: "案卷来源")
         }
+    }
+
+    static func contextSummaryText(_ text: String) -> String {
+        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        if trimmed.isEmpty {
+            return "暂无战场摘要。"
+        }
+        if trimmed == "No AI faction was active." {
+            return "当前无军机势力行动。"
+        }
+        return text
     }
 
     static func frontZoneTitle(_ id: FrontZoneId?, empty: String) -> String {
@@ -813,7 +827,7 @@ private enum AgentPanelFormat {
         case "reserve_control":
             return "预备队管制"
         default:
-            return skill.replacingOccurrences(of: "_", with: " ")
+            return readableFallback(skill, prefix: "军略")
         }
     }
 
@@ -834,6 +848,62 @@ private enum AgentPanelFormat {
         case .allies:
             return "联军协同 / 预备队"
         }
+    }
+
+    static func errorDisplayText(_ text: String) -> String {
+        if let validationError = CommandValidationError(rawValue: text) {
+            return validationError.mingDisplayText
+        }
+
+        switch text {
+        case "Mapping failed.":
+            return "军令映射未成"
+        case "No AI faction was active.":
+            return "当前无军机势力行动"
+        default:
+            if text.localizedCaseInsensitiveContains("mapping failed") {
+                return "军令映射未成"
+            }
+            if text.localizedCaseInsensitiveContains("not found") {
+                return "案卷目标未找到"
+            }
+            if text.localizedCaseInsensitiveContains("invalid") {
+                return "案卷格式不合"
+            }
+            if text.localizedCaseInsensitiveContains("empty") {
+                return "案卷为空"
+            }
+            return readableFallback(text, prefix: "异常案卷")
+        }
+    }
+
+    static func commandMessageText(_ message: String) -> String {
+        switch message {
+        case "Mapping failed.":
+            return "军令映射未成。"
+        default:
+            return message
+        }
+    }
+
+    static func validationErrorListText(_ errors: [String], empty: String) -> String {
+        let text = errors
+            .map(errorDisplayText)
+            .filter { !$0.isEmpty }
+            .joined(separator: "、")
+        return text.isEmpty ? empty : text
+    }
+
+    private static func readableFallback(_ value: String, prefix: String) -> String {
+        let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else {
+            return "\(prefix)：未载"
+        }
+
+        let readable = trimmed
+            .replacingOccurrences(of: "_", with: " ")
+            .replacingOccurrences(of: "-", with: " ")
+        return "\(prefix)：\(readable)"
     }
 
 }
@@ -889,16 +959,16 @@ private extension CommandResultSummary {
 
     var agentPanelDetailText: String {
         if !mappingSucceeded {
-            let text = errors.joined(separator: "、")
-            return text.isEmpty ? "军令未能映射到底层命令。" : "映射失败：\(text)"
+            let text = AgentPanelFormat.validationErrorListText(errors, empty: "")
+            return text.isEmpty ? "军令未能映射到底层命令。" : "军令映射未成：\(text)"
         }
         if executed {
-            return message
+            return AgentPanelFormat.commandMessageText(message)
         }
         if !errors.isEmpty {
-            return "被规则驳回：\(errors.joined(separator: "、"))"
+            return "被规则驳回：\(AgentPanelFormat.validationErrorListText(errors, empty: "未列明原因"))"
         }
-        return message
+        return AgentPanelFormat.commandMessageText(message)
     }
 
     var agentPanelValidationText: String {
