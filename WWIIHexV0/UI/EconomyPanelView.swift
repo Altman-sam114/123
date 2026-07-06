@@ -28,6 +28,8 @@ struct EconomyPanelView: View {
             TreasuryGovernanceSection(governance: governance)
             ProductionActionSection(
                 ledger: ledger,
+                canAct: canActForCurrentFaction,
+                observerModeEnabled: observerModeEnabled,
                 canQueue: canQueue,
                 onQueueProduction: onQueueProduction
             )
@@ -528,7 +530,7 @@ private struct TreasuryMilitaryPaySection: View {
     }
 
     private var detail: String {
-        "只读态势：银两库存 \(ledger.stockpile.industry)，补员耗银 \(ledger.lastReinforcementSpend.industry)，军粮维护 \(ledger.lastUpkeep.supplies)；缺粮 \(lowSupplyCount)，被围 \(encircledCount)，民变 \(governance.averageResistance)，行政 \(governance.averageCompliance)。"
+        "账房奏报：库存银 \(ledger.stockpile.industry)，补员耗银 \(ledger.lastReinforcementSpend.industry)，军粮维护 \(ledger.lastUpkeep.supplies)；缺粮 \(lowSupplyCount)，被围 \(encircledCount)，民变 \(governance.averageResistance)，行政 \(governance.averageCompliance)。"
     }
 
     private func clamp(_ value: Int) -> Int {
@@ -587,6 +589,8 @@ private enum TreasuryMilitaryPayStatus {
 
 private struct ProductionActionSection: View {
     let ledger: FactionEconomyLedger
+    let canAct: Bool
+    let observerModeEnabled: Bool
     let canQueue: (ProductionKind) -> Bool
     let onQueueProduction: (ProductionKind) -> Void
 
@@ -601,6 +605,7 @@ private struct ProductionActionSection: View {
                         kind: kind,
                         canQueue: canQueue(kind),
                         canAfford: ledger.stockpile.canAfford(kind.cost),
+                        availability: availability(for: kind),
                         onQueueProduction: onQueueProduction
                     )
                 }
@@ -610,12 +615,27 @@ private struct ProductionActionSection: View {
         .background(MingDesignTokens.sectionBackground)
         .clipShape(RoundedRectangle(cornerRadius: MingDesignTokens.cornerRadius))
     }
+
+    private func availability(for kind: ProductionKind) -> ProductionActionAvailability {
+        if observerModeEnabled {
+            return .observer
+        }
+        if !canAct {
+            return .waitingTurn
+        }
+        let shortage = ledger.stockpile.shortageSummary(comparedTo: kind.cost)
+        if !shortage.isEmpty {
+            return .missing(shortage)
+        }
+        return .ready
+    }
 }
 
 private struct ProductionActionRow: View {
     let kind: ProductionKind
     let canQueue: Bool
     let canAfford: Bool
+    let availability: ProductionActionAvailability
     let onQueueProduction: (ProductionKind) -> Void
 
     var body: some View {
@@ -639,10 +659,17 @@ private struct ProductionActionRow: View {
             .disabled(!canQueue)
 
             HStack(alignment: .firstTextBaseline, spacing: 8) {
-                Text(kind.intentSummary)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .lineLimit(2)
+                VStack(alignment: .leading, spacing: 3) {
+                    Text(kind.intentSummary)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(2)
+                    Label(availability.title, systemImage: availability.systemImageName)
+                        .font(.caption)
+                        .foregroundStyle(availability.tint)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.72)
+                }
                 Spacer(minLength: 8)
                 Text("耗费 \(kind.cost.compactDisplaySummary)")
                     .font(.caption)
@@ -653,6 +680,51 @@ private struct ProductionActionRow: View {
         }
         .padding(7)
         .background(MingDesignTokens.panelBackground.opacity(0.45), in: RoundedRectangle(cornerRadius: 6))
+    }
+}
+
+private enum ProductionActionAvailability {
+    case ready
+    case missing(String)
+    case waitingTurn
+    case observer
+
+    var title: String {
+        switch self {
+        case .ready:
+            return "可开工"
+        case let .missing(shortage):
+            return "尚缺 \(shortage)"
+        case .waitingTurn:
+            return "待本方"
+        case .observer:
+            return "观战"
+        }
+    }
+
+    var systemImageName: String {
+        switch self {
+        case .ready:
+            return "checkmark.seal"
+        case .missing:
+            return "exclamationmark.triangle"
+        case .waitingTurn:
+            return "hourglass"
+        case .observer:
+            return "eye"
+        }
+    }
+
+    var tint: Color {
+        switch self {
+        case .ready:
+            return MingDesignTokens.jade
+        case .missing:
+            return MingDesignTokens.cinnabar
+        case .waitingTurn,
+             .observer:
+            return .secondary
+        }
     }
 }
 
@@ -726,6 +798,20 @@ private extension ProductionOrder {
             return 1
         }
         return Double(totalTurns - remainingTurns) / Double(totalTurns)
+    }
+}
+
+private extension EconomyResources {
+    func shortageSummary(comparedTo cost: EconomyResources) -> String {
+        let deficits: [(label: String, value: Int)] = [
+            ("民力", max(0, cost.manpower - manpower)),
+            ("银两", max(0, cost.industry - industry)),
+            ("粮草", max(0, cost.supplies - supplies))
+        ].filter { $0.value > 0 }
+
+        return deficits
+            .map { "\($0.label) \($0.value)" }
+            .joined(separator: " / ")
     }
 }
 

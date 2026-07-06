@@ -16,6 +16,8 @@
 
 > v4.6 钱粮 UI 最新增量：`EconomyPanelView` 的府库牌新增只读“军饷民心”区，复用 `FactionEconomyLedger` 的银两库存、补员消耗、军粮维护和 `Division.supplyState`、`GovernanceAISummary` 的民变/行政摘要，派生军伍数、缺粮/被围数、军饷余势、民心综合和“军粮压顶/军饷吃紧/民心承压/军饷可支”等扫读状态。该增量只帮助玩家在钱粮面板联读经济、军队补给和地方治理压力，不新增军饷、士气、民心、灾荒字段或真实效果，不改变 `EconomyState`、`Division`、治理、补给、生产、命令或规则权威。
 
+> v4.6 府库生产状态最新增量：`EconomyPanelView` 在“募兵与筹粮”每个生产行新增只读状态，按当前是否观战、是否本方可行动以及 `FactionEconomyLedger.stockpile` 与 `ProductionKind.cost` 的差额显示“可开工 / 尚缺民力、银两、粮草 / 待本方 / 观战”，并把“军饷民心”说明改为“账房奏报”口吻。该增量只改变 SwiftUI 展示，不新增经济字段，不改变生产成本、队列、`Command.queueProduction`、`CommandValidator`、`EconomyRules`、`RuleEngine` 或任何规则权威。
+
 > v4.6 朝廷 UI 最新增量：`CourtPanelView` 在“朝议总纲”之后新增只读“朝议批票”，把 `CourtStrategySummary` 的推荐项目、四线最高压力和 `BattleObjectiveSummary.CampaignLineBrief` 中最急的天下五线态势合成票拟摘要，并展示项目成本、收益与风险。该增量只帮助玩家理解本旬为什么批某个政策/经济/科技/军事项目，不新增朝廷状态，不自动执行项目，不改变 `CourtStrategySummary` 排序、`CourtProjectKind` 成本收益、命令校验、经济规则或规则权威。
 
 > v4.6 军机/战区诊断最新增量：`CommandValidationError` 新增只读 `mingDisplayText`，供玩家回执、军机记录和战区军令日志统一显示中文驳回原因；`TurnManager` 会把无军令、战区指令为空、指令未生成可执行军令、军令被驳回、部署层缺防区和结束阶段失败等诊断写成明末军机口径；`WarCommandExecutor` 的战区军令驳回、州府控制权变化、单格动态方面推进和接敌线变化塘报也改为中文，并使用部队/州府/方面名称而不是裸英文命令包装。该增量只影响 `AgentDecisionRecord.errors`、`WarDirectiveRecord.diagnostics` 和 `eventLog` 可读文案，不改变 `CommandValidationError.rawValue`、`Command.displayName`、Codable schema、AI JSON、`ZoneDirective` 生成、命令校验、执行结果、hex/region/theater/front/deploy 权威或规则链。
@@ -124,7 +126,7 @@ WWIIHexV0/
 - v4.5 首片新增 `CourtStrategySummary`，从钱粮、治理、前线、补给和火器/炮队状态派生政策、经济、科技、军事四线压力；Root 信息面板新增“朝廷”tab，AI 摘要和元帅摘要可看到朝议建议；v4.7 后朝廷摘要会把明末胜负线压力加权进主议/备议，元帅摘要 schemaVersion 已升到 9，并额外携带战役五线态势。
 - v4.6 首片开始发布级 UI 收口：`MingDesignTokens` 统一明末面板色彩/圆角/间距；`CourtPanelView` 从 `RootGameView` 拆出并改为奏疏/印玺风格；军令、将领名帖、单位详情、单位浮窗、塘报战记、AI 决策、信息按钮和新局按钮继续中文化；`UnitNode` 不再绘制 NATO APP-6 兵牌，改为“城/旗/火/骑/步”和“守/退”中文军牌，当前进一步在地图军牌上只读显示“溃散/退中/被围/缺粮/已行”战备小签；地图空态标题改为“明末棋策舆图”。
 - v4.6 朝报令条首片继续 polish 顶部 HUD：`HUDView` 从普通指标 grid 升级为朝报令条，读取 `FactionEconomyLedger` 和只读 `CourtStrategySummary` 展示当前势力、回合、胜负、民力、银两、粮草、入账、营造队列和政策/经济/科技/军事四线压力；结束回合和新局按钮仍使用原回调，不直接改规则状态。
-- v4.6 府库牌首片继续 polish 钱粮界面：`EconomyPanelView` 从表格/按钮列表升级为府库牌，读取 `FactionEconomyLedger` 展示民力、银两、粮草库存、本回合入账、军粮维护、补员消耗、收支急报、净民力/银两/粮草、军饷民心只读态势、募兵筹粮和营造队列；生产按钮仍只调用 `onQueueProduction -> AppContainer.queueProduction -> Command.queueProduction`，不直接改经济账本。
+- v4.6 府库牌首片继续 polish 钱粮界面：`EconomyPanelView` 从表格/按钮列表升级为府库牌，读取 `FactionEconomyLedger` 展示民力、银两、粮草库存、本回合入账、军粮维护、补员消耗、收支急报、净民力/银两/粮草、军饷民心只读态势、募兵筹粮和营造队列；当前生产行会只读提示“可开工 / 尚缺民力、银两、粮草 / 待本方 / 观战”，生产按钮仍只调用 `onQueueProduction -> AppContainer.queueProduction -> Command.queueProduction`，不直接改经济账本。
 - v4.6 部队军情牌首片继续 polish 部队界面：`UnitInspectorView` 以军情牌展示选中部队，读取 `Division` 的兵力、补给、退守、行动、`effectiveStats` 和兵种组件，以及 `UnitInspectorStrategicState` 的州府、动态方面、防区、部署和前线归属；后续增强新增“军令战备”只读摘要，用现有 `Division.canAct`、粮草、兵力、退守、攻城/火器/机动定位派生可调/已行/断粮、粮道、战力和用兵提示；当前新增“军械火力”只读区，用现有火器、炮队和攻城器械组件比例、射程、粮草和兵力状态解释火力姿态；当前进一步通过 `MingMapLabelFormat` 把州府、方面、防区、前线和格位 id 转成明末可读名称，去掉“玩家/只读”等调试感文案；该片只影响 SwiftUI 展示，不改变战斗、补给、部署或命令规则。
 - v4.6 舆图军牌浮签首片继续 polish 地图选中部队反馈：`UnitTooltipView` 使用明末军牌浮签展示势力旗号、兵力条、粮草/行动/退守状态、攻守行程察指标和兵种组件 chip，只读服务选中地图部队的快速扫读；当前把裸坐标改为“舆图格”、把“退中/退守N”改为“退守中/余 N 旬”；该片不改变 `Division`、战斗/补给/部署规则、`Command` 或 `WarCommandExecutor`，只强化地图与部队界面的中华世界局势代入感。
 - v4.6 朝议总纲首片继续 polish 朝廷界面：`CourtPanelView` 在朝廷 header 后新增只读“朝议总纲”，读取 `CourtStrategySummary.displaySummary`、`recommendedFocus`、`secondaryFocuses` 和 `CourtProjectKind(focus:)`，把主议、推荐项目归属、备议与政策/经济/科技/军事四线压力整合成可扫读奏疏区；该片不改变 `CourtStrategySummary`、朝廷项目、资源校验、`Command` 或 `EconomyRules`。
