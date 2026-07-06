@@ -4,6 +4,8 @@ struct UnitInspectorView: View {
     let division: Division?
     let playerFaction: Faction
     let strategicState: UnitInspectorStrategicState?
+    let objectiveSummary: BattleObjectiveSummary?
+    let map: MapState?
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
@@ -29,6 +31,13 @@ struct UnitInspectorView: View {
             UnitReadinessSection(division: division)
             UnitWarReadinessSection(division: division)
             UnitFirepowerSection(division: division)
+            if let objectiveContext = UnitInspectorObjectiveContext(
+                division: division,
+                summary: objectiveSummary,
+                map: map
+            ) {
+                UnitObjectiveSection(context: objectiveContext)
+            }
             UnitStatsGrid(stats: division.effectiveStats)
             UnitComponentSection(components: division.components)
             if let strategicState {
@@ -259,6 +268,183 @@ private struct UnitFirepowerSection: View {
                     UnitWarSignalTile(signal: signal)
                 }
             }
+        }
+        .padding(MingDesignTokens.compactSpacing)
+        .background(MingDesignTokens.sectionBackground)
+        .clipShape(RoundedRectangle(cornerRadius: MingDesignTokens.cornerRadius))
+        .accessibilityElement(children: .combine)
+    }
+}
+
+private struct UnitInspectorObjectiveContext {
+    let taskTitle: String
+    let taskDetail: String
+    let targetName: String
+    let targetController: String
+    let distance: Int
+    let postureTitle: String
+    let postureDetail: String
+    let tint: Color
+    let postureTint: Color
+
+    init?(division: Division, summary: BattleObjectiveSummary?, map: MapState?) {
+        guard let summary, summary.isMingScenario, let map else {
+            return nil
+        }
+
+        guard let task = summary.tasks.sorted(by: Self.taskSort).first,
+              let targetObjectiveId = task.targetObjectiveId,
+              let target = summary.tracks.flatMap(\.targets).first(where: { $0.objectiveId == targetObjectiveId }),
+              let objective = map.objective(id: targetObjectiveId) else {
+            return nil
+        }
+
+        taskTitle = task.title
+        taskDetail = "\(task.line.displayName) · \(task.priority.displayName)"
+        targetName = target.name
+        targetController = target.controllerName
+        distance = division.coord.distance(to: objective.coord)
+        postureTitle = Self.postureTitle(for: division)
+        postureDetail = Self.postureDetail(for: division, task: task, target: target)
+        tint = Self.tint(for: task.priority)
+        postureTint = division.objectivePostureTint
+    }
+
+    private static func taskSort(_ lhs: BattleObjectiveSummary.CampaignTask, _ rhs: BattleObjectiveSummary.CampaignTask) -> Bool {
+        if lhs.priority.sortRank == rhs.priority.sortRank {
+            return lhs.title < rhs.title
+        }
+        return lhs.priority.sortRank < rhs.priority.sortRank
+    }
+
+    private static func tint(for priority: BattleObjectiveSummary.CampaignTask.Priority) -> Color {
+        switch priority {
+        case .urgent:
+            return MingDesignTokens.cinnabar
+        case .main:
+            return MingDesignTokens.imperialGold
+        case .watch:
+            return MingDesignTokens.porcelainBlue
+        }
+    }
+
+    private static func postureTitle(for division: Division) -> String {
+        if division.isDestroyed {
+            return "溃散"
+        }
+        if division.supplyState == .encircled {
+            return "断粮"
+        }
+        if division.isRetreating {
+            return "退守"
+        }
+        if division.hasActed {
+            return "已行"
+        }
+        if division.isSiegeCapable {
+            return "攻城"
+        }
+        if division.hasFireSupport {
+            return "火器"
+        }
+        if division.isArmor || division.isMobileUnit {
+            return "机动"
+        }
+        return "守线"
+    }
+
+    private static func postureDetail(
+        for division: Division,
+        task: BattleObjectiveSummary.CampaignTask,
+        target: BattleObjectiveSummary.Target
+    ) -> String {
+        if division.isDestroyed {
+            return "本军已溃，只能作为战损复盘，不宜牵动 \(target.name)。"
+        }
+        if division.supplyState == .encircled {
+            return "粮道断绝，先解围补粮，再承接 \(task.line.displayName) 急务。"
+        }
+        if division.isRetreating {
+            return "退守未定，适合稳住后路，暂不宜强接 \(target.name)。"
+        }
+        if division.hasActed {
+            return "本旬已行，可作为 \(target.name) 下旬调度和战线复盘依据。"
+        }
+        if division.isSiegeCapable {
+            return "炮车攻具可压城关堡寨，适合争夺 \(target.name) 等要冲。"
+        }
+        if division.hasFireSupport {
+            return "火器营可守关截援，适合支撑 \(task.line.displayName) 线。"
+        }
+        if division.isArmor || division.isMobileUnit {
+            return "机动军伍可抢驿道、截援或补位，牵动 \(target.name) 周边。"
+        }
+        return "步军营伍适合守线、驻防或接应主力，稳住 \(task.line.displayName) 线。"
+    }
+}
+
+private struct UnitObjectiveSection: View {
+    let context: UnitInspectorObjectiveContext
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: MingDesignTokens.compactSpacing) {
+            HStack(spacing: 6) {
+                Label("要冲牵引", systemImage: "scope")
+                    .font(.caption.bold())
+                    .foregroundStyle(context.tint)
+                Spacer(minLength: 8)
+                Text(context.taskDetail)
+                    .font(.caption)
+                    .foregroundStyle(context.tint)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.78)
+            }
+
+            Text(context.postureDetail)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+
+            LazyVGrid(columns: [GridItem(.adaptive(minimum: 82), spacing: 6)], alignment: .leading, spacing: 6) {
+                UnitWarSignalTile(
+                    signal: UnitWarReadinessSignal(
+                        title: "本旬",
+                        value: context.taskTitle,
+                        systemImage: "scroll",
+                        tint: context.tint
+                    )
+                )
+                UnitWarSignalTile(
+                    signal: UnitWarReadinessSignal(
+                        title: "落点",
+                        value: context.targetName,
+                        systemImage: "mappin.and.ellipse",
+                        tint: MingDesignTokens.cinnabar
+                    )
+                )
+                UnitWarSignalTile(
+                    signal: UnitWarReadinessSignal(
+                        title: "相距",
+                        value: "\(context.distance) 格",
+                        systemImage: "ruler",
+                        tint: MingDesignTokens.porcelainBlue
+                    )
+                )
+                UnitWarSignalTile(
+                    signal: UnitWarReadinessSignal(
+                        title: "兵势",
+                        value: context.postureTitle,
+                        systemImage: "flag.2.crossed",
+                        tint: context.postureTint
+                    )
+                )
+            }
+
+            Text("现控：\(context.targetController)")
+                .font(.caption2)
+                .foregroundStyle(.secondary)
+                .lineLimit(1)
+                .minimumScaleFactor(0.78)
         }
         .padding(MingDesignTokens.compactSpacing)
         .background(MingDesignTokens.sectionBackground)
@@ -603,6 +789,22 @@ private extension Division {
     }
 
     var roleTint: Color {
+        if isSiegeCapable || hasFireSupport {
+            return MingDesignTokens.porcelainBlue
+        }
+        if isArmor || isMobileUnit {
+            return MingDesignTokens.imperialGold
+        }
+        return MingDesignTokens.jade
+    }
+
+    var objectivePostureTint: Color {
+        if isDestroyed || supplyState == .encircled {
+            return MingDesignTokens.cinnabar
+        }
+        if isRetreating || hasActed || supplyState == .lowSupply {
+            return MingDesignTokens.imperialGold
+        }
         if isSiegeCapable || hasFireSupport {
             return MingDesignTokens.porcelainBlue
         }
