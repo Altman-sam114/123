@@ -51,7 +51,9 @@ struct RootGameView: View {
 
                 UnitTooltipView(
                     division: container.selectedDivision,
-                    strategicState: container.selectedUnitInspectorStrategicState
+                    strategicState: container.selectedUnitInspectorStrategicState,
+                    objectiveSummary: BattleObjectiveSummary.from(state: container.gameState),
+                    map: container.gameState.map
                 )
                     .allowsHitTesting(false)
             }

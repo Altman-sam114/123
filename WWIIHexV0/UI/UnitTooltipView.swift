@@ -3,9 +3,17 @@ import SwiftUI
 struct UnitTooltipView: View {
     let division: Division?
     let strategicState: UnitInspectorStrategicState?
+    let objectiveSummary: BattleObjectiveSummary?
+    let map: MapState?
 
     var body: some View {
         if let division {
+            let objectiveContext = UnitTooltipObjectiveContext(
+                division: division,
+                summary: objectiveSummary,
+                map: map
+            )
+
             VStack(alignment: .leading, spacing: MingDesignTokens.compactSpacing) {
                 UnitTooltipHeader(division: division)
                 UnitTooltipStrengthBar(division: division)
@@ -20,6 +28,10 @@ struct UnitTooltipView: View {
                     UnitTooltipStrategicStrip(strategicState: strategicState)
                 }
 
+                if let objectiveContext {
+                    UnitTooltipObjectiveStrip(context: objectiveContext)
+                }
+
                 UnitTooltipStatsRow(stats: division.effectiveStats)
                 UnitTooltipComponentStrip(components: division.components)
             }
@@ -32,8 +44,121 @@ struct UnitTooltipView: View {
             }
             .padding(10)
             .accessibilityElement(children: .combine)
-            .accessibilityLabel(division.tooltipAccessibilityLabel)
+            .accessibilityLabel(
+                UnitTooltipAccessibilityLabel.make(
+                    division: division,
+                    strategicState: strategicState,
+                    objectiveContext: objectiveContext
+                )
+            )
         }
+    }
+}
+
+private struct UnitTooltipObjectiveContext {
+    let taskTitle: String
+    let taskLine: String
+    let targetName: String
+    let distance: Int
+    let tint: Color
+
+    init?(division: Division, summary: BattleObjectiveSummary?, map: MapState?) {
+        guard let summary, summary.isMingScenario, let map else {
+            return nil
+        }
+
+        guard let task = summary.tasks.sorted(by: Self.taskSort).first,
+              let targetObjectiveId = task.targetObjectiveId,
+              let target = summary.tracks.flatMap(\.targets).first(where: { $0.objectiveId == targetObjectiveId }),
+              let objective = map.objective(id: targetObjectiveId) else {
+            return nil
+        }
+
+        taskTitle = task.title
+        taskLine = "\(task.line.displayName) · \(task.priority.displayName)"
+        targetName = target.name
+        distance = division.coord.distance(to: objective.coord)
+        tint = Self.tint(for: task.priority)
+    }
+
+    private static func taskSort(_ lhs: BattleObjectiveSummary.CampaignTask, _ rhs: BattleObjectiveSummary.CampaignTask) -> Bool {
+        if lhs.priority.sortRank == rhs.priority.sortRank {
+            return lhs.title < rhs.title
+        }
+        return lhs.priority.sortRank < rhs.priority.sortRank
+    }
+
+    private static func tint(for priority: BattleObjectiveSummary.CampaignTask.Priority) -> Color {
+        switch priority {
+        case .urgent:
+            return MingDesignTokens.cinnabar
+        case .main:
+            return MingDesignTokens.imperialGold
+        case .watch:
+            return MingDesignTokens.porcelainBlue
+        }
+    }
+}
+
+private struct UnitTooltipObjectiveStrip: View {
+    let context: UnitTooltipObjectiveContext
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 5) {
+            Label("要冲牵引", systemImage: "scope")
+                .font(.caption2.bold())
+                .foregroundStyle(context.tint)
+                .lineLimit(1)
+
+            HStack(spacing: 5) {
+                UnitTooltipStrategicChip(
+                    title: "本旬",
+                    value: context.taskTitle,
+                    tint: context.tint
+                )
+                UnitTooltipStrategicChip(
+                    title: "落点",
+                    value: context.targetName,
+                    tint: MingDesignTokens.cinnabar
+                )
+                UnitTooltipStrategicChip(
+                    title: "相距",
+                    value: "\(context.distance) 格",
+                    tint: MingDesignTokens.porcelainBlue
+                )
+            }
+
+            Text(context.taskLine)
+                .font(.caption2)
+                .foregroundStyle(.secondary)
+                .lineLimit(1)
+                .minimumScaleFactor(0.72)
+        }
+        .accessibilityElement(children: .combine)
+    }
+}
+
+private enum UnitTooltipAccessibilityLabel {
+    static func make(
+        division: Division,
+        strategicState: UnitInspectorStrategicState?,
+        objectiveContext: UnitTooltipObjectiveContext?
+    ) -> String {
+        var parts = [division.tooltipAccessibilityLabel]
+
+        if let strategicState {
+            parts.append(
+                "方面 \(MingMapLabelFormat.theaterTitle(strategicState.dynamicTheaterId))，防区 \(MingMapLabelFormat.frontZoneTitle(strategicState.frontZoneId))，部署 \(strategicState.deploymentRole.tooltipDisplayName)"
+            )
+        }
+
+        if let objectiveContext {
+            parts.append(
+                "要冲牵引，\(objectiveContext.taskTitle)，落点 \(objectiveContext.targetName)，相距 \(objectiveContext.distance) 格，\(objectiveContext.taskLine)"
+            )
+        }
+
+        return parts.joined(separator: "，")
     }
 }
 
