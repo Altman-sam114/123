@@ -106,7 +106,7 @@ struct AgentPanelView: View {
     }
 
     private var rawJSONSection: some View {
-        AgentSectionCard(title: "原始 JSON", systemImage: "curlybraces", tint: MingDesignTokens.porcelainBlue) {
+        AgentSectionCard(title: "军机底稿", systemImage: "scroll", tint: MingDesignTokens.porcelainBlue) {
             Text(record?.rawJSON ?? rawJSONPlaceholder)
                 .font(.system(.caption, design: .monospaced))
                 .foregroundStyle(.secondary)
@@ -162,11 +162,8 @@ struct AgentPanelView: View {
 
     private var rawJSONPlaceholder: String {
         """
-        {
-          "agentId": "明末枢辅",
-          "status": "暂无决策",
-          "orders": []
-        }
+        暂无可供核验的军机原稿。
+        成令后将在此保留原始案卷，便于复查军令来源。
         """
     }
 }
@@ -328,7 +325,7 @@ private struct AgentPanelHeader: View {
                     Text("军机复盘")
                         .font(.headline)
                         .lineLimit(1)
-                    Text("最高意志、督师指令、命令回执与原始 JSON")
+                    Text("最高意志、督师指令、命令回执与军机底稿")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                         .lineLimit(2)
@@ -362,8 +359,8 @@ private struct AgentDecisionSummaryCard: View {
     var body: some View {
         AgentSectionCard(title: "决策摘要", systemImage: "scroll", tint: MingDesignTokens.imperialGold) {
             LazyVGrid(columns: [GridItem(.adaptive(minimum: 118), spacing: 6)], alignment: .leading, spacing: 6) {
-                AgentInfoChip(title: "主事", value: record.agentId, systemImage: "person.crop.square", tint: MingDesignTokens.cinnabar)
-                AgentInfoChip(title: "来源", value: record.provider, systemImage: "antenna.radiowaves.left.and.right", tint: MingDesignTokens.porcelainBlue)
+                AgentInfoChip(title: "主事", value: AgentPanelFormat.agentTitle(record.agentId), systemImage: "person.crop.square", tint: MingDesignTokens.cinnabar)
+                AgentInfoChip(title: "来源", value: AgentPanelFormat.providerTitle(record.provider), systemImage: "antenna.radiowaves.left.and.right", tint: MingDesignTokens.porcelainBlue)
                 AgentInfoChip(title: "意图", value: record.parsedIntent ?? "尚无定策", systemImage: "scope", tint: MingDesignTokens.imperialGold)
             }
 
@@ -389,9 +386,9 @@ private struct AgentRulerCard: View {
     var body: some View {
         AgentSectionCard(title: "最高意志", systemImage: "crown", tint: MingDesignTokens.cinnabar) {
             LazyVGrid(columns: [GridItem(.adaptive(minimum: 118), spacing: 6)], alignment: .leading, spacing: 6) {
-                AgentInfoChip(title: "主上", value: record.rulerAgentId, systemImage: "person.text.rectangle", tint: MingDesignTokens.cinnabar)
+                AgentInfoChip(title: "主上", value: AgentPanelFormat.agentTitle(record.rulerAgentId), systemImage: "person.text.rectangle", tint: MingDesignTokens.cinnabar)
                 AgentInfoChip(title: "姿态", value: record.posture.displayName, systemImage: "flag", tint: MingDesignTokens.imperialGold)
-                AgentInfoChip(title: "重心", value: record.preferredFrontZoneId?.rawValue ?? "未指定", systemImage: "scope", tint: MingDesignTokens.porcelainBlue)
+                AgentInfoChip(title: "重心", value: AgentPanelFormat.frontZoneTitle(record.preferredFrontZoneId, empty: "未指定"), systemImage: "scope", tint: MingDesignTokens.porcelainBlue)
                 AgentInfoChip(title: "目标", value: targetText, systemImage: "mappin.and.ellipse", tint: MingDesignTokens.jade)
                 AgentInfoChip(title: "攻势阈", value: attackThresholdText, systemImage: "gauge.with.dots.needle.bottom.50percent", tint: MingDesignTokens.imperialGold)
                 AgentInfoChip(title: "留营", value: reserveBiasText, systemImage: "shield.lefthalf.filled", tint: MingDesignTokens.porcelainBlue)
@@ -408,8 +405,7 @@ private struct AgentRulerCard: View {
     }
 
     private var targetText: String {
-        let text = record.targetRegionIds.map(\.rawValue).joined(separator: "、")
-        return text.isEmpty ? "未指定" : text
+        AgentPanelFormat.regionListTitle(record.targetRegionIds, empty: "未指定")
     }
 
     private var attackThresholdText: String {
@@ -433,7 +429,7 @@ private struct AgentDirectiveCard: View {
     var body: some View {
         VStack(alignment: .leading, spacing: MingDesignTokens.compactSpacing) {
             HStack(alignment: .center, spacing: 8) {
-                Text(directive.zoneId?.rawValue ?? "全局")
+                Text(AgentPanelFormat.frontZoneTitle(directive.zoneId, empty: "全局"))
                     .font(.caption.bold())
                     .foregroundStyle(MingDesignTokens.cinnabar)
                     .lineLimit(1)
@@ -455,8 +451,8 @@ private struct AgentDirectiveCard: View {
 
             LazyVGrid(columns: [GridItem(.adaptive(minimum: 104), spacing: 6)], alignment: .leading, spacing: 6) {
                 AgentInfoChip(title: "势力", value: directive.faction.displayName, systemImage: "flag.2.crossed", tint: MingDesignTokens.imperialGold)
-                AgentInfoChip(title: "军机", value: directive.issuerId, systemImage: "person.crop.square", tint: MingDesignTokens.porcelainBlue)
-                AgentInfoChip(title: "督师", value: directive.commanderAgentId ?? "未署", systemImage: "person.line.dotted.person", tint: MingDesignTokens.jade)
+                AgentInfoChip(title: "军机", value: AgentPanelFormat.agentTitle(directive.issuerId), systemImage: "person.crop.square", tint: MingDesignTokens.porcelainBlue)
+                AgentInfoChip(title: "督师", value: directive.commanderAgentId.map(AgentPanelFormat.agentTitle) ?? "未署", systemImage: "person.line.dotted.person", tint: MingDesignTokens.jade)
                 AgentInfoChip(title: "战术", value: tacticText, systemImage: "scope", tint: MingDesignTokens.cinnabar)
                 AgentInfoChip(title: "目标", value: targetText, systemImage: "mappin.and.ellipse", tint: MingDesignTokens.porcelainBlue)
                 AgentInfoChip(title: "指向", value: commandTargetText, systemImage: "arrow.up.right.circle", tint: MingDesignTokens.imperialGold)
@@ -496,8 +492,7 @@ private struct AgentDirectiveCard: View {
     }
 
     private var targetText: String {
-        let text = directive.targetRegionIds.map(\.rawValue).joined(separator: "、")
-        return text.isEmpty ? "无目标" : text
+        AgentPanelFormat.regionListTitle(directive.targetRegionIds, empty: "无目标")
     }
 
     private var commandTargetText: String {
@@ -505,12 +500,7 @@ private struct AgentDirectiveCard: View {
             return "未指定"
         }
 
-        switch target {
-        case .theater(let theaterId):
-            return "方面 \(theaterId.rawValue)"
-        case .region(let regionId):
-            return "州府 \(regionId.rawValue)"
-        }
+        AgentPanelFormat.directiveTargetTitle(target)
     }
 
     private var doctrine: ZoneCommanderDoctrine {
@@ -683,6 +673,88 @@ private struct AgentTextNote: View {
 }
 
 private enum AgentPanelFormat {
+    static func agentTitle(_ id: String) -> String {
+        switch id {
+        case "ruler_chongzhen":
+            return "崇祯御前"
+        case "ruler_huangtaiji":
+            return "清主御前"
+        case "ruler_li_zicheng":
+            return "大顺中军"
+        case "ruler_zhang_xianzhong":
+            return "大西行营"
+        case "ruler_local_neutral":
+            return "地方乡绅"
+        case "ruler_germany":
+            return "德军统帅部"
+        case "ruler_allies":
+            return "盟军统帅部"
+        case "marshal_ming":
+            return "明廷枢辅"
+        case "marshal_qing":
+            return "清军议政"
+        case "marshal_dashun":
+            return "大顺军师"
+        case "marshal_daxi":
+            return "大西军师"
+        case "marshal_localNeutral":
+            return "地方团练"
+        default:
+            if id.hasPrefix("ruler_") {
+                return readableIdentifier(id, removing: "ruler_")
+            }
+            if id.hasPrefix("marshal_") {
+                return readableIdentifier(id, removing: "marshal_")
+            }
+            if id.hasPrefix("commander_") {
+                return readableIdentifier(id, removing: "commander_")
+            }
+            return id
+        }
+    }
+
+    static func providerTitle(_ provider: String) -> String {
+        switch provider {
+        case "MockAI":
+            return "军机推演"
+        case "System":
+            return "系统成令"
+        case "Static":
+            return "定稿案卷"
+        case "FailingProvider":
+            return "异常案卷"
+        default:
+            if provider.contains("+") {
+                return provider
+                    .split(separator: "+")
+                    .map { providerTitle(String($0)) }
+                    .joined(separator: " + ")
+            }
+            return provider
+        }
+    }
+
+    static func frontZoneTitle(_ id: FrontZoneId?, empty: String) -> String {
+        guard let id else {
+            return empty
+        }
+        return frontZoneTitle(id)
+    }
+
+    static func regionListTitle(_ ids: [RegionId], empty: String) -> String {
+        let text = ids.map(regionTitle).joined(separator: "、")
+        return text.isEmpty ? empty : text
+    }
+
+    static func directiveTargetTitle(_ target: DirectiveTarget) -> String {
+        switch target {
+        case .theater(let theaterId):
+            return "方面 \(theaterTitle(theaterId))"
+        case .region(let regionId):
+            return "州府 \(regionTitle(regionId))"
+        }
+    }
+
     static func directiveTypeText(_ type: DirectiveType) -> String {
         switch type {
         case .attack:
@@ -761,6 +833,143 @@ private enum AgentPanelFormat {
         case .allies:
             return "联军协同 / 预备队"
         }
+    }
+
+    private static func frontZoneTitle(_ id: FrontZoneId) -> String {
+        switch id.rawValue {
+        case "theater_qing_liaodong":
+            return "辽东清军"
+        case "theater_ming_guanning":
+            return "关宁防线"
+        case "theater_ming_jifu":
+            return "畿辅防区"
+        case "theater_ming_northwest":
+            return "西北边镇"
+        case "theater_ming_shandong":
+            return "山东登莱"
+        case "theater_ming_huaihu":
+            return "淮湖防线"
+        case "theater_dashun_henan":
+            return "大顺河南"
+        case "theater_dashun_shaanxi":
+            return "大顺秦陕"
+        case "theater_daxi_huguang":
+            return "大西湖广"
+        case "ming_zone":
+            return "畿辅防区"
+        case "qing_zone":
+            return "关外旗营"
+        case "dashun_zone":
+            return "河南老营"
+        case "daxi_zone":
+            return "湖广机动营"
+        case "local_zone":
+            return "乡绅团练"
+        default:
+            return readableIdentifier(id.rawValue, removing: nil)
+        }
+    }
+
+    private static func theaterTitle(_ id: TheaterId) -> String {
+        switch id.rawValue {
+        case "theater_qing_liaodong":
+            return "辽东清军"
+        case "theater_ming_guanning":
+            return "关宁"
+        case "theater_ming_jifu":
+            return "畿辅"
+        case "theater_ming_northwest":
+            return "西北"
+        case "theater_ming_shandong":
+            return "山东"
+        case "theater_ming_huaihu":
+            return "淮湖"
+        case "theater_dashun_henan":
+            return "大顺河南"
+        case "theater_dashun_shaanxi":
+            return "大顺秦陕"
+        case "theater_daxi_huguang":
+            return "大西湖广"
+        default:
+            return readableIdentifier(id.rawValue, removing: "theater_")
+        }
+    }
+
+    private static func regionTitle(_ id: RegionId) -> String {
+        switch id.rawValue {
+        case "region_liaodong_rear":
+            return "辽东后路"
+        case "region_jinzhou":
+            return "锦州"
+        case "region_ningyuan":
+            return "宁远"
+        case "region_shanhaiguan":
+            return "山海关"
+        case "region_xuanfu":
+            return "宣府"
+        case "region_datong":
+            return "大同"
+        case "region_yongping":
+            return "永平"
+        case "region_jizhou":
+            return "蓟州"
+        case "region_beijing":
+            return "北京"
+        case "region_baoding":
+            return "保定"
+        case "region_zhending":
+            return "真定"
+        case "region_taiyuan":
+            return "太原"
+        case "region_dengzhou":
+            return "登莱"
+        case "region_jinan":
+            return "济南"
+        case "region_kaifeng":
+            return "开封"
+        case "region_luoyang":
+            return "洛阳"
+        case "region_tongguan":
+            return "潼关"
+        case "region_xian":
+            return "西安"
+        case "region_xuzhou":
+            return "徐州"
+        case "region_guide":
+            return "归德"
+        case "region_nanyang":
+            return "南阳"
+        case "region_xiangyang":
+            return "襄阳"
+        case "region_hanzhong":
+            return "汉中"
+        case "region_shaanxi_hinterland":
+            return "秦陕后路"
+        case "region_huaian":
+            return "淮安"
+        case "region_fengyang":
+            return "凤阳"
+        case "region_wuchang":
+            return "武昌"
+        case "region_jingzhou":
+            return "荆州"
+        case "region_yunyang":
+            return "郧阳"
+        case "region_sichuan_gate":
+            return "川东门户"
+        default:
+            return readableIdentifier(id.rawValue, removing: "region_")
+        }
+    }
+
+    private static func readableIdentifier(_ value: String, removing prefix: String?) -> String {
+        let trimmed: String
+        if let prefix, value.hasPrefix(prefix) {
+            trimmed = String(value.dropFirst(prefix.count))
+        } else {
+            trimmed = value
+        }
+        return trimmed.replacingOccurrences(of: "_", with: " ")
     }
 }
 

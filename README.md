@@ -116,7 +116,7 @@ WWIIHexV0/
 - v4.6 朝议总纲首片继续 polish 朝廷界面：`CourtPanelView` 在朝廷 header 后新增只读“朝议总纲”，读取 `CourtStrategySummary.displaySummary`、`recommendedFocus`、`secondaryFocuses` 和 `CourtProjectKind(focus:)`，把主议、推荐项目归属、备议与政策/经济/科技/军事四线压力整合成可扫读奏疏区；该片不改变 `CourtStrategySummary`、朝廷项目、资源校验、`Command` 或 `EconomyRules`。
 - v4.6 军令牌首片继续 polish 军事指令界面：`CommandPanelView` 从简单按钮列表升级为军令牌，展示当前势力/阶段、选中军情、兵力、粮草、退守、行动、固守/退守/补给处置和最近军令回执；固守、准许退守、就地补给和结束回合仍只调用 `RootGameView` 注入的 `AppContainer` 回调，不直接改 `GameState`。
 - v4.6 将领面板首片继续 polish 督师/总兵界面：`GeneralCommandPanelView` 升级为将印军令，展示防区、压力、战态、主将履历、忠诚、军心、干预、麾下军伍、目标和军令计划；`GeneralProfileView` 升级为将领名帖，展示印信、统兵风格、履历奏记、君臣关系、将略和麾下军伍；固守/进取仍只调用原回调，不直接改规则状态。
-- v4.6 军机复盘牌首片继续 polish AI 决策界面：`AgentPanelView` 从调试字段列表升级为军机复盘牌，展示最高意志、决策摘要、军机五线态势、战区指令、势力军略、命令回执、异常塘报和原始 JSON；它只读取 `AgentDecisionRecord`、`RulerDecisionRecord`、`WarDirectiveRecord`、`CampaignAISummary` 与 `ZoneCommanderDoctrine.profile(for:)`，不改变 AI、命令或规则执行链。
+- v4.6 军机复盘牌首片继续 polish AI 决策界面：`AgentPanelView` 从调试字段列表升级为军机复盘牌，展示最高意志、决策摘要、军机五线态势、战区指令、势力军略、命令回执、异常塘报和军机底稿；当前增强会把主事、来源、主上、重心、目标、指向等 id 只读转成明末可读名称，未知值仍回退原 id，并保留原始案卷供审计；它只读取 `AgentDecisionRecord`、`RulerDecisionRecord`、`WarDirectiveRecord`、`CampaignAISummary` 与 `ZoneCommanderDoctrine.profile(for:)`，不改变 AI、命令或规则执行链。
 - v4.6 塘报战记首片继续 polish 事件日志界面：`EventLogView` 从简单战报列表升级为塘报战记，展示最近塘报数量、急务/战役/战事/粮草/州府/天下分类计数、最新分类、回合/势力/阶段和相关回执；当前增强会只读识别 `battle-task-`、`battle-cue-` 和 `objective-control-` 前缀，把本旬急务、战役提示和目标换手显示为中文回执。该片只读取 `GameLogEntry`，不改变日志 schema、命令执行或规则权威。
 - v4.6 州府牌首片继续 polish 州府界面：`RegionInspectorView` 从字段列表升级为州府牌，读取 `RegionInspectorState` 展示城关粮坊、地方治理、钱粮城防、控制方旗号、原属章、方面/防区/目标、友敌军和当前格旗号；该片只影响 SwiftUI 展示，不改变 hex 控制、region 聚合、经济结算、动态战区、前线或命令规则。
 - v4.6 天下急势首片继续 polish 天下局势面板：顶部摘要从 `DiplomacyState` 和只读 `CourtStrategySummary` 派生当前势力、战局态势、主要对手、战意和政策/经济/科技/军事四线压力；诸方势力列表改为带势力旗号、主战标记、战意条和离散值，战和关系列表改为双方旗号、关系状态和张力条，阵营名义改为旗号与成员卡片，仍不改变外交规则或朝廷项目执行链。
@@ -167,7 +167,7 @@ WWIIHexV0/
 | `Agents/AgentPromptBuilder.swift` | prompt 构造 | system + user prompt，强制 JSON 输出 |
 | `Turn/TurnManager.swift` | legacy 方法名下的 AI 回合编排 | `runGermanAITurn(state:) async -> AgentTurnOutcome` 仍保留兼容名，实际调用方按当前 active faction 构造 commander pool 并推进 endTurn |
 | `App/AppContainer.swift` | AI 接线 | `runAIIfNeeded()` 读取 `activeFaction`、`phase`、`aiControlledFactions` / `humanControlledFactions`，为当前 AI 势力触发 Task 并写 state/record |
-| `UI/AgentPanelView.swift` | 军机复盘 | 读 `AgentDecisionRecord`、`RulerDecisionRecord`、`WarDirectiveRecord`、`CampaignAISummary` 与 `ZoneCommanderDoctrine`，展示最高意志、军机五线、势力军略、战区指令、命令回执、异常和原始 JSON |
+| `UI/AgentPanelView.swift` | 军机复盘 | 读 `AgentDecisionRecord`、`RulerDecisionRecord`、`WarDirectiveRecord`、`CampaignAISummary` 与 `ZoneCommanderDoctrine`，展示最高意志、军机五线、势力军略、战区指令、命令回执、异常和军机底稿；id 仅在 UI 层转成明末可读名称 |
 | `UI/RootGameView.swift` | 玩家入口 | 结束回合按钮走 `advanceOrRunAI()`；当前开局不自动 `.task` 跑 AI |
 
 **Legacy MockAI 行为（guderian，装甲突破风格）：**
