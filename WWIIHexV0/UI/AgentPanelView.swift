@@ -500,7 +500,7 @@ private struct AgentDirectiveCard: View {
             return "未指定"
         }
 
-        AgentPanelFormat.directiveTargetTitle(target)
+        return AgentPanelFormat.directiveTargetTitle(target)
     }
 
     private var doctrine: ZoneCommanderDoctrine {
