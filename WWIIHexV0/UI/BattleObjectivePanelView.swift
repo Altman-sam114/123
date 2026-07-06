@@ -11,11 +11,18 @@ struct BattleObjectivePanelView: View {
 
     var body: some View {
         let summary = BattleObjectiveSummary.from(state: gameState)
+        let courtSummary = CourtStrategySummary.from(faction: gameState.activeFaction, state: gameState)
+        let ledger = gameState.economyState.ledger(for: gameState.activeFaction)
 
         VStack(alignment: .leading, spacing: MingDesignTokens.sectionSpacing) {
             BattleObjectiveHeader(summary: summary, turn: gameState.turn, maxTurns: gameState.maxTurns)
 
             if summary.isMingScenario {
+                BattleObjectiveFourPolicyBoard(
+                    summary: summary,
+                    courtSummary: courtSummary,
+                    ledger: ledger
+                )
                 BattleObjectiveStrategicEye(summary: summary, onFocusObjective: onFocusObjective)
                 BattleObjectiveGapBoard(tracks: summary.tracks, onFocusObjective: onFocusObjective)
                 BattleObjectiveScoreboard(summary: summary)
@@ -48,6 +55,169 @@ struct BattleObjectivePanelView: View {
                 .stroke(MingDesignTokens.courtStroke.opacity(0.72), lineWidth: 1)
         }
         .clipShape(RoundedRectangle(cornerRadius: MingDesignTokens.cornerRadius))
+    }
+}
+
+private struct BattleObjectiveFourPolicyBoard: View {
+    let summary: BattleObjectiveSummary
+    let courtSummary: CourtStrategySummary
+    let ledger: FactionEconomyLedger
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: MingDesignTokens.compactSpacing) {
+            HStack(alignment: .firstTextBaseline, spacing: 8) {
+                Label("国势四策", systemImage: "scroll")
+                    .font(.subheadline.bold())
+                    .foregroundStyle(MingDesignTokens.ink)
+
+                Spacer(minLength: 8)
+
+                Text("主议 \(courtSummary.recommendedFocus.displayName)")
+                    .font(.caption.bold())
+                    .foregroundStyle(MingDesignTokens.cinnabar)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.76)
+            }
+
+            Text(boardSummary)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+
+            LazyVGrid(columns: [GridItem(.adaptive(minimum: 142), spacing: 8)], alignment: .leading, spacing: 8) {
+                ForEach(cards) { card in
+                    BattleObjectiveFourPolicyCard(card: card)
+                }
+            }
+        }
+        .padding(MingDesignTokens.compactSpacing)
+        .background(MingDesignTokens.sectionBackground, in: RoundedRectangle(cornerRadius: MingDesignTokens.cornerRadius))
+        .accessibilityElement(children: .contain)
+    }
+
+    private var boardSummary: String {
+        let backup = courtSummary.secondaryFocuses.map(\.displayName).joined(separator: "、")
+        let backupClause = backup.isEmpty ? "暂无备议" : "备议 \(backup)"
+        let leader = summary.leadingFaction?.displayName ?? "未分胜势"
+        return "\(leader)暂领要冲分；\(backupClause)。此处只把胜负线、朝议和府库余势合并判读，不自动批票或下令。"
+    }
+
+    private var urgentBrief: BattleObjectiveSummary.CampaignLineBrief? {
+        summary.lineBriefs.sorted {
+            if $0.status != $1.status {
+                return $0.status.objectivePanelRank < $1.status.objectivePanelRank
+            }
+            return $0.pressure > $1.pressure
+        }.first
+    }
+
+    private var militaryTask: BattleObjectiveSummary.CampaignTask? {
+        summary.tasks.first { $0.line == .military && $0.priority == .urgent }
+            ?? summary.tasks.first { $0.line == .military }
+            ?? summary.tasks.first { $0.priority == .urgent }
+    }
+
+    private var cards: [BattleObjectiveFourPolicyCardModel] {
+        [
+            BattleObjectiveFourPolicyCardModel(
+                id: "policy",
+                title: "政策",
+                value: "压 \(courtSummary.policyPressure)",
+                detail: "\(courtSummary.recommendedFocus.domainDisplayName)主议；不稳州府 \(courtSummary.unstableRegions) 处，先判征饷、安民、招抚的名分代价。",
+                systemImage: BattleObjectiveSummary.CampaignLine.policy.systemImage,
+                tint: BattleObjectiveSummary.CampaignLine.policy.objectivePanelTint
+            ),
+            BattleObjectiveFourPolicyCardModel(
+                id: "economy",
+                title: "经济",
+                value: "银 \(ledger.stockpile.industry) / 粮 \(ledger.stockpile.supplies)",
+                detail: economyDetail,
+                systemImage: BattleObjectiveSummary.CampaignLine.economy.systemImage,
+                tint: BattleObjectiveSummary.CampaignLine.economy.objectivePanelTint
+            ),
+            BattleObjectiveFourPolicyCardModel(
+                id: "technology",
+                title: "科技",
+                value: "压 \(courtSummary.technologyPressure)",
+                detail: "火器攻城军 \(courtSummary.fireSupportUnits) 支；看红衣炮、火器整备、修城和粮台驿道能否支撑要冲线。",
+                systemImage: BattleObjectiveSummary.CampaignLine.technology.systemImage,
+                tint: BattleObjectiveSummary.CampaignLine.technology.objectivePanelTint
+            ),
+            BattleObjectiveFourPolicyCardModel(
+                id: "military",
+                title: "军事",
+                value: "压 \(courtSummary.militaryPressure)",
+                detail: militaryDetail,
+                systemImage: BattleObjectiveSummary.CampaignLine.military.systemImage,
+                tint: BattleObjectiveSummary.CampaignLine.military.objectivePanelTint
+            )
+        ]
+    }
+
+    private var economyDetail: String {
+        if let urgentBrief, urgentBrief.line == .economy || urgentBrief.line == .world {
+            return "\(urgentBrief.title)势 \(urgentBrief.pressure)；府库需同时顾粮道、银饷和本旬要冲落点。"
+        }
+        return "民力 \(ledger.stockpile.manpower)，入账 \(ledger.lastIncome.compactDisplaySummary)；先看军粮维护与补员消耗。"
+    }
+
+    private var militaryDetail: String {
+        if let militaryTask {
+            return "\(militaryTask.priority.displayName)：\(militaryTask.title)。前线 \(courtSummary.activeFronts) 处，先保能调之兵。"
+        }
+        return "前线 \(courtSummary.activeFronts) 处；先判山海关、北京、开封、湖广等要冲军势。"
+    }
+}
+
+private struct BattleObjectiveFourPolicyCardModel: Identifiable {
+    let id: String
+    let title: String
+    let value: String
+    let detail: String
+    let systemImage: String
+    let tint: Color
+}
+
+private struct BattleObjectiveFourPolicyCard: View {
+    let card: BattleObjectiveFourPolicyCardModel
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 7) {
+            HStack(spacing: 7) {
+                Image(systemName: card.systemImage)
+                    .font(.caption.bold())
+                    .foregroundStyle(card.tint)
+                    .frame(width: 22, height: 22)
+                    .background(card.tint.opacity(0.12), in: RoundedRectangle(cornerRadius: 6))
+                    .accessibilityHidden(true)
+
+                VStack(alignment: .leading, spacing: 1) {
+                    Text(card.title)
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                    Text(card.value)
+                        .font(.caption.bold())
+                        .foregroundStyle(card.tint)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.72)
+                }
+            }
+
+            Text(card.detail)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .lineLimit(3)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .padding(8)
+        .frame(maxWidth: .infinity, minHeight: 92, alignment: .topLeading)
+        .background(MingDesignTokens.panelBackground.opacity(0.58), in: RoundedRectangle(cornerRadius: 6))
+        .overlay {
+            RoundedRectangle(cornerRadius: 6)
+                .stroke(card.tint.opacity(0.2), lineWidth: 1)
+        }
+        .accessibilityElement(children: .combine)
     }
 }
 
