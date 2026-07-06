@@ -41,6 +41,7 @@ final class UnitNode: SKNode {
         addFactionSideStrip(for: division, width: width, height: height)
         addMingUnitEmblem(for: division, width: width, height: height)
         addReadinessPill(for: division, layout: layout, bodyWidth: width, bodyHeight: height)
+        addBattleStatusTag(for: division, layout: layout, bodyWidth: width, bodyHeight: height)
 
         addSupplyMarker(for: division, layout: layout, bodyWidth: width, bodyHeight: height)
         addStackMarker(placement: placement, layout: layout, bodyWidth: width, bodyHeight: height)
@@ -120,15 +121,54 @@ final class UnitNode: SKNode {
         )
     }
 
-    private func addLabel(text: String, y: CGFloat, fontSize: CGFloat, weight: String, color: SKColor) {
+    private func addBattleStatusTag(for division: Division, layout: HexLayout, bodyWidth: CGFloat, bodyHeight: CGFloat) {
+        guard let status = division.markerBattleStatus else {
+            return
+        }
+
+        let tagHeight = max(9, bodyHeight * 0.18)
+        let tagWidth = max(layout.hexSize * 0.42, CGFloat(status.text.count) * layout.hexSize * 0.17 + 10)
+        let x = bodyWidth * 0.32
+        let y = -bodyHeight * 0.48
+        let tag = SKShapeNode(
+            rectOf: CGSize(width: tagWidth, height: tagHeight),
+            cornerRadius: min(4, tagHeight / 2)
+        )
+        tag.fillColor = status.fillColor
+        tag.strokeColor = status.strokeColor
+        tag.lineWidth = 0.9
+        tag.position = CGPoint(x: x, y: y)
+        tag.zPosition = 4
+        addChild(tag)
+
+        addLabel(
+            text: status.text,
+            x: x,
+            y: y,
+            fontSize: max(7, layout.hexSize * 0.15),
+            weight: "PingFangSC-Semibold",
+            color: SKColor(white: 0.98, alpha: 1),
+            zPosition: 5
+        )
+    }
+
+    private func addLabel(
+        text: String,
+        x: CGFloat = 0,
+        y: CGFloat,
+        fontSize: CGFloat,
+        weight: String,
+        color: SKColor,
+        zPosition: CGFloat = 2
+    ) {
         let label = SKLabelNode(text: text)
         label.fontName = weight
         label.fontSize = fontSize
         label.fontColor = color
         label.horizontalAlignmentMode = .center
         label.verticalAlignmentMode = .center
-        label.position = CGPoint(x: 0, y: y)
-        label.zPosition = 2
+        label.position = CGPoint(x: x, y: y)
+        label.zPosition = zPosition
         addChild(label)
     }
 
@@ -182,6 +222,12 @@ final class UnitNode: SKNode {
     }
 }
 
+private struct UnitMarkerStatus {
+    let text: String
+    let fillColor: SKColor
+    let strokeColor: SKColor
+}
+
 private extension Division {
     var markerEmblemText: String {
         if isSiegeCapable {
@@ -201,6 +247,47 @@ private extension Division {
 
     var markerReadinessText: String {
         "\(strength)/\(maxStrength) \(retreatMode.markerCode)"
+    }
+
+    var markerBattleStatus: UnitMarkerStatus? {
+        if isDestroyed {
+            return UnitMarkerStatus(
+                text: "溃散",
+                fillColor: SKColor(red: 0.50, green: 0.06, blue: 0.05, alpha: 0.94),
+                strokeColor: SKColor(red: 1.00, green: 0.60, blue: 0.50, alpha: 0.95)
+            )
+        }
+        if isRetreating {
+            return UnitMarkerStatus(
+                text: "退中",
+                fillColor: SKColor(red: 0.46, green: 0.25, blue: 0.09, alpha: 0.94),
+                strokeColor: SKColor(red: 1.00, green: 0.74, blue: 0.34, alpha: 0.95)
+            )
+        }
+        switch supplyState {
+        case .encircled:
+            return UnitMarkerStatus(
+                text: "被围",
+                fillColor: SKColor(red: 0.66, green: 0.10, blue: 0.08, alpha: 0.94),
+                strokeColor: SKColor(red: 1.00, green: 0.68, blue: 0.58, alpha: 0.95)
+            )
+        case .lowSupply:
+            return UnitMarkerStatus(
+                text: "缺粮",
+                fillColor: SKColor(red: 0.63, green: 0.37, blue: 0.08, alpha: 0.94),
+                strokeColor: SKColor(red: 1.00, green: 0.76, blue: 0.36, alpha: 0.95)
+            )
+        case .supplied:
+            break
+        }
+        if hasActed {
+            return UnitMarkerStatus(
+                text: "已行",
+                fillColor: SKColor(white: 0.12, alpha: 0.88),
+                strokeColor: SKColor(white: 1.00, alpha: 0.46)
+            )
+        }
+        return nil
     }
 }
 
