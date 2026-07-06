@@ -201,22 +201,58 @@ struct RulerAgent {
     private func rationale(for posture: RulerStrategicPosture, snapshot: RulerStrategicSnapshot) -> String {
         switch posture {
         case .offensive:
-            return "Ruler sees \(snapshot.advantagedFrontZoneCount) advantaged zone(s) and accepts offensive risk."
+            return "御前判断已有 \(snapshot.advantagedFrontZoneCount) 处防区具备兵力优势，可承受有限进取风险。"
         case .defensive:
-            return "Ruler sees pressure \(snapshot.averageZonePressure) and \(snapshot.outnumberedFrontZoneCount) outnumbered zone(s)."
+            return "御前判断前线压力 \(snapshot.averageZonePressure)，且 \(snapshot.outnumberedFrontZoneCount) 处防区兵力居劣，先守城关粮道。"
         case .coalitionMaintenance:
-            return "Ruler preserves coalition reserves across \(snapshot.frontZoneCount) active zone(s)."
+            return "御前要求在 \(snapshot.frontZoneCount) 处活跃防区保留预备，维系诸方战局。"
         case .stabilizeFront:
-            return "Ruler avoids overextension while contested forward presence is resolved."
+            return "御前暂避冒进，先处置争夺州府与前出军伍。"
         }
     }
 
     private func appendRulerContext(_ context: String?, record: RulerDecisionRecord) -> String {
-        let rulerContext = "Ruler \(record.rulerAgentId): \(record.posture.displayName), target \(record.preferredFrontZoneId?.rawValue ?? "none")."
+        let target = record.preferredFrontZoneId.map(Self.rulerFrontZoneTitle) ?? "未指定"
+        let rulerContext = "最高意志：\(record.faction.displayName)取\(record.posture.displayName)，重心 \(target)。"
         guard let context, !context.isEmpty else {
             return rulerContext
         }
         return "\(context) \(rulerContext)"
+    }
+
+    private static func rulerFrontZoneTitle(_ id: FrontZoneId) -> String {
+        switch id.rawValue {
+        case "theater_qing_liaodong":
+            return "辽东清军"
+        case "theater_ming_guanning":
+            return "关宁防线"
+        case "theater_ming_jifu":
+            return "畿辅防区"
+        case "theater_ming_northwest":
+            return "西北边镇"
+        case "theater_ming_shandong":
+            return "山东登莱"
+        case "theater_ming_huaihu":
+            return "淮湖防线"
+        case "theater_dashun_henan":
+            return "大顺河南"
+        case "theater_dashun_shaanxi":
+            return "大顺秦陕"
+        case "theater_daxi_huguang":
+            return "大西湖广"
+        case "ming_zone":
+            return "畿辅防区"
+        case "qing_zone":
+            return "关外旗营"
+        case "dashun_zone":
+            return "河南老营"
+        case "daxi_zone":
+            return "湖广机动营"
+        case "local_zone":
+            return "乡绅团练"
+        default:
+            return id.rawValue.replacingOccurrences(of: "_", with: " ")
+        }
     }
 
     private func stableUnique<T: Hashable>(_ values: [T]) -> [T] {

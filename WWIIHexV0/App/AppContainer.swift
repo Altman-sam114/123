@@ -91,6 +91,7 @@ final class AppContainer: ObservableObject {
 
     func submit(_ command: Command) {
         let stateBeforeCommand = gameState
+        let commandText = commandInteractionText(command, in: stateBeforeCommand)
         let result = commandHandler.execute(command, in: gameState)
         var nextState = StrategicStateBootstrapper().bootstrapIfNeeded(result.state)
         if result.succeeded {
@@ -101,10 +102,10 @@ final class AppContainer: ObservableObject {
             )
         }
         gameState = refreshGeneralAssignments(in: nextState)
-        lastCommandMessage = result.message
+        lastCommandMessage = commandResultMessage(result, commandText: commandText)
 
-        let status = result.succeeded ? "accepted" : "rejected"
-        appendInteractionEvent("Command \(status): \(command.displayName). \(result.message)")
+        let status = result.succeeded ? "军令已受理" : "军令被驳回"
+        appendInteractionEvent("\(status)：\(commandText)。\(lastCommandMessage ?? "")")
         refreshSelectionAfterStateChange()
         runAIIfNeeded()
     }
@@ -135,9 +136,9 @@ final class AppContainer: ObservableObject {
                 self.lastAgentDecisionRecord = outcome.record
                 self.lastWarDirectiveRecords = outcome.directiveRecords
                 self.lastCommandMessage = outcome.record.errors.isEmpty
-                    ? "AI turn completed."
-                    : "AI turn completed with \(outcome.record.errors.count) issue(s)."
-                self.appendInteractionEvent("AI \(outcome.record.provider) resolved \(outcome.record.commandResults.count) command result(s).")
+                    ? "军机推演已结算。"
+                    : "军机推演已结算，留有 \(outcome.record.errors.count) 条待核事项。"
+                self.appendInteractionEvent("军机已结算 \(outcome.record.commandResults.count) 道命令回执。")
                 self.isRunningAI = false
                 self.refreshSelectionAfterStateChange()
             }
@@ -176,7 +177,7 @@ final class AppContainer: ObservableObject {
 
     func holdSelected() {
         guard let division = selectedActionDivision else {
-            appendInteractionEvent("Hold rejected: no active allied unit selected.")
+            appendInteractionEvent("固守被驳回：未选中可行令的本方军伍。")
             return
         }
 
@@ -185,7 +186,7 @@ final class AppContainer: ObservableObject {
 
     func allowRetreatSelected() {
         guard let division = selectedActionDivision else {
-            appendInteractionEvent("Allow retreat rejected: no active allied unit selected.")
+            appendInteractionEvent("退却许可被驳回：未选中可行令的本方军伍。")
             return
         }
 
@@ -194,7 +195,7 @@ final class AppContainer: ObservableObject {
 
     func resupplySelected() {
         guard let division = selectedActionDivision else {
-            appendInteractionEvent("Resupply rejected: no active allied unit selected.")
+            appendInteractionEvent("补给整备被驳回：未选中可行令的本方军伍。")
             return
         }
 
@@ -203,7 +204,7 @@ final class AppContainer: ObservableObject {
 
     func orderSelectedGeneralHoldLine() {
         guard let zone = selectedGeneralCommandZone else {
-            appendInteractionEvent("General order rejected: no allied front zone selected.")
+            appendInteractionEvent("将令被驳回：未选中本方防区。")
             return
         }
 
@@ -225,11 +226,11 @@ final class AppContainer: ObservableObject {
 
     func orderSelectedGeneralAttackRegion() {
         guard let target = selectedAttackTarget else {
-            appendInteractionEvent("General order rejected: select an enemy front region to attack.")
+            appendInteractionEvent("将令被驳回：请先点选可攻的敌方州府。")
             return
         }
         guard let zone = selectedGeneralCommandZone else {
-            appendInteractionEvent("General order rejected: no allied source front zone available.")
+            appendInteractionEvent("将令被驳回：未找到可出兵的本方防区。")
             return
         }
 
@@ -255,7 +256,7 @@ final class AppContainer: ObservableObject {
 
     func queueProduction(_ kind: ProductionKind) {
         guard !observerModeEnabled else {
-            appendInteractionEvent("Production rejected: observer mode is read-only.")
+            appendInteractionEvent("筹造被驳回：旁观模式只读。")
             return
         }
 
@@ -264,7 +265,7 @@ final class AppContainer: ObservableObject {
 
     func enactCourtProject(_ kind: CourtProjectKind) {
         guard !observerModeEnabled else {
-            appendInteractionEvent("Court project rejected: observer mode is read-only.")
+            appendInteractionEvent("朝廷工程被驳回：旁观模式只读。")
             return
         }
 
@@ -297,7 +298,7 @@ final class AppContainer: ObservableObject {
 
     func focusObjective(_ objectiveId: String) {
         guard let objective = gameState.map.objective(id: objectiveId) else {
-            appendInteractionEvent("Objective focus rejected: missing objective \(objectiveId).")
+            appendInteractionEvent("要冲定位失败：缺少目标记录。")
             return
         }
 
@@ -306,7 +307,7 @@ final class AppContainer: ObservableObject {
         selectedHex = objective.coord
         selectedRegionId = mapDisplayAdapter.regionId(for: objective.coord)
         clearHighlights()
-        appendInteractionEvent("Objective located: \(objective.name).")
+        appendInteractionEvent("已定位要冲：\(objective.name)。")
     }
 
     func resetGame() {
@@ -584,18 +585,18 @@ final class AppContainer: ObservableObject {
         targetRegionId: RegionId?
     ) {
         guard canIssuePlayerDirective else {
-            appendInteractionEvent("General order rejected: not in the player command phase.")
+            appendInteractionEvent("将令被驳回：当前不在玩家行令阶段。")
             return
         }
         guard gameState.warDeploymentState.frontZones[directive.zoneId]?.faction == playerFaction else {
-            appendInteractionEvent("General order rejected: source zone is not controlled by the player.")
+            appendInteractionEvent("将令被驳回：发令防区不属本方。")
             return
         }
 
         let startState = refreshedRuntimeState(gameState)
         guard let refreshedZone = startState.warDeploymentState.frontZones[directive.zoneId],
               refreshedZone.faction == playerFaction else {
-            appendInteractionEvent("General order rejected: source zone changed during refresh.")
+            appendInteractionEvent("将令被驳回：刷新后发令防区已变。")
             return
         }
         let lockedIds = startState.playerCommandState.micromanagedDivisionIds
@@ -617,14 +618,14 @@ final class AppContainer: ObservableObject {
         }
         var diagnostics: [String] = []
         if execution.generatedCommands.isEmpty {
-            diagnostics.append("Player directive generated no executable commands.")
+            diagnostics.append("玩家将令未生成可执行军令。")
         }
-        let rejected = commandSummaries.filter { !$0.executed }
-        if !rejected.isEmpty {
-            diagnostics.append("\(rejected.count) command(s) were rejected by rules.")
+        let blockedSummaries = commandSummaries.filter { !$0.executed }
+        if !blockedSummaries.isEmpty {
+            diagnostics.append("\(blockedSummaries.count) 道军令被规则驳回。")
         }
         if !lockedIds.isEmpty {
-            diagnostics.append("\(lockedIds.count) micromanaged division(s) excluded.")
+            diagnostics.append("\(lockedIds.count) 支已由玩家亲控军伍跳过。")
         }
 
         let record = WarDirectiveRecord(
@@ -660,7 +661,9 @@ final class AppContainer: ObservableObject {
         gameState = nextState
         lastWarDirectiveRecords = Array((lastWarDirectiveRecords + [record]).suffix(12))
         lastCommandMessage = playerDirectiveMessage(for: execution, diagnostics: diagnostics)
-        appendInteractionEvent("General order submitted: \(directive.type.rawValue) \(directive.zoneId.rawValue).")
+        appendInteractionEvent(
+            "将令已提交：\(directiveTypeText(directive.type)) \(MingMapLabelFormat.frontZoneTitle(directive.zoneId))。"
+        )
         refreshSelectionAfterStateChange()
     }
 
@@ -668,15 +671,15 @@ final class AppContainer: ObservableObject {
         for execution: WarCommandExecutionResult,
         diagnostics: [String]
     ) -> String {
-        let acceptedCount = execution.commandResults.filter(\.succeeded).count
+        let completedCount = execution.commandResults.filter(\.succeeded).count
         let totalCount = execution.generatedCommands.count
         if totalCount == 0 {
-            return diagnostics.first ?? "General order produced no commands."
+            return diagnostics.first ?? "将令未生成可执行军令。"
         }
-        if acceptedCount == totalCount {
-            return "General order executed \(acceptedCount) command(s)."
+        if completedCount == totalCount {
+            return "将令已成：\(completedCount) 道军令。"
         }
-        return "General order executed \(acceptedCount)/\(totalCount) command(s)."
+        return "将令部分成行：\(completedCount) / \(totalCount) 道。"
     }
 
     private func shouldRunAI(for faction: Faction, phase: GamePhase) -> Bool {
@@ -759,7 +762,7 @@ final class AppContainer: ObservableObject {
                 .map(\.id)
             agent = GameAgent.sample(
                 id: "allied_mock_commander",
-                name: "Allied Mock Commander",
+                name: "盟军军机参谋",
                 faction: .allies,
                 role: .armyCommander,
                 assignedDivisionIds: assignedIds
@@ -770,7 +773,7 @@ final class AppContainer: ObservableObject {
                 .map(\.id)
             agent = GameAgent.sample(
                 id: "\(faction.rawValue)_mock_commander",
-                name: "\(faction.displayName) Mock Commander",
+                name: "\(faction.displayName)军机参谋",
                 faction: faction,
                 role: .armyCommander,
                 assignedDivisionIds: assignedIds
@@ -805,13 +808,13 @@ final class AppContainer: ObservableObject {
     private func handleDivisionTap(_ division: Division) {
         if observerModeEnabled {
             selectDivision(division)
-            appendInteractionEvent("Inspecting unit: \(division.name).")
+            appendInteractionEvent("查看军情：\(division.name)。")
             return
         }
 
         if division.faction == playerFaction {
             selectDivision(division)
-            appendInteractionEvent("Selected unit: \(division.name).")
+            appendInteractionEvent("已选本方军伍：\(division.name)。")
             return
         }
 
@@ -819,7 +822,7 @@ final class AppContainer: ObservableObject {
             submit(.attack(attackerId: attacker.id, targetId: division.id))
         } else {
             selectDivision(division)
-            appendInteractionEvent("Selected enemy unit: \(division.name).")
+            appendInteractionEvent("已选敌情：\(division.name)。")
         }
     }
 
@@ -868,12 +871,88 @@ final class AppContainer: ObservableObject {
         submit(.move(divisionId: division.id, destination: tappedHex))
     }
 
+    private func commandInteractionText(_ command: Command, in state: GameState) -> String {
+        switch command {
+        case .move(let divisionId, let destination):
+            return "调动 \(divisionName(id: divisionId, in: state)) 至 \(MingMapLabelFormat.coordinate(destination))"
+        case .attack(let attackerId, let targetId):
+            return "命 \(divisionName(id: attackerId, in: state)) 攻击 \(divisionName(id: targetId, in: state))"
+        case .hold(let divisionId):
+            return "令 \(divisionName(id: divisionId, in: state)) 就地固守"
+        case .allowRetreat(let divisionId):
+            return "准 \(divisionName(id: divisionId, in: state)) 必要时退却"
+        case .resupply(let divisionId):
+            return "令 \(divisionName(id: divisionId, in: state)) 补给整备"
+        case .queueProduction(let kind):
+            return "筹造 \(kind.displayName)"
+        case .enactCourtProject(let kind):
+            return "推行朝廷项目：\(kind.displayName)"
+        case .endTurn:
+            return "结束本阶段"
+        }
+    }
+
+    private func commandResultMessage(_ result: CommandResult, commandText: String) -> String {
+        if result.succeeded {
+            return "已执行：\(commandText)。"
+        }
+
+        let reasons = result.validation.errors.map(commandValidationText).joined(separator: "、")
+        return reasons.isEmpty ? "规则未准。" : "规则未准：\(reasons)。"
+    }
+
+    private func commandValidationText(_ error: CommandValidationError) -> String {
+        switch error {
+        case .wrongPhase:
+            return "当前阶段不可行令"
+        case .wrongFaction:
+            return "当前主事方不符"
+        case .divisionNotFound:
+            return "未找到军伍"
+        case .targetNotFound:
+            return "未找到目标"
+        case .alreadyActed:
+            return "该军伍本阶段已行动"
+        case .destinationOutOfBounds:
+            return "目标舆图格越界"
+        case .destinationOccupied:
+            return "目标舆图格已有军伍"
+        case .noPath:
+            return "未找到可行军路线"
+        case .insufficientMovement:
+            return "行军力不足"
+        case .targetOutOfRange:
+            return "目标超出攻击范围"
+        case .invalidTargetFaction:
+            return "目标阵营不合"
+        case .regionNotFound:
+            return "未找到州府"
+        case .invalidRegionForHex:
+            return "舆图格未归入有效州府"
+        case .insufficientResources:
+            return "钱粮物资不足"
+        }
+    }
+
+    private func directiveTypeText(_ type: DirectiveType) -> String {
+        switch type {
+        case .attack:
+            return "进取"
+        case .defend:
+            return "固守"
+        }
+    }
+
+    private func divisionName(id: String, in state: GameState) -> String {
+        state.division(id: id)?.name ?? "未知军伍 \(id)"
+    }
+
     private func selectionMessage(for coord: HexCoord) -> String {
         guard let selectedRegionId,
               let region = gameState.map.region(id: selectedRegionId) else {
-            return "Selected hex \(coord.q),\(coord.r)."
+            return "已选 \(MingMapLabelFormat.coordinate(coord))。"
         }
-        return "Selected region: \(region.name) (\(selectedRegionId.rawValue))."
+        return "已选州府：\(region.name)（\(MingMapLabelFormat.regionTitle(selectedRegionId))）。"
     }
 
     private func appendInteractionEvent(_ message: String) {
