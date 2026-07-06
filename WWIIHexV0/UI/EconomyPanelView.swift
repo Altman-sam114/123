@@ -10,6 +10,7 @@ struct EconomyPanelView: View {
         let faction = gameState.activeFaction
         let ledger = gameState.economyState.ledger(for: faction)
         let governance = GovernanceAISummary.from(faction: faction, map: gameState.map)
+        let courtSummary = CourtStrategySummary.from(faction: faction, state: gameState)
         let divisions = gameState.divisions.filter { $0.faction == faction && !$0.isDestroyed }
 
         VStack(alignment: .leading, spacing: 10) {
@@ -20,6 +21,7 @@ struct EconomyPanelView: View {
             )
             TreasuryStockpileSection(ledger: ledger)
             TreasuryFlowSection(ledger: ledger)
+            TreasuryFourLineSection(ledger: ledger, summary: courtSummary)
             TreasuryMilitaryPaySection(
                 ledger: ledger,
                 governance: governance,
@@ -274,6 +276,119 @@ private struct TreasuryFlowSection: View {
     private var flowDetail: String {
         let readyText = readyOrders > 0 ? "，\(readyOrders) 项待部署" : ""
         return "入账 \(ledger.lastIncome.compactDisplaySummary)；军粮维护粮 \(ledger.lastUpkeep.supplies)，补员耗 \(ledger.lastReinforcementSpend.compactDisplaySummary)\(readyText)。"
+    }
+}
+
+private struct TreasuryFourLineSection: View {
+    let ledger: FactionEconomyLedger
+    let summary: CourtStrategySummary
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: MingDesignTokens.compactSpacing) {
+            HStack(alignment: .firstTextBaseline) {
+                Label("府库四线牵引", systemImage: summary.recommendedFocus.systemImageName)
+                    .font(.caption.bold())
+                    .foregroundStyle(leadingTint)
+                Spacer(minLength: 8)
+                Text(summary.recommendedFocus.displayName)
+                    .font(.caption.bold())
+                    .foregroundStyle(leadingTint)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.72)
+            }
+
+            LazyVGrid(columns: [GridItem(.adaptive(minimum: 84), spacing: 6)], alignment: .leading, spacing: 6) {
+                TreasuryFourLineBadge(
+                    title: "政策",
+                    value: summary.policyPressure,
+                    detail: "不稳 \(summary.unstableRegions)",
+                    systemImageName: "scroll",
+                    tint: MingDesignTokens.jade
+                )
+                TreasuryFourLineBadge(
+                    title: "经济",
+                    value: summary.economyPressure,
+                    detail: "银 \(ledger.stockpile.industry)",
+                    systemImageName: "banknote",
+                    tint: MingDesignTokens.imperialGold
+                )
+                TreasuryFourLineBadge(
+                    title: "科技",
+                    value: summary.technologyPressure,
+                    detail: "火炮 \(summary.fireSupportUnits)",
+                    systemImageName: "scope",
+                    tint: MingDesignTokens.porcelainBlue
+                )
+                TreasuryFourLineBadge(
+                    title: "军事",
+                    value: summary.militaryPressure,
+                    detail: "接战 \(summary.activeFronts)",
+                    systemImageName: "shield",
+                    tint: MingDesignTokens.cinnabar
+                )
+            }
+
+            Text(treasuryMinute)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .padding(MingDesignTokens.compactSpacing)
+        .background(MingDesignTokens.sectionBackground)
+        .clipShape(RoundedRectangle(cornerRadius: MingDesignTokens.cornerRadius))
+        .accessibilityElement(children: .combine)
+    }
+
+    private var leadingTint: Color {
+        let pressure = [
+            (summary.policyPressure, MingDesignTokens.jade),
+            (summary.economyPressure, MingDesignTokens.imperialGold),
+            (summary.technologyPressure, MingDesignTokens.porcelainBlue),
+            (summary.militaryPressure, MingDesignTokens.cinnabar)
+        ]
+        return pressure.max { lhs, rhs in
+            lhs.0 < rhs.0
+        }?.1 ?? MingDesignTokens.imperialGold
+    }
+
+    private var treasuryMinute: String {
+        let secondary = summary.secondaryFocuses
+            .map(\.displayName)
+            .joined(separator: "、")
+        let secondaryClause = secondary.isEmpty ? "" : "，备议 \(secondary)"
+        return "户部会看：民力 \(ledger.stockpile.manpower)，银 \(ledger.stockpile.industry)，粮 \(ledger.stockpile.supplies)，营造 \(ledger.productionQueue.count) 项；主议 \(summary.recommendedFocus.displayName)\(secondaryClause)。"
+    }
+}
+
+private struct TreasuryFourLineBadge: View {
+    let title: String
+    let value: Int
+    let detail: String
+    let systemImageName: String
+    let tint: Color
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 3) {
+            Label(title, systemImage: systemImageName)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .lineLimit(1)
+            Text("\(value)")
+                .font(.caption.bold())
+                .foregroundStyle(value >= 65 ? MingDesignTokens.cinnabar : tint)
+                .lineLimit(1)
+                .minimumScaleFactor(0.72)
+            Text(detail)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .lineLimit(1)
+                .minimumScaleFactor(0.72)
+        }
+        .padding(.horizontal, 7)
+        .padding(.vertical, 6)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(MingDesignTokens.panelBackground.opacity(0.52), in: RoundedRectangle(cornerRadius: 6))
+        .accessibilityElement(children: .combine)
     }
 }
 
