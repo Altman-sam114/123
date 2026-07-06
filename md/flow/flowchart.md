@@ -52,7 +52,7 @@ flowchart TD
     TURN["通用回合控制<br/>turnOrder + human/AI factions<br/>决定 active faction 和行动 phase"]:::state
     DIP["天下局势 / 外交关系<br/>DiplomacyState + BattleObjectiveSummary<br/>诸方势力、阵营名义、战和张力、天下牵引、天下棋势"]:::state
     ECO["钱粮总账<br/>EconomyState / EconomyRules<br/>民力、银两、粮草、治理修正、生产队列、自动补员"]:::economy
-    HUDINFO["朝报令条<br/>HUDView<br/>回合、势力、胜负、钱粮、入账、营造和四线压力"]:::ui
+    HUDINFO["朝报令条 / 朝报要冲<br/>HUDView<br/>回合、势力、胜负、钱粮、入账、营造、棋势、急线、本旬和四线压力"]:::ui
     ECONINFO["府库牌<br/>EconomyPanelView<br/>库存、入账、维护、补员、净收支、府库四线牵引、经世策眼、军饷民心、生产状态、募兵筹粮和营造队列"]:::ui
     COURT["朝廷摘要<br/>CourtStrategySummary<br/>政策、经济、科技、军事四线压力、战役线加权和议题建议"]:::economy
     COURTDEBATE["朝议总纲 / 朝议批票 / 廷议要冲 / 朝议争点<br/>CourtPanelView / CourtCouncilBriefSection + CourtPolicyTicketSection + CourtObjectiveBalanceSection + CourtDebateSection<br/>主议、票拟项目、要冲归属、四线压力、战役最急线、安民与征饷、火器与团练、粮道与城防只读展示"]:::ui
@@ -82,7 +82,7 @@ flowchart TD
     GENERALINFO["将印军令 / 帷幄四线 / 督师要冲 / 将领名帖<br/>GeneralCommandPanelView + GeneralProfileView<br/>防区、主将、忠诚、军心、政策/经济/科技/军事、本旬要冲、麾下军伍和军令计划"]:::ui
     UNITINFO["部队军情牌 / 舆图军牌浮签<br/>UnitInspectorView + UnitTooltipView<br/>势力旗号、兵力、粮草、退守、军令战备、军械火力、部队详情要冲牵引、舆图军位、舆图要冲牵引、本旬、落点、相距、兵势、攻守行程察、兵种编成和驻防归属只读展示"]:::ui
     REGIONINFO["州府牌<br/>RegionInspectorView<br/>州府主值、州府四线牵引、政粮械兵、城关粮坊、治理、钱粮城防、控制方旗号、原属章和当前格只读展示"]:::ui
-    UI["地图和面板显示<br/>SpriteKit / SwiftUI Overlay<br/>v4.6/v4.7 明末舆图、舆图天下急势/舆图要冲分布/本旬先手/舆图点验、朝报令条、军令牌/舆图军令提示/要冲军令/命令回执中文化、军机/战区诊断中文化、默认中文塘报、将印军令/帷幄四线/督师要冲、将领名帖、军机复盘牌、军机五线态势、势力军略、诸势军略、军机底稿、命令短令、raw 错误显示中文化、最高意志朱批中文化、塘报战记/急务战役分类/回执前缀中文化、目标要冲缺口、天下急势/天下牵引/天下棋势/战和张力、朝议重心可读化、朝议批票、廷议要冲、朝议争点、朝廷五线态势、朝廷项目行动状态提示、部队军情牌/军令战备/军械火力/驻防归属可读化、舆图军牌浮签/军位/要冲牵引、州府牌主值/州府四线牵引/政粮械兵/方面防区可读化、府库牌/府库四线牵引/经世策眼/军饷民心/生产状态提示、中文图层名、舆图判读、城/关/粮/兵种军牌/粮草堆叠/势力旗/战备小签/军令计划图例、粮道虚线/开关、中文军牌、朝廷四线兼线项目、AI 面板 polish"]:::ui
+    UI["地图和面板显示<br/>SpriteKit / SwiftUI Overlay<br/>v4.6/v4.7 明末舆图、舆图天下急势/舆图要冲分布/本旬先手/舆图点验、朝报令条/朝报要冲、军令牌/舆图军令提示/要冲军令/命令回执中文化、军机/战区诊断中文化、默认中文塘报、将印军令/帷幄四线/督师要冲、将领名帖、军机复盘牌、军机五线态势、势力军略、诸势军略、军机底稿、命令短令、raw 错误显示中文化、最高意志朱批中文化、塘报战记/急务战役分类/回执前缀中文化、目标要冲缺口、天下急势/天下牵引/天下棋势/战和张力、朝议重心可读化、朝议批票、廷议要冲、朝议争点、朝廷五线态势、朝廷项目行动状态提示、部队军情牌/军令战备/军械火力/驻防归属可读化、舆图军牌浮签/军位/要冲牵引、州府牌主值/州府四线牵引/政粮械兵/方面防区可读化、府库牌/府库四线牵引/经世策眼/军饷民心/生产状态提示、中文图层名、舆图判读、城/关/粮/兵种军牌/粮草堆叠/势力旗/战备小签/军令计划图例、粮道虚线/开关、中文军牌、朝廷四线兼线项目、AI 面板 polish"]:::ui
     LOG["日志和复盘记录<br/>EventLog / WarDirectiveRecord / AgentDecisionRecord / RulerDecisionRecord<br/>用于 UI 展示和后续调试"]:::ui
 
     ME --> JSON --> DL --> GS
