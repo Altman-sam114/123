@@ -16,6 +16,7 @@ struct BattleObjectivePanelView: View {
             BattleObjectiveHeader(summary: summary, turn: gameState.turn, maxTurns: gameState.maxTurns)
 
             if summary.isMingScenario {
+                BattleObjectiveStrategicEye(summary: summary, onFocusObjective: onFocusObjective)
                 BattleObjectiveScoreboard(summary: summary)
                 BattleObjectiveLineBriefBoard(briefs: summary.lineBriefs)
                 BattleObjectiveCueBoard(cues: summary.cues)
@@ -46,6 +47,190 @@ struct BattleObjectivePanelView: View {
                 .stroke(MingDesignTokens.courtStroke.opacity(0.72), lineWidth: 1)
         }
         .clipShape(RoundedRectangle(cornerRadius: MingDesignTokens.cornerRadius))
+    }
+}
+
+private struct BattleObjectiveStrategicEye: View {
+    let summary: BattleObjectiveSummary
+    let onFocusObjective: (String) -> Void
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: MingDesignTokens.compactSpacing) {
+            Label("天下棋眼", systemImage: "scope")
+                .font(.subheadline.bold())
+                .foregroundStyle(MingDesignTokens.ink)
+
+            BattleObjectiveEyeRow(
+                title: "要冲分",
+                value: leadingText,
+                detail: leadingDetail,
+                systemImage: "crown",
+                tint: summary.leadingFaction?.mingBannerTint ?? MingDesignTokens.imperialGold
+            )
+
+            if let urgentBrief {
+                BattleObjectiveEyeRow(
+                    title: "最急五线",
+                    value: "\(urgentBrief.line.displayName) · \(urgentBrief.status.displayName)",
+                    detail: urgentBrief.detail,
+                    systemImage: urgentBrief.line.systemImage,
+                    tint: urgentBrief.line.objectivePanelTint
+                )
+            }
+
+            if let task = firstActionTask {
+                BattleObjectiveEyeRow(
+                    title: "本旬先手",
+                    value: "\(task.priority.displayName) · \(task.title)",
+                    detail: task.detail,
+                    systemImage: task.priority.systemImage,
+                    tint: task.line.objectivePanelTint,
+                    targetObjectiveId: task.targetObjectiveId,
+                    targetName: task.targetObjectiveId.flatMap(targetName)
+                ) { objectiveId in
+                    onFocusObjective(objectiveId)
+                }
+            }
+        }
+        .padding(MingDesignTokens.compactSpacing)
+        .background(MingDesignTokens.sectionBackground, in: RoundedRectangle(cornerRadius: MingDesignTokens.cornerRadius))
+    }
+
+    private var urgentBrief: BattleObjectiveSummary.CampaignLineBrief? {
+        summary.lineBriefs
+            .sorted {
+                if $0.status != $1.status {
+                    return $0.status.objectivePanelRank < $1.status.objectivePanelRank
+                }
+                return $0.pressure > $1.pressure
+            }
+            .first
+    }
+
+    private var firstActionTask: BattleObjectiveSummary.CampaignTask? {
+        summary.tasks.first { $0.priority == .urgent }
+            ?? summary.tasks.first { $0.priority == .main }
+            ?? summary.tasks.first
+    }
+
+    private var leadingText: String {
+        summary.leadingFaction?.displayName ?? "未定"
+    }
+
+    private var leadingDetail: String {
+        if let leadingFaction = summary.leadingFaction {
+            let leadingRow = summary.scoreRows.first { $0.faction == leadingFaction }
+            return "当前由\(leadingFaction.displayName)暂领 \(leadingRow?.points ?? 0) 分；仍需同时盯住城关、粮道、朝议和军机五线。"
+        }
+        return "当前要冲分尚未拉开；先看山海关、北京、开封、湖广和终局名分线。"
+    }
+
+    private func targetName(for objectiveId: String) -> String? {
+        summary.tracks
+            .flatMap(\.targets)
+            .first { $0.objectiveId == objectiveId }?
+            .name
+    }
+}
+
+private struct BattleObjectiveEyeRow: View {
+    let title: String
+    let value: String
+    let detail: String
+    let systemImage: String
+    let tint: Color
+    var targetObjectiveId: String?
+    var targetName: String?
+    var onFocusObjective: ((String) -> Void)?
+
+    var body: some View {
+        HStack(alignment: .top, spacing: 8) {
+            Image(systemName: systemImage)
+                .font(.caption.bold())
+                .foregroundStyle(tint)
+                .frame(width: 24, height: 24)
+                .background(tint.opacity(0.12), in: RoundedRectangle(cornerRadius: 6))
+                .accessibilityHidden(true)
+
+            VStack(alignment: .leading, spacing: 3) {
+                HStack(alignment: .firstTextBaseline, spacing: 6) {
+                    Text(title)
+                        .font(.caption.bold())
+                    Text(value)
+                        .font(.caption.bold())
+                        .foregroundStyle(tint)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.76)
+                }
+
+                Text(detail)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(2)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+
+            if let targetObjectiveId, let onFocusObjective {
+                Spacer(minLength: 4)
+
+                Button {
+                    onFocusObjective(targetObjectiveId)
+                } label: {
+                    Label(targetName ?? "定位", systemImage: "mappin.and.ellipse")
+                        .font(.caption.bold())
+                        .foregroundStyle(tint)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.76)
+                        .padding(.horizontal, 8)
+                        .frame(minHeight: MingDesignTokens.minimumTapSize)
+                        .background(tint.opacity(0.12), in: RoundedRectangle(cornerRadius: 6))
+                }
+                .buttonStyle(.plain)
+                .accessibilityHint("定位到本旬先手相关城关")
+            } else {
+                Spacer(minLength: 0)
+            }
+        }
+        .padding(.horizontal, 7)
+        .padding(.vertical, 7)
+        .background(MingDesignTokens.panelBackground.opacity(0.58), in: RoundedRectangle(cornerRadius: 6))
+        .overlay {
+            RoundedRectangle(cornerRadius: 6)
+                .stroke(tint.opacity(0.18), lineWidth: 1)
+        }
+        .accessibilityElement(children: .combine)
+    }
+}
+
+private extension BattleObjectiveSummary.CampaignLine {
+    var objectivePanelTint: Color {
+        switch self {
+        case .world:
+            return MingDesignTokens.cinnabar
+        case .policy:
+            return MingDesignTokens.porcelainBlue
+        case .economy:
+            return MingDesignTokens.jade
+        case .technology:
+            return MingDesignTokens.imperialGold
+        case .military:
+            return MingDesignTokens.ink
+        }
+    }
+}
+
+private extension BattleObjectiveSummary.CampaignStageStatus {
+    var objectivePanelRank: Int {
+        switch self {
+        case .warning:
+            return 0
+        case .focus:
+            return 1
+        case .watch:
+            return 2
+        case .achieved:
+            return 3
+        }
     }
 }
 
