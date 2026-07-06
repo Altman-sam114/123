@@ -21,6 +21,11 @@ struct CourtPanelView: View {
                 recommendedProject: CourtProjectKind(focus: summary.recommendedFocus),
                 lineBriefs: objectiveSummary.isMingScenario ? objectiveSummary.lineBriefs : []
             )
+            CourtObjectiveBalanceSection(
+                summary: summary,
+                objectiveSummary: objectiveSummary,
+                activeFaction: gameState.activeFaction
+            )
             CourtRationaleView(summary: summary)
             CourtCampaignLineSection(
                 briefs: objectiveSummary.isMingScenario ? objectiveSummary.lineBriefs : []
@@ -479,6 +484,147 @@ private struct CourtPolicyTicketChip: View {
             RoundedRectangle(cornerRadius: 6)
                 .stroke(tint.opacity(0.2), lineWidth: 1)
         }
+    }
+}
+
+private struct CourtObjectiveBalanceSection: View {
+    let summary: CourtStrategySummary
+    let objectiveSummary: BattleObjectiveSummary
+    let activeFaction: Faction
+
+    var body: some View {
+        if objectiveSummary.isMingScenario && !scoreRows.isEmpty {
+            VStack(alignment: .leading, spacing: MingDesignTokens.compactSpacing) {
+                HStack(alignment: .firstTextBaseline, spacing: 8) {
+                    Label("廷议要冲", systemImage: "mappin.and.ellipse")
+                        .font(.subheadline.bold())
+                        .foregroundStyle(leadingTint)
+
+                    Spacer(minLength: 8)
+
+                    Text(statusText)
+                        .font(.caption.bold())
+                        .foregroundStyle(leadingTint)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.78)
+                }
+
+                Text(balanceSummary)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+
+                LazyVGrid(columns: [GridItem(.adaptive(minimum: 112), spacing: 7)], alignment: .leading, spacing: 7) {
+                    ForEach(scoreRows) { row in
+                        CourtObjectiveScoreChip(
+                            row: row,
+                            isLeading: row.faction == objectiveSummary.leadingFaction,
+                            isActive: row.faction == activeFaction
+                        )
+                    }
+                }
+            }
+            .padding(MingDesignTokens.compactSpacing)
+            .background(MingDesignTokens.sectionBackground, in: RoundedRectangle(cornerRadius: MingDesignTokens.cornerRadius))
+            .overlay {
+                RoundedRectangle(cornerRadius: MingDesignTokens.cornerRadius)
+                    .stroke(leadingTint.opacity(0.26), lineWidth: 1)
+            }
+            .accessibilityElement(children: .combine)
+        }
+    }
+
+    private var scoreRows: [BattleObjectiveSummary.ScoreRow] {
+        objectiveSummary.scoreRows.sorted { lhs, rhs in
+            if lhs.points == rhs.points {
+                return lhs.objectiveCount > rhs.objectiveCount
+            }
+            return lhs.points > rhs.points
+        }
+    }
+
+    private var activeRow: BattleObjectiveSummary.ScoreRow? {
+        scoreRows.first { $0.faction == activeFaction }
+    }
+
+    private var leadingTint: Color {
+        objectiveSummary.leadingFaction?.mingBannerTint ?? MingDesignTokens.cinnabar
+    }
+
+    private var statusText: String {
+        guard let leader = objectiveSummary.leadingFaction else {
+            return "未分高下"
+        }
+        if leader == activeFaction {
+            return "本方居先"
+        }
+        return "\(leader.displayName)居先"
+    }
+
+    private var balanceSummary: String {
+        let selfClause: String
+        if let activeRow {
+            selfClause = "本方 \(activeRow.points) 分、\(activeRow.objectiveCount) 处"
+        } else {
+            selfClause = "本方暂无要冲分"
+        }
+
+        let leaderClause: String
+        if let leader = objectiveSummary.leadingFaction,
+           let leaderRow = scoreRows.first(where: { $0.faction == leader }) {
+            leaderClause = "\(leader.displayName)领 \(leaderRow.points) 分"
+        } else {
+            leaderClause = "天下要冲未分高下"
+        }
+
+        return "廷议会看：\(leaderClause)，\(selfClause)；主议 \(summary.recommendedFocus.displayName)，以要冲归属校准政策、经济、科技、军事取舍。"
+    }
+}
+
+private struct CourtObjectiveScoreChip: View {
+    let row: BattleObjectiveSummary.ScoreRow
+    let isLeading: Bool
+    let isActive: Bool
+
+    var body: some View {
+        HStack(spacing: 6) {
+            MingFactionFlagBadge(faction: row.faction)
+
+            VStack(alignment: .leading, spacing: 3) {
+                HStack(spacing: 4) {
+                    Text(row.faction.displayName)
+                        .font(.caption.bold())
+                        .foregroundStyle(row.faction.mingBannerTint)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.78)
+
+                    if isLeading {
+                        Image(systemName: "crown.fill")
+                            .font(.caption)
+                            .foregroundStyle(MingDesignTokens.imperialGold)
+                            .accessibilityHidden(true)
+                    }
+                }
+
+                Text("\(row.points) 分 / \(row.objectiveCount) 处")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.74)
+            }
+
+            Spacer(minLength: 0)
+        }
+        .padding(.horizontal, 7)
+        .padding(.vertical, 6)
+        .frame(maxWidth: .infinity, minHeight: 58, alignment: .leading)
+        .background(MingDesignTokens.panelBackground.opacity(isActive ? 0.76 : 0.54), in: RoundedRectangle(cornerRadius: 6))
+        .overlay {
+            RoundedRectangle(cornerRadius: 6)
+                .stroke(row.faction.mingBannerTint.opacity(isLeading || isActive ? 0.42 : 0.16), lineWidth: 1)
+        }
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("\(row.faction.displayName)，要冲分 \(row.points)，控制 \(row.objectiveCount) 处")
     }
 }
 
