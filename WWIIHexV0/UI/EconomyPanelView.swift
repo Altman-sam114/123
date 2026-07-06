@@ -9,6 +9,7 @@ struct EconomyPanelView: View {
     var body: some View {
         let faction = gameState.activeFaction
         let ledger = gameState.economyState.ledger(for: faction)
+        let governance = GovernanceAISummary.from(faction: faction, map: gameState.map)
 
         VStack(alignment: .leading, spacing: 10) {
             TreasuryHeader(
@@ -18,6 +19,7 @@ struct EconomyPanelView: View {
             )
             TreasuryStockpileSection(ledger: ledger)
             TreasuryFlowSection(ledger: ledger)
+            TreasuryGovernanceSection(governance: governance)
             ProductionActionSection(
                 ledger: ledger,
                 canQueue: canQueue,
@@ -264,6 +266,99 @@ private struct TreasuryFlowSection: View {
     private var flowDetail: String {
         let readyText = readyOrders > 0 ? "，\(readyOrders) 项待部署" : ""
         return "入账 \(ledger.lastIncome.compactDisplaySummary)；军粮维护粮 \(ledger.lastUpkeep.supplies)，补员耗 \(ledger.lastReinforcementSpend.compactDisplaySummary)\(readyText)。"
+    }
+}
+
+private struct TreasuryGovernanceSection: View {
+    let governance: GovernanceAISummary
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: MingDesignTokens.compactSpacing) {
+            HStack(alignment: .firstTextBaseline) {
+                Label("内政钱粮", systemImage: "building.columns")
+                    .font(.caption.bold())
+                    .foregroundStyle(governanceTint)
+                Spacer(minLength: 8)
+                Text(governanceStatus)
+                    .font(.caption.bold())
+                    .foregroundStyle(governanceTint)
+                    .lineLimit(1)
+            }
+
+            LazyVGrid(columns: [GridItem(.adaptive(minimum: 78), spacing: 6)], alignment: .leading, spacing: 6) {
+                TreasuryGovernanceBadge(title: "州府", value: governance.controlledRegions, detail: "掌控", tint: MingDesignTokens.jade)
+                TreasuryGovernanceBadge(title: "不稳", value: governance.unstableRegions, detail: "需安抚", tint: unstableTint)
+                TreasuryGovernanceBadge(title: "民变", value: governance.averageResistance, detail: "均值", tint: resistanceTint)
+                TreasuryGovernanceBadge(title: "行政", value: governance.averageCompliance, detail: "均值", tint: complianceTint)
+            }
+
+            Text(governanceDetail)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .padding(MingDesignTokens.compactSpacing)
+        .background(MingDesignTokens.sectionBackground)
+        .clipShape(RoundedRectangle(cornerRadius: MingDesignTokens.cornerRadius))
+        .accessibilityElement(children: .combine)
+    }
+
+    private var governanceStatus: String {
+        if governance.controlledRegions == 0 {
+            return "暂无州府"
+        }
+        return governance.unstableRegions > 0 ? "地方不稳" : "地方平稳"
+    }
+
+    private var governanceTint: Color {
+        governance.unstableRegions > 0 ? MingDesignTokens.cinnabar : MingDesignTokens.jade
+    }
+
+    private var unstableTint: Color {
+        governance.unstableRegions > 0 ? MingDesignTokens.cinnabar : .secondary
+    }
+
+    private var resistanceTint: Color {
+        governance.averageResistance >= 25 ? MingDesignTokens.cinnabar : MingDesignTokens.imperialGold
+    }
+
+    private var complianceTint: Color {
+        governance.averageCompliance < 55 ? MingDesignTokens.cinnabar : MingDesignTokens.porcelainBlue
+    }
+
+    private var governanceDetail: String {
+        let lowest = MingMapLabelFormat.regionTitle(governance.lowestComplianceRegionId)
+        return "地方治理会修正州府钱粮产出；最低行政 \(lowest)，不稳州府 \(governance.unstableRegions) 处。"
+    }
+}
+
+private struct TreasuryGovernanceBadge: View {
+    let title: String
+    let value: Int
+    let detail: String
+    let tint: Color
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 2) {
+            Text(title)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .lineLimit(1)
+            Text("\(value)")
+                .font(.caption.bold())
+                .foregroundStyle(tint)
+                .lineLimit(1)
+                .minimumScaleFactor(0.72)
+            Text(detail)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .lineLimit(1)
+        }
+        .padding(.horizontal, 7)
+        .padding(.vertical, 6)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(MingDesignTokens.panelBackground.opacity(0.52), in: RoundedRectangle(cornerRadius: 6))
+        .accessibilityElement(children: .combine)
     }
 }
 
