@@ -4,7 +4,7 @@
 
 > v4.7 最新增量：`DataLoader` 会把 `ScenarioDefinition.victoryConditions` 写入 `GameState.victoryConditions`，`BattleObjectiveSummary` 优先从剧本条件编译明末胜负线和 objective points 领先方，并额外派生松锦余波、催饷安民、粮道告急、军机复盘、开封围城压力和目标线压力等只读战役提示；结束回合时这些 cue 会以去重 `relatedRecordId` 入塘报日志；同一摘要还派生只读天下五线态势、本旬任务链和阶段战局链，让目标面板用天下、政策、经济、科技、军事五线压力，以及守山海关与京师、救援开封压力、定征饷安民尺度、巡河南湖广粮根、补火器与城防、终局名分线等任务解释当前可玩重点；朝廷面板也复用同一五线态势，帮助朝议主线与中华世界局势对齐。`CampaignAISummary` 会把同一五线态势转成 Codable 摘要，进入 `AgentContext`、`AgentPromptBuilder`、`TurnManager.contextSummary` 和 `MarshalBattlefieldSummary`，使 AI/军机链路也能看到当前中华世界局势压力；军机复盘牌同时从当前 `GameState` 只读派生同一摘要，显示五线压力、告急状态和当旬急务；`CourtStrategySummary` 也会读取同一胜负线压力，把破关入京、河南秦陕粮链、湖广粮道和终局名分线加权到朝廷主议与备议。回合末还会把急务/主线任务最多 3 条写入任务塘报，帮助玩家在塘报战记里复盘当旬军政钱粮火器重点，但不执行事件效果。`VictoryRules` 与新增“目标”信息面板共用该摘要，玩家现在可在局内查看清破关入京、大顺据中原秦陕、大西据湖广粮区和明廷守京师关口各差哪些城关；目标城关 chip 会只读显示当前控制方旗号和要冲分，并可点击目标城关 chip 或任务定位按钮定位对应 hex / 州府，便于从胜负线回到舆图和州府牌；目标定位后，舆图会显示“标”令牌、脉冲圈、目标名、当前控制方和同胜负线城关连线，只读强化天下目标落点。明末 objective 因真实移动占领换手时，`CommandExecutor` 还会追加目标换手塘报，让北京、山海关、开封等关键城关变化进入复盘。开封围城压力当前只是只读提示和任务，不新增多回合围城状态或城防损耗。
 
-> v4.7 AI doctrine 最新增量：新增 `ZoneCommanderDoctrine`，让默认 `TheaterCommanderPool`、`AppContainer` 空将领 registry fallback、显式 `.zoneDirective` 路径和 `MockAICommander` 按明末势力生成不同 `ZoneCommanderAgentConfig`：明廷谨慎守京畿和粮道，清方进取偏旗骑合围与截援，大顺进取偏破弱城扩粮，大西进取偏流动作战与夺粮，地方中立谨慎自保。`ZoneCommanderAgent` 还会在分类后按 doctrine 映射 tactic，让同态进攻下清方偏突骑破阵/合围、大顺偏破围、大西偏流动作战。`SimulatedMarshalLLMClient` 的默认元帅 JSON 上游也读取同一势力 doctrine，在相同 front 摘要下区分明廷火器压制、清方合围/突骑、大顺破围和大西流动作战。军机复盘牌现在也只读显示该 doctrine 的军略名、风格、技能标签和战术偏向，帮助玩家解释不同势力 AI 倾向。该片只影响 directive 生成时的攻守边界、技能标签和 tactic 偏置，以及 `AgentPanelView` 的只读展示；最终仍必须走 `TheaterDirective -> TheaterDirectiveCompiler -> ZoneDirective -> WarCommandExecutor -> RuleEngine`。
+> v4.7 AI doctrine 最新增量：新增 `ZoneCommanderDoctrine`，让默认 `TheaterCommanderPool`、`AppContainer` 空将领 registry fallback、显式 `.zoneDirective` 路径和 `MockAICommander` 按明末势力生成不同 `ZoneCommanderAgentConfig`：明廷谨慎守京畿和粮道，清方进取偏旗骑合围与截援，大顺进取偏破弱城扩粮，大西进取偏流动作战与夺粮，地方中立谨慎自保。`ZoneCommanderAgent` 还会在分类后按 doctrine 映射 tactic，让同态进攻下清方偏突骑破阵/合围、大顺偏破围、大西偏流动作战。`SimulatedMarshalLLMClient` 的默认元帅 JSON 上游也读取同一势力 doctrine，在相同 front 摘要下区分明廷火器压制、清方合围/突骑、大顺破围和大西流动作战。军机复盘牌现在也只读显示该 doctrine 的军略名、风格、技能标签和战术偏向，帮助玩家解释不同势力 AI 倾向。Legacy Agent D 的 `AgentPromptBuilder`、`MockAIClient`、`TurnManager.contextSummary` 和 fallback `GameAgent.sample` 也已按明末势力改成军机、粮草、城关、州府、火器和天下五线口径；legacy 德/盟分支仍保留阿登/Bastogne 回归文案。该片只影响 directive 生成偏置、legacy Agent prompt/模拟理由和 UI 可读文案；最终仍必须走 `TheaterDirective -> TheaterDirectiveCompiler -> ZoneDirective -> WarCommandExecutor -> RuleEngine`。
 
 > v4.6 UI 最新增量：`RegionInspectorView` 的州府牌新增控制方旗号、原属章和当前格控制旗号，帮助玩家在州府牌里直接看见明/清/顺/西/乡归属；`EconomyPanelView` 的府库牌新增“收支急报”，从现有 `FactionEconomyLedger` 只读派生净民力、净银两、净粮草、粮草/补员压力和营造待部署状态；`DiplomacyPanelView` 的天下局势面板继续 polish，诸方势力用势力旗号、主战标记、战意条和离散值展示，战和关系用双方旗号、关系状态、张力条和起始回合展示，阵营名义改为旗号、成员摘要和当前阵营高亮卡片；`EventLogView` 的塘报战记会只读识别 `battle-task-`、`battle-cue-` 和 `objective-control-` 回执，把本旬急务、战役提示和目标换手从普通事件中凸显出来；`UnitNode` 的地图军牌新增旗色侧条、兵种印面和兵力小签底板，顶部舆图图例同步解释步/骑/火/城/旗军牌、粮草圆点、断粮警示和堆叠数；`UnitTooltipView` 的明末舆图军牌浮签会只读展示选中地图部队的势力旗号、兵力条、粮草/行动/退守状态、攻守行程察指标和兵种组件 chip；`CourtPanelView` 新增只读“朝议总纲”，把主议、推荐项目归属、备议和政策/经济/科技/军事四线压力聚合为奏疏式扫读区；`AppContainer` 的玩家命令回执、将令诊断、目标定位、单位点选和 AI 回合摘要已改成明末中文口径，并把底层 `CommandValidationError` 转成中文驳回原因；`RulerAgent` 生成的最高意志理由和上下文也改为中文朱批式文本。四线项目分组继续读取 `CourtProjectKind.domains`，让农政屯田、红衣炮维护、粮台驿道等交叉项目同时出现在经济/科技/军事等相关线组，并在说明中标为“兼线”。整训团练也升级为政策/军事兼线项目，执行时仍排入 1 回合地方守备队列，并轻量稳定最多 2 个己控不稳州府的民变/行政。该片不改变 `GameState` 权威、`RegionInspectorState`、`EconomyState`、`DiplomacyState`、`GameLogEntry`、`SupplyRules`、`Division`、`CourtStrategySummary`、`AgentDecisionRecord`、`RulerDecisionRecord`、`WarDirectiveRecord`、`Command`、`CommandValidator`、`WarCommandExecutor`、`RuleEngine` 或 `Command.enactCourtProject -> EconomyRules -> RuleEngine` 执行链。
 
@@ -155,17 +155,17 @@ WWIIHexV0/
 | 文件 | 职责 | 关键类型/协议 |
 |------|------|--------------|
 | `Agents/DecisionProvider.swift` | 统一 AI 接口 | `protocol DecisionProvider { func decide(context:) async throws -> AgentDecisionEnvelope }` |
-| `Agents/GameAgent.swift` | 运行时 agent 模型 | `GameAgent`（精简版，无 Cabinet/DirectiveDomain，v0.5 污染已剔除） |
+| `Agents/GameAgent.swift` | 运行时 agent 模型 | `GameAgent`（精简版，无 Cabinet/DirectiveDomain，v0.5 污染已剔除；明末 fallback 角色/人格已用军机口径） |
 | `Agents/AgentConfiguration.swift` | agent 加载 | `GameAgent.guderian(from:state:)`，优先 `general_agents.json`，失败 fallback |
 | `Agents/AgentContexts.swift` | agent 能看到的摘要 | `AgentContext` + `AgentContextBuilder`（无 organization，适配 v0.1） |
 | `Agents/AgentDecision.swift` | 结构化决策 DTO | `AgentDecisionEnvelope` / `AgentOrder` / `AgentOrderType`（move/attack/hold/resupply） |
 | `Agents/AgentDecisionParser.swift` | JSON → envelope | 校验 schemaVersion / agentId / turn，malformed 抛 typed error |
 | `Agents/AgentCommandMapper.swift` | order → Command | `AgentCommandMapper.map(_:agentId:) -> IssuedCommand`，缺字段抛 error |
 | `Agents/AgentDecisionRecord.swift` | 决策记录 | `AgentDecisionRecord` / `CommandResultSummary`（UI 读） |
-| `Agents/MockAIClient.swift` | Legacy Agent D fallback provider | 启发式：resupply → attack → objective-oriented move → hold；默认战争 AI 主路径不回退到旧 Agent D |
+| `Agents/MockAIClient.swift` | Legacy Agent D fallback provider | 启发式：resupply → attack → objective-oriented move → hold；明末势力生成中文军令 intent/reason，legacy 德/盟保留 Bastogne 回归文案；默认战争 AI 主路径不回退到旧 Agent D |
 | `Agents/LLMClient.swift` | Legacy LLM 接口预留 | `protocol LLMClient` + `LLMRequest`（旧 Agent D 用，默认不启用） |
 | `Agents/LocalLLMDecisionProvider.swift` | 本地 LLM provider | 注入 `LLMClient` + `AgentPromptBuilder` + parser，失败由上层 fallback MockAI |
-| `Agents/AgentPromptBuilder.swift` | prompt 构造 | system + user prompt，强制 JSON 输出 |
+| `Agents/AgentPromptBuilder.swift` | prompt 构造 | system + user prompt，明末势力提示词强调中华世界局势、粮草、城关、州府、火器和五线压力，同时强制保留 JSON schema |
 | `Turn/TurnManager.swift` | legacy 方法名下的 AI 回合编排 | `runGermanAITurn(state:) async -> AgentTurnOutcome` 仍保留兼容名，实际调用方按当前 active faction 构造 commander pool 并推进 endTurn |
 | `App/AppContainer.swift` | AI 接线 | `runAIIfNeeded()` 读取 `activeFaction`、`phase`、`aiControlledFactions` / `humanControlledFactions`，为当前 AI 势力触发 Task 并写 state/record |
 | `UI/AgentPanelView.swift` | 军机复盘 | 读 `AgentDecisionRecord`、`RulerDecisionRecord`、`WarDirectiveRecord`、`CampaignAISummary` 与 `ZoneCommanderDoctrine`，展示最高意志、军机五线、势力军略、战区指令、命令回执、异常和军机底稿；id 仅在 UI 层转成明末可读名称 |
@@ -236,8 +236,8 @@ WWIIHexV0/
 | `AgentDecisionEnvelope` / `AgentOrder` JSON schema | ✅ |
 | `AgentDecisionParser`（校验 schema/agent/turn） | ✅ |
 | `AgentCommandMapper`（order → Command，缺字段抛 error） | ✅ |
-| `MockAIClient`（guderian 启发式，向 Bastogne 推进） | ✅ |
-| `LLMClient` / `LocalLLMDecisionProvider` / `AgentPromptBuilder`（预留，v0 默认关） | ✅ |
+| `MockAIClient`（legacy 启发式；明末势力按当前要冲和五线任务生成中文军令理由，德/盟保留 Bastogne 回归） | ✅ |
+| `LLMClient` / `LocalLLMDecisionProvider` / `AgentPromptBuilder`（预留，v0 默认关；明末 prompt 已切到军机语境） | ✅ |
 | `TurnManager`（德军 AI 回合编排，含 endTurn） | ✅ |
 | `AppContainer.runAIIfNeeded()`（启动自动跑 AI 回合） | ✅ |
 | `AgentDecisionRecord` + `AgentPanelView`（UI 读决策记录） | ✅ |

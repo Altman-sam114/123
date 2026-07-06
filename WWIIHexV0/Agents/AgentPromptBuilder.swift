@@ -21,36 +21,40 @@ struct AgentPromptBuilder {
     }
 
     private func systemPrompt(context: AgentContext) -> String {
+        let setting = context.faction.isLegacyWWIIFaction
+            ? "a turn-based WWII hex strategy prototype"
+            : "明末多势力历史策略战棋，重点是中华世界局势、军政钱粮、火器城防和方面军调度"
         """
-        You are the local LLM decision layer for a turn-based WWII hex strategy prototype.
+        You are the local LLM decision layer for \(setting).
         Agent: \(context.agentId)
-        Faction: \(context.faction.rawValue)
+        Faction: \(context.faction.displayName)
         Personality: \(context.personality)
 
         Return only valid JSON matching the schema. Do not include prose, markdown, comments, or extra keys.
+        Keep JSON keys and command enum values exactly as specified, even when reasons are written in Chinese.
         You must not assume invisible information, modify game rules, invent units, or bypass command validation.
         """
     }
 
     private func userPrompt(context: AgentContext) -> String {
+        let isMingScenario = !context.faction.isLegacyWWIIFaction
         let objectives = context.objectives
-            .map { "\($0.name) region:\($0.regionId?.rawValue ?? "unknown"), controller: \($0.controller?.rawValue ?? "neutral")" }
+            .map { objectiveSummary($0, ming: isMingScenario) }
             .joined(separator: "\n")
         let friendly = context.friendlyDivisions
-            .map { "\($0.id) \($0.name) str:\($0.strength)/\($0.maxStrength) region:\($0.regionId?.rawValue ?? "unknown") supply:\($0.supplyState.rawValue) acted:\($0.hasActed)" }
+            .map { divisionSummary($0, ming: isMingScenario) }
             .joined(separator: "\n")
         let enemies = context.enemyDivisions
-            .map { "\($0.id) \($0.name) str:\($0.strength)/\($0.maxStrength) region:\($0.regionId?.rawValue ?? "unknown")" }
+            .map { divisionSummary($0, ming: isMingScenario, includeActed: false) }
             .joined(separator: "\n")
         let regions = context.visibleRegions
             .filter(\.visible)
-            .map { "\($0.id.rawValue) \($0.name) terrain:\($0.terrain.rawValue) controller:\($0.controller.rawValue) neighbors:\($0.neighbors.map(\.rawValue).joined(separator: ","))" }
+            .map { regionSummary($0, ming: isMingScenario) }
             .joined(separator: "\n")
         let recentEvents = context.recentEvents.map(\.message).joined(separator: "\n")
 
         return """
-        Current task:
-        Issue operational orders for this agent's assigned divisions on turn \(context.turn), phase \(context.phase.rawValue).
+        \(currentTaskText(context: context))
 
         Available commands:
         - move: requires divisionId and toRegionId
@@ -107,5 +111,43 @@ struct AgentPromptBuilder {
           ]
         }
         """
+    }
+
+    private func currentTaskText(context: AgentContext) -> String {
+        if context.faction.isLegacyWWIIFaction {
+            return "Current task:\nIssue operational orders for this agent's assigned divisions on turn \(context.turn), phase \(context.phase.rawValue)."
+        }
+
+        return """
+        当前任务：
+        为 \(context.faction.displayName) 在第 \(context.turn) 回合、\(context.phase.displayName)阶段拟定本轮军令。优先解释粮草、城关、州府、火器和天下五线压力；只给已分配军伍下令。
+        """
+    }
+
+    private func objectiveSummary(_ objective: ObjectiveSummary, ming: Bool) -> String {
+        let region = objective.regionId?.rawValue ?? "unknown"
+        let controller = objective.controller?.displayName ?? "中立"
+        if ming {
+            return "\(objective.name) 州府:\(region)，控制:\(controller)"
+        }
+        return "\(objective.name) region:\(region), controller: \(objective.controller?.rawValue ?? "neutral")"
+    }
+
+    private func divisionSummary(_ division: DivisionSummary, ming: Bool, includeActed: Bool = true) -> String {
+        let region = division.regionId?.rawValue ?? "unknown"
+        if ming {
+            let actedText = includeActed ? " 已行:\(division.hasActed)" : ""
+            return "\(division.id) \(division.name) 兵力:\(division.strength)/\(division.maxStrength) 州府:\(region) 粮草:\(division.supplyState.rawValue)\(actedText)"
+        }
+        let actedText = includeActed ? " acted:\(division.hasActed)" : ""
+        return "\(division.id) \(division.name) str:\(division.strength)/\(division.maxStrength) region:\(region) supply:\(division.supplyState.rawValue)\(actedText)"
+    }
+
+    private func regionSummary(_ region: RegionSnapshot, ming: Bool) -> String {
+        let neighbors = region.neighbors.map(\.rawValue).joined(separator: ",")
+        if ming {
+            return "\(region.id.rawValue) \(region.name) 地形:\(region.terrain.displayName) 控制:\(region.controller.displayName) 邻接:\(neighbors)"
+        }
+        return "\(region.id.rawValue) \(region.name) terrain:\(region.terrain.rawValue) controller:\(region.controller.rawValue) neighbors:\(neighbors)"
     }
 }

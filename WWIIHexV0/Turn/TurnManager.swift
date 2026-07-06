@@ -419,14 +419,25 @@ struct TurnManager {
     }
 
     static func contextSummary(_ context: AgentContext) -> String {
-        [
-            "\(context.agentId) turn \(context.turn): \(context.friendlyDivisions.count) friendly divisions",
-            "\(context.enemyDivisions.count) known enemy divisions",
-            "\(context.objectives.count) objectives visible",
+        if context.faction.isLegacyWWIIFaction {
+            return [
+                "\(context.agentId) turn \(context.turn): \(context.friendlyDivisions.count) friendly divisions",
+                "\(context.enemyDivisions.count) known enemy divisions",
+                "\(context.objectives.count) objectives visible",
+                context.economySummary.displaySummary,
+                context.courtSummary.displaySummary,
+                context.campaignSummary.displaySummary
+            ].joined(separator: "; ")
+        }
+
+        return [
+            "\(context.agentId) 第 \(context.turn) 回合：本方军伍 \(context.friendlyDivisions.count) 支",
+            "已知敌情 \(context.enemyDivisions.count) 支",
+            "要冲 \(context.objectives.count) 处",
             context.economySummary.displaySummary,
             context.courtSummary.displaySummary,
             context.campaignSummary.displaySummary
-        ].joined(separator: "; ")
+        ].joined(separator: "；")
     }
 
     static func canonicalJSON(_ envelope: AgentDecisionEnvelope) throws -> String {
