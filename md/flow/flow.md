@@ -1,4 +1,4 @@
-# WWIIHexV0 核心流程文档（明末迁移 v4.7 剧本胜利条件数据驱动、明末胜负链、战役目标面板、天下五线态势、朝廷五线态势、军机五线态势、本旬任务链/任务塘报、开封围城压力提示、AI doctrine、军机势力军略展示、目标定位舆图反馈、目标换手塘报与阶段战局链首片，v4.6 UI、朝廷项目、朝廷项目行动状态提示、整训团练地方驻防、朝议总纲、朝议批票、朝议争点、朝报令条、军令牌、将印军令/将领名帖、军机复盘牌/军机底稿/命令短令、塘报战记/急务战役分类/默认中文塘报、军情牌/军令战备/军械火力、舆图军牌浮签、地图军牌战备小签、州府牌归属旗号、府库牌收支急报/军饷民心/生产状态提示、天下急势、舆图天下急势、地图标识、粮道线路/开关、军令计划线、势力旗号、舆图图例与四线项目分组首片）
+# WWIIHexV0 核心流程文档（明末迁移 v4.7 剧本胜利条件数据驱动、明末胜负链、战役目标面板、天下五线态势、朝廷五线态势、军机五线态势、本旬任务链/任务塘报、开封围城压力提示、AI doctrine、军机势力军略展示、目标定位舆图反馈、目标换手塘报与阶段战局链首片，v4.6 UI、朝廷项目、朝廷项目行动状态提示、整训团练地方驻防、朝议总纲、朝议批票、朝议争点、朝报令条、军令牌、将印军令/将领名帖、军机复盘牌/军机底稿/命令短令、塘报战记/急务战役分类/默认中文塘报、军情牌/军令战备/军械火力、舆图军牌浮签、地图军牌战备小签、州府牌归属旗号、府库牌收支急报/军饷民心/生产状态提示、天下急势、舆图天下急势、地图标识、粮道线路/开关、军令计划线、势力旗号、舆图图例/舆图判读与四线项目分组首片）
 
 > 本文是项目当前核心逻辑的接手文档。目标不是复述历史设计，而是按当前代码真实链路说明：数据如何进入游戏，hex / region / theater / front / deploy 如何派生，主游戏和地图编辑器如何共同维护同一套地图语义，AI / 玩家命令如何落到规则系统。
 
@@ -81,7 +81,7 @@ MapEditor / JSON 数据
 - v4.6 地图标识首片中，`BaseTerrain.displayName` 已切为明末中文地形名；`HexNode` 用“城 / 关 / 粮”badge 标识城池、关隘/堡寨和粮台，并把旧主地图 `FORT`、`SUP A/G` 标记改为“关隘”“粮台”。该变化只影响 SpriteKit 展示，不改补给、占领、战区或经济规则。
 - v4.6 粮道线路首片中，`SupplyRules.supplyPath` 在既有补给通行/成本规则上返回只读 hex 路线；`BoardScene` 仅在默认 hex 图层为玩家势力有有效补给线的军队绘制粮道虚线，路线位于战争迷雾下方，不新增粮道状态、不改变补给判定。
 - v4.6 粮道开关首片中，`AppContainer.showsSupplyRoutes` 只作为 UI/渲染状态进入 `BoardRenderState`；`RootGameView` 顶部显示“粮道”按钮和图例，关闭后 `BoardScene.drawSupplyRoutes` 直接跳过绘制，不影响 `SupplyRules` 判定。
-- v4.6 舆图图例首片中，`MapDisplayLayer.displayName` 已改为舆图、州府、初划、战局、前线、布防；同一 enum 提供图标、图例标题和说明，`RootGameView` 顶部图例条用“城 / 关 / 粮”、步/骑/火/城/旗兵种军牌、粮草与堆叠、势力旗、军令计划和粮道虚线解释当前地图符号。该片只影响 SwiftUI 展示，不改变 layer rawValue、overlay 计算或规则权威。
+- v4.6 舆图图例首片中，`MapDisplayLayer.displayName` 已改为舆图、州府、初划、战局、前线、布防；同一 enum 提供图标、图例标题和说明，`RootGameView` 顶部图例条用“城 / 关 / 粮”、步/骑/火/城/旗兵种军牌、粮草与堆叠、势力旗、军令计划和粮道虚线解释当前地图符号；当前增强在非 hex 图层追加“舆图判读”芯片，提示州府政令/钱粮/民变、开局方面/督抚分防、动态推进/军机方面、真实接敌/守关截援和前军/纵深/驻守读法，hex 图层势力旗图例补齐明/清/顺/西/乡。该片只影响 SwiftUI 展示，不改变 layer rawValue、overlay 计算或规则权威。
 - v4.6 军令计划线首片中，`BoardScene.drawPlannedOperations` 只读 `PlayerCommandState.plannedOperations`，把当前回合玩家计划画成朱砂“进”令牌箭头和青绿“守”令牌；`RootGameView` 顶部图例增加“军令计划 / 进取 / 固守”。该片只影响 SpriteKit/SwiftUI 展示，不改变计划记录、`ZoneDirective`、`WarCommandExecutor`、`Command` 或 `RuleEngine`。
 - v4.6 势力旗号首片中，`Faction.bannerGlyph` 为明廷、后金/清、大顺、大西和地方中立提供短旗号；`UnitNode` 在地图军牌顶端显示“明/清/顺/西/乡”等旗号，并用旗色侧条、兵种印面、兵力小签底板和战备小签强化地图军牌可读性；战备小签只从 `Division.isDestroyed`、`isRetreating`、`supplyState` 和 `hasActed` 派生溃散、退中、被围、缺粮或已行，不写入部队状态；`UnitInspectorView` 与 `CommandPanelView` 的军牌印面同步显示旗号，`RootGameView` 顶部图例增加“势力旗”。该片只影响 UI/SpriteKit 展示，不改变 `Faction` 控制语义、外交关系、单位状态、补给、命令执行或规则权威。
 - v4.6 舆图天下急势首片中，`RootGameView` 顶部舆图控件在明末剧本下复用 `BattleObjectiveSummary.from(state:)` 显示只读“天下急势”条，包含 objective points 领先方、急务/主线任务数，以及天下、政策、经济、科技、军事五线压力 chip。它只把既有胜负线和任务摘要前置到地图第一视野，不调用 `AppContainer.focusObjective(_:)`，不写塘报，不新增持久状态，不改变胜负、朝廷、AI、命令、hex/region/theater/front/deploy 或规则权威。
@@ -887,6 +887,7 @@ handleBoardTap(coord)
   - `hex / province / initialTheater / dynamicTheater / frontLine / deployment` 仍是底层 layer rawValue。
   - 玩家可见标签由 `MapDisplayLayer.displayName` 控制，当前显示为舆图、州府、初划、战局、前线、布防。
   - `MapDisplayLayer.systemImageName`、`legendTitle` 和 `legendDetail` 只服务顶部舆图图例，不参与 overlay 计算。
+  - 非 hex 图层额外显示 `RootGameView` 内部的只读“舆图判读”芯片，用于解释当前图层该如何看政令、钱粮、民变、督抚、军机、接敌、截援、前军、纵深和驻守；这些 chip 不参与地图覆盖计算。
 - `MingMapSituationStrip`：明末剧本下在舆图控件顶部只读展示“天下急势”，复用 `BattleObjectiveSummary` 的领先方、急务/主线任务数和天下/政策/经济/科技/军事五线压力，不提供按钮，不触发目标定位或命令。
 - “观战” toggle。
 - “粮道” toggle，仅控制 hex 图层的粮道显示；顶部图例条解释城池、关隘、粮台、军牌、势力旗、军令计划和粮道虚线。
@@ -2151,7 +2152,7 @@ RegionInspectorState
 - `SupplyRules` 新增只读 `supplyPath` helper，复用既有补给成本和通行规则返回 hex 路径；`BoardScene` 在 hex 图层绘制粮道虚线，选中单位路线优先显示。
 - `AppContainer.showsSupplyRoutes` 默认开启，只通过 `BoardRenderState` 进入 SpriteKit；`RootGameView` 顶部“粮道”按钮可在 hex 图层开关显示，并用图例标出金色虚线含义。
 - `BoardScene.drawPlannedOperations` 读取 `PlayerCommandState.plannedOperations` 并只显示当前回合、当前 viewer faction 的计划，进取计划显示朱砂箭头和“进”令牌，固守计划显示青绿“守”令牌；它不修改 `PlayerCommandState`，也不触发 `ZoneDirective` 或 `WarCommandExecutor`。
-- `MapDisplayLayer.displayName` 改为舆图、州府、初划、战局、前线、布防；顶部图例条按当前 layer 展示图标、说明和城/关/粮/步/军令计划/粮道符号，只作 SwiftUI 说明，不改变底层 rawValue 或 overlay 计算。
+- `MapDisplayLayer.displayName` 改为舆图、州府、初划、战局、前线、布防；顶部图例条按当前 layer 展示图标、说明、城/关/粮/步/军令计划/粮道符号和非 hex 图层的舆图判读 chip，只作 SwiftUI 说明，不改变底层 rawValue 或 overlay 计算。
 - `CourtProjectDomain` 目前包含政策、经济、科技、军事四类，`CourtProjectKind` 目前包含征饷、赈济安民、招抚乡绅、农政屯田、修城固守、整训团练、火器整备、红衣炮维护、粮台驿道九项；`CourtPanelView` 按 `CourtProjectKind.domains` 多线展示项目，整训团练显示为政策/军事交叉项目，农政屯田显示为经济/科技交叉项目，红衣炮维护显示为科技/军事交叉项目，粮台驿道显示为经济/科技/军事交叉项目，并在说明中以“兼线”提示这是同一项目的多领域归属；项目按钮右侧只读显示可批、尚缺民力/银两/粮草、待本方或观战。
 - `CourtCampaignLineSection` 只在明末剧本中读取 `BattleObjectiveSummary.CampaignLineBrief`，展示天下、政策、经济、科技、军事五线压力和当前摘要，不保存状态、不执行任务、不写塘报，也不影响 `CourtStrategySummary` 的主议/备议排序。
 - `CourtCouncilBriefSection` 只在朝廷面板中读取 `CourtStrategySummary.displaySummary`、`recommendedFocus`、`secondaryFocuses`、四线压力和推荐 `CourtProjectKind`，把主议、备议、推荐项目领域与四线压力做成只读“朝议总纲”；它不写入 `GameState`，不改变 `CourtStrategySummary` 排序，不触发朝廷项目，也不影响 `Command.enactCourtProject` 的可用性。

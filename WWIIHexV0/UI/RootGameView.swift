@@ -512,6 +512,10 @@ private struct MingMapLegendView: View {
                     }
                 } else {
                     MapLayerLegendBadge(layer: layer)
+
+                    ForEach(layer.readingNotes) { note in
+                        MapLayerReadingBadge(note: note)
+                    }
                 }
             }
             .padding(.vertical, 1)
@@ -542,6 +546,42 @@ private struct MapLayerLegendBadge: View {
         .padding(.vertical, 6)
         .background(MingDesignTokens.sectionBackground.opacity(0.82), in: RoundedRectangle(cornerRadius: MingDesignTokens.cornerRadius))
         .accessibilityElement(children: .combine)
+    }
+}
+
+private struct MapLayerReadingBadge: View {
+    let note: MapLayerReadingNote
+
+    var body: some View {
+        HStack(spacing: 7) {
+            Image(systemName: note.systemImageName)
+                .foregroundStyle(note.tint)
+                .frame(width: 18)
+
+            VStack(alignment: .leading, spacing: 1) {
+                Text(note.title)
+                    .font(.caption.bold())
+                Text(note.detail)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+            }
+        }
+        .padding(.horizontal, 8)
+        .padding(.vertical, 6)
+        .background(MingDesignTokens.sectionBackground.opacity(0.82), in: RoundedRectangle(cornerRadius: MingDesignTokens.cornerRadius))
+        .accessibilityElement(children: .combine)
+    }
+}
+
+private struct MapLayerReadingNote: Identifiable {
+    let title: String
+    let detail: String
+    let systemImageName: String
+    let tint: Color
+
+    var id: String {
+        title
     }
 }
 
@@ -663,12 +703,14 @@ private struct FactionBannerLegendBadge: View {
                 MingFactionFlagBadge(faction: .ming)
                 MingFactionFlagBadge(faction: .qing)
                 MingFactionFlagBadge(faction: .dashun)
+                MingFactionFlagBadge(faction: .daxi)
+                MingFactionFlagBadge(faction: .localNeutral)
             }
 
             VStack(alignment: .leading, spacing: 1) {
                 Text("势力旗")
                     .font(.caption.bold())
-                Text("明 / 清 / 顺")
+                Text("明 / 清 / 顺 / 西 / 乡")
                     .font(.caption)
                     .foregroundStyle(.secondary)
                     .lineLimit(1)
@@ -745,6 +787,45 @@ private struct ObjectiveFocusLegendBadge: View {
         .padding(.vertical, 6)
         .background(MingDesignTokens.sectionBackground.opacity(0.82), in: RoundedRectangle(cornerRadius: MingDesignTokens.cornerRadius))
         .accessibilityElement(children: .combine)
+    }
+}
+
+private extension MapDisplayLayer {
+    var readingNotes: [MapLayerReadingNote] {
+        switch self {
+        case .hex:
+            return []
+        case .province:
+            return [
+                MapLayerReadingNote(title: "政令", detail: "看州府归属与治理", systemImageName: "scroll", tint: MingDesignTokens.jade),
+                MapLayerReadingNote(title: "钱粮", detail: "扫粮台、工坊、驿道", systemImageName: "shippingbox", tint: MingDesignTokens.imperialGold),
+                MapLayerReadingNote(title: "民变", detail: "找行政承压州府", systemImageName: "exclamationmark.triangle", tint: MingDesignTokens.cinnabar)
+            ]
+        case .initialTheater:
+            return [
+                MapLayerReadingNote(title: "开局", detail: "方面基准不随推进", systemImageName: "flag", tint: MingDesignTokens.porcelainBlue),
+                MapLayerReadingNote(title: "督抚", detail: "读辽东、畿辅、秦陕", systemImageName: "person.text.rectangle", tint: MingDesignTokens.jade),
+                MapLayerReadingNote(title: "分防", detail: "用于筹划守关守城", systemImageName: "shield", tint: MingDesignTokens.imperialGold)
+            ]
+        case .dynamicTheater:
+            return [
+                MapLayerReadingNote(title: "推进", detail: "只随具体舆图格变化", systemImageName: "arrow.up.forward", tint: MingDesignTokens.cinnabar),
+                MapLayerReadingNote(title: "军机", detail: "看各方当前方面", systemImageName: "brain.head.profile", tint: MingDesignTokens.porcelainBlue),
+                MapLayerReadingNote(title: "伸缩", detail: "辨认战局突破口", systemImageName: "arrow.triangle.2.circlepath", tint: MingDesignTokens.jade)
+            ]
+        case .frontLine:
+            return [
+                MapLayerReadingNote(title: "接敌", detail: "真实相邻才成前线", systemImageName: "waveform.path.ecg", tint: MingDesignTokens.cinnabar),
+                MapLayerReadingNote(title: "守关", detail: "看京畿、山海、开封", systemImageName: "building.columns", tint: MingDesignTokens.imperialGold),
+                MapLayerReadingNote(title: "截援", detail: "找围点打援缺口", systemImageName: "point.topleft.down.curvedto.point.bottomright.up", tint: MingDesignTokens.jade)
+            ]
+        case .deployment:
+            return [
+                MapLayerReadingNote(title: "前军", detail: "前线可调军伍", systemImageName: "figure.walk", tint: MingDesignTokens.cinnabar),
+                MapLayerReadingNote(title: "纵深", detail: "预备队与粮道后路", systemImageName: "arrow.down.left.and.arrow.up.right", tint: MingDesignTokens.porcelainBlue),
+                MapLayerReadingNote(title: "驻守", detail: "城关州府守备", systemImageName: "shield.lefthalf.filled", tint: MingDesignTokens.jade)
+            ]
+        }
     }
 }
 
