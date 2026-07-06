@@ -10,6 +10,7 @@ struct EconomyPanelView: View {
         let faction = gameState.activeFaction
         let ledger = gameState.economyState.ledger(for: faction)
         let governance = GovernanceAISummary.from(faction: faction, map: gameState.map)
+        let divisions = gameState.divisions.filter { $0.faction == faction && !$0.isDestroyed }
 
         VStack(alignment: .leading, spacing: 10) {
             TreasuryHeader(
@@ -19,6 +20,11 @@ struct EconomyPanelView: View {
             )
             TreasuryStockpileSection(ledger: ledger)
             TreasuryFlowSection(ledger: ledger)
+            TreasuryMilitaryPaySection(
+                ledger: ledger,
+                governance: governance,
+                divisions: divisions
+            )
             TreasuryGovernanceSection(governance: governance)
             ProductionActionSection(
                 ledger: ledger,
@@ -434,6 +440,148 @@ private struct TreasuryNetBadge: View {
             return value > 0 ? "+\(value)" : "\(value)"
         }
         return "\(value)\(suffix)"
+    }
+}
+
+private struct TreasuryMilitaryPaySection: View {
+    let ledger: FactionEconomyLedger
+    let governance: GovernanceAISummary
+    let divisions: [Division]
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: MingDesignTokens.compactSpacing) {
+            HStack(alignment: .firstTextBaseline) {
+                Label("军饷民心", systemImage: status.systemImageName)
+                    .font(.caption.bold())
+                    .foregroundStyle(status.tint)
+                Spacer(minLength: 8)
+                Text(status.title)
+                    .font(.caption.bold())
+                    .foregroundStyle(status.tint)
+                    .lineLimit(1)
+            }
+
+            LazyVGrid(columns: [GridItem(.adaptive(minimum: 78), spacing: 6)], alignment: .leading, spacing: 6) {
+                TreasuryGovernanceBadge(title: "军伍", value: divisions.count, detail: "在册", tint: MingDesignTokens.porcelainBlue)
+                TreasuryGovernanceBadge(title: "缺粮", value: supplyWarningCount, detail: "需救", tint: supplyWarningTint)
+                TreasuryGovernanceBadge(title: "军饷", value: payReserve, detail: "余势", tint: payTint)
+                TreasuryGovernanceBadge(title: "民心", value: publicSentiment, detail: "综合", tint: sentimentTint)
+            }
+
+            Text(detail)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .padding(MingDesignTokens.compactSpacing)
+        .background(MingDesignTokens.sectionBackground)
+        .clipShape(RoundedRectangle(cornerRadius: MingDesignTokens.cornerRadius))
+        .accessibilityElement(children: .combine)
+    }
+
+    private var lowSupplyCount: Int {
+        divisions.filter { $0.supplyState == .lowSupply }.count
+    }
+
+    private var encircledCount: Int {
+        divisions.filter { $0.supplyState == .encircled }.count
+    }
+
+    private var supplyWarningCount: Int {
+        lowSupplyCount + encircledCount
+    }
+
+    private var payReserve: Int {
+        ledger.stockpile.industry - max(0, ledger.lastReinforcementSpend.industry + divisions.count * 2)
+    }
+
+    private var publicSentiment: Int {
+        clamp(governance.averageCompliance - governance.averageResistance / 2)
+    }
+
+    private var status: TreasuryMilitaryPayStatus {
+        if divisions.isEmpty && governance.controlledRegions == 0 {
+            return .empty
+        }
+        if encircledCount > 0 || ledger.lastUpkeep.supplies > ledger.stockpile.supplies + ledger.lastIncome.supplies {
+            return .grain
+        }
+        if payReserve < 0 {
+            return .pay
+        }
+        if governance.unstableRegions > 0 || publicSentiment < 45 {
+            return .sentiment
+        }
+        return .steady
+    }
+
+    private var supplyWarningTint: Color {
+        supplyWarningCount > 0 ? MingDesignTokens.cinnabar : MingDesignTokens.jade
+    }
+
+    private var payTint: Color {
+        payReserve < 0 ? MingDesignTokens.cinnabar : MingDesignTokens.imperialGold
+    }
+
+    private var sentimentTint: Color {
+        publicSentiment < 45 ? MingDesignTokens.cinnabar : MingDesignTokens.jade
+    }
+
+    private var detail: String {
+        "只读态势：银两库存 \(ledger.stockpile.industry)，补员耗银 \(ledger.lastReinforcementSpend.industry)，军粮维护 \(ledger.lastUpkeep.supplies)；缺粮 \(lowSupplyCount)，被围 \(encircledCount)，民变 \(governance.averageResistance)，行政 \(governance.averageCompliance)。"
+    }
+
+    private func clamp(_ value: Int) -> Int {
+        max(0, min(100, value))
+    }
+}
+
+private enum TreasuryMilitaryPayStatus {
+    case empty
+    case grain
+    case pay
+    case sentiment
+    case steady
+
+    var title: String {
+        switch self {
+        case .empty:
+            return "暂无账报"
+        case .grain:
+            return "军粮压顶"
+        case .pay:
+            return "军饷吃紧"
+        case .sentiment:
+            return "民心承压"
+        case .steady:
+            return "军饷可支"
+        }
+    }
+
+    var systemImageName: String {
+        switch self {
+        case .empty:
+            return "tray"
+        case .grain,
+             .pay,
+             .sentiment:
+            return "exclamationmark.triangle"
+        case .steady:
+            return "checkmark.seal"
+        }
+    }
+
+    var tint: Color {
+        switch self {
+        case .empty:
+            return .secondary
+        case .grain,
+             .pay,
+             .sentiment:
+            return MingDesignTokens.cinnabar
+        case .steady:
+            return MingDesignTokens.jade
+        }
     }
 }
 
