@@ -26,6 +26,7 @@ struct RegionInspectorView: View {
 
         return VStack(alignment: .leading, spacing: 8) {
             RegionMandateHeader(state: state)
+            RegionPrimaryValueSection(state: state, occupation: occupation)
             RegionGovernanceSection(occupation: occupation)
             RegionYieldSection(state: state, occupation: occupation)
             RegionFrontSection(state: state)
@@ -83,6 +84,209 @@ private struct RegionMandateHeader: View {
                     .frame(width: 88)
             }
         }
+        .accessibilityElement(children: .combine)
+    }
+}
+
+private struct RegionPrimaryValueSection: View {
+    let state: RegionInspectorState
+    let occupation: OccupationState
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: MingDesignTokens.compactSpacing) {
+            HStack(alignment: .top, spacing: 8) {
+                Label(primary.title, systemImage: primary.systemImageName)
+                    .font(.caption.bold())
+                    .foregroundStyle(primary.tint)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.78)
+
+                Spacer(minLength: 8)
+
+                Text(primary.badge)
+                    .font(.caption.bold())
+                    .foregroundStyle(primary.tint)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.72)
+                    .padding(.horizontal, 7)
+                    .padding(.vertical, 4)
+                    .background(primary.tint.opacity(0.12), in: RoundedRectangle(cornerRadius: 6))
+            }
+
+            Text(primary.detail)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+
+            LazyVGrid(columns: [GridItem(.adaptive(minimum: 92), spacing: 6)], alignment: .leading, spacing: 6) {
+                ForEach(signals) { signal in
+                    RegionValueChip(signal: signal)
+                }
+            }
+        }
+        .padding(MingDesignTokens.compactSpacing)
+        .background(MingDesignTokens.sectionBackground)
+        .clipShape(RoundedRectangle(cornerRadius: MingDesignTokens.cornerRadius))
+        .accessibilityElement(children: .combine)
+    }
+
+    private var primary: RegionValueSignal {
+        if !state.objectiveNames.isEmpty {
+            return RegionValueSignal(
+                title: "战局要冲",
+                detail: "牵动 \(state.objectiveNames.displaySummary)，当前 \(state.objectiveStatus)。",
+                badge: "军事",
+                systemImageName: "scope",
+                tint: MingDesignTokens.cinnabar
+            )
+        }
+
+        if state.frontPressure > 0 {
+            return RegionValueSignal(
+                title: "前线承压",
+                detail: "\(state.frontPressureDisplay)，友军 \(state.friendlyDivisions.count) 支，敌情 \(state.visibleEnemyDivisions.count) 支。",
+                badge: "军事",
+                systemImageName: "exclamationmark.shield",
+                tint: state.frontPressureTint
+            )
+        }
+
+        if state.region.terrain == .fortress {
+            return RegionValueSignal(
+                title: "城关屏障",
+                detail: "\(state.region.name) 是关隘/堡寨地形，适合固守、修城和火器支援。",
+                badge: "军事",
+                systemImageName: "shield.lefthalf.filled",
+                tint: MingDesignTokens.cinnabar
+            )
+        }
+
+        if state.region.supplyValue >= max(state.region.factories, state.region.infrastructure) && state.region.supplyValue > 0 {
+            return RegionValueSignal(
+                title: "粮台重地",
+                detail: "粮台 \(state.region.supplyValue)，本州府更适合联动筹粮、驿道和前线补给。",
+                badge: "经济",
+                systemImageName: "shippingbox",
+                tint: MingDesignTokens.imperialGold
+            )
+        }
+
+        if state.region.factories > 0 {
+            return RegionValueSignal(
+                title: "工坊军械",
+                detail: "工坊 \(state.region.factories)，可作为火器、炮队和军械生产的解释支点。",
+                badge: "科技",
+                systemImageName: "hammer",
+                tint: MingDesignTokens.porcelainBlue
+            )
+        }
+
+        if state.region.infrastructure > 0 {
+            return RegionValueSignal(
+                title: "驿道节点",
+                detail: "驿道 \(state.region.infrastructure)，关系钱粮流通、行军转运和粮道修复。",
+                badge: "经济",
+                systemImageName: "road.lanes",
+                tint: MingDesignTokens.jade
+            )
+        }
+
+        if occupation.resistance >= 30 || occupation.compliance < 55 {
+            return RegionValueSignal(
+                title: "治理承压",
+                detail: "民变 \(occupation.resistance)%、行政 \(occupation.compliance)%，适合赈济、招抚或整训团练稳定地方。",
+                badge: "政策",
+                systemImageName: "scroll",
+                tint: occupation.governanceTint
+            )
+        }
+
+        return RegionValueSignal(
+            title: state.region.city == nil ? "地方州府" : "城邑根基",
+            detail: "钱粮修正 \(occupation.economicYieldPercent)%，可联读民力、银两、粮草和地方治理。",
+            badge: "政策",
+            systemImageName: "building.columns",
+            tint: MingDesignTokens.jade
+        )
+    }
+
+    private var signals: [RegionValueSignal] {
+        [
+            RegionValueSignal(
+                title: "政",
+                detail: "\(occupation.resistanceDisplayName) / \(occupation.complianceDisplayName)",
+                badge: "\(occupation.economicYieldPercent)%",
+                systemImageName: "scroll",
+                tint: occupation.governanceTint
+            ),
+            RegionValueSignal(
+                title: "粮",
+                detail: "粮台 \(state.region.supplyValue) / 粮草 \(state.economicOutput.supplies)",
+                badge: state.region.supplyValue > 0 ? "粮台" : "平",
+                systemImageName: "shippingbox",
+                tint: MingDesignTokens.imperialGold
+            ),
+            RegionValueSignal(
+                title: "械",
+                detail: "工坊 \(state.region.factories) / 驿道 \(state.region.infrastructure)",
+                badge: state.region.factories > 0 ? "工坊" : "驿道",
+                systemImageName: "hammer",
+                tint: MingDesignTokens.porcelainBlue
+            ),
+            RegionValueSignal(
+                title: "兵",
+                detail: state.frontPressure > 0 ? state.frontPressureDisplay : state.objectiveStatus,
+                badge: state.objectiveNames.isEmpty ? "州府" : "目标",
+                systemImageName: "shield",
+                tint: state.frontPressureTint
+            )
+        ]
+    }
+}
+
+private struct RegionValueSignal: Identifiable {
+    let title: String
+    let detail: String
+    let badge: String
+    let systemImageName: String
+    let tint: Color
+
+    var id: String {
+        "\(title)-\(badge)-\(detail)"
+    }
+}
+
+private struct RegionValueChip: View {
+    let signal: RegionValueSignal
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 3) {
+            HStack(spacing: 4) {
+                Label(signal.title, systemImage: signal.systemImageName)
+                    .font(.caption.bold())
+                    .foregroundStyle(signal.tint)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.72)
+
+                Spacer(minLength: 4)
+
+                Text(signal.badge)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.72)
+            }
+
+            Text(signal.detail)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .lineLimit(2)
+                .minimumScaleFactor(0.72)
+        }
+        .padding(.horizontal, 7)
+        .padding(.vertical, 6)
+        .frame(maxWidth: .infinity, minHeight: 58, alignment: .leading)
+        .background(MingDesignTokens.panelBackground.opacity(0.52), in: RoundedRectangle(cornerRadius: 6))
         .accessibilityElement(children: .combine)
     }
 }

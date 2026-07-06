@@ -901,7 +901,7 @@ handleBoardTap(coord)
   - AI
 - `UnitTooltipView`。
 
-v4.4-v4.6 首片中，HUD、CommandPanel、EconomyPanel、RegionInspector、UnitInspector、UnitTooltip、DiplomacyPanel、CourtPanel、GeneralCommandPanel、GeneralProfile、AgentPanel 和 EventLog 分类已改为明末中文展示；`MingDesignTokens` 统一面板圆角、间距、触控高度和朱砂/金/青瓷等色彩；`HUDView` 已升级为朝报令条，把回合、当前势力、胜负、钱粮和朝议四线压力前置到第一屏；`CommandPanelView` 已升级为军令牌，把当前势力/阶段、选中军情、兵力、粮草、退守、行动、舆图军令提示、固守/退守/补给处置和军令回执组织成可扫读的军事指令界面；`UnitInspectorView` 已升级为军情牌，包含军令战备、军械火力、攻守行程察、兵种编成和驻防归属等只读扫读区；`EventLogView` 已升级为塘报战记，把最近 60 条事件按急务、战役、战事、粮草、州府和天下分类展示，并把本旬任务、战役提示和目标换手 relatedRecordId 转成中文回执；`EconomyPanelView` 已升级为府库牌，把民力、银两、粮草、入账、维护、补员、净收支、内政钱粮、军饷民心、募兵筹粮生产状态和营造队列组织成可扫读的钱粮界面；`RegionInspectorView` 已升级为州府牌，按城关粮坊、地方治理、钱粮城防、控制方旗号、原属章、战局归属和当前格旗号组织 `RegionInspectorState` 只读信息；底层图层枚举、源码类型名和部分 JSON schema 字段仍保留开发兼容名。
+v4.4-v4.6 首片中，HUD、CommandPanel、EconomyPanel、RegionInspector、UnitInspector、UnitTooltip、DiplomacyPanel、CourtPanel、GeneralCommandPanel、GeneralProfile、AgentPanel 和 EventLog 分类已改为明末中文展示；`MingDesignTokens` 统一面板圆角、间距、触控高度和朱砂/金/青瓷等色彩；`HUDView` 已升级为朝报令条，把回合、当前势力、胜负、钱粮和朝议四线压力前置到第一屏；`CommandPanelView` 已升级为军令牌，把当前势力/阶段、选中军情、兵力、粮草、退守、行动、舆图军令提示、固守/退守/补给处置和军令回执组织成可扫读的军事指令界面；`UnitInspectorView` 已升级为军情牌，包含军令战备、军械火力、攻守行程察、兵种编成和驻防归属等只读扫读区；`EventLogView` 已升级为塘报战记，把最近 60 条事件按急务、战役、战事、粮草、州府和天下分类展示，并把本旬任务、战役提示和目标换手 relatedRecordId 转成中文回执；`EconomyPanelView` 已升级为府库牌，把民力、银两、粮草、入账、维护、补员、净收支、内政钱粮、军饷民心、募兵筹粮生产状态和营造队列组织成可扫读的钱粮界面；`RegionInspectorView` 已升级为州府牌，按州府主值、政粮械兵四要点、城关粮坊、地方治理、钱粮城防、控制方旗号、原属章、战局归属和当前格旗号组织 `RegionInspectorState` 只读信息；底层图层枚举、源码类型名和部分 JSON schema 字段仍保留开发兼容名。
 
 当前开局不会在 `RootGameView` 自动 `.task { runAIIfNeeded() }`。AI 行动由 `advanceOrRunAI()` 或命令提交后的 `runAIIfNeeded()` 触发。
 
@@ -1643,7 +1643,7 @@ touchesEnded
 - 触摸移动 camera。
 - `clampCamera` 限制在地图边界附近。
 
-v4.6 首片中，空地图/加载失败时的标题改为“明末棋策舆图”。`UnitNode` 不再绘制 NATO APP-6 椭圆/斜线/圆形兵牌，而是按单位组件显示中文军牌徽记：`城` 表示攻城/炮队，`旗` 表示旗骑/重骑，`火` 表示火器支援，`骑` 表示机动部队，`步` 表示步军；底部用兵力和 `守` / `退` 显示退守模式。势力旗号首片后，`Faction.bannerGlyph` 为明廷、后金/清、大顺、大西和地方中立提供“明/清/顺/西/乡”短旗号，地图军牌顶端显示该旗号，当前进一步在军牌内按既有部队状态显示“溃散/退中/被围/缺粮/已行”单个优先战备小签，让地图第一视野能看出断粮、被围、退却和已行动部队；`UnitInspectorView`、`UnitTooltipView` 和 `CommandPanelView` 的军牌印面同步显示旗号；`UnitTooltipView` 还以舆图军牌浮签只读展示选中地图部队的兵力条、粮草/行动/退守状态、攻守行程察指标和兵种组件 chip。`HexNode` 继续把城池、关隘/堡寨和补给源标成“城 / 关 / 粮”舆图 badge，旧 `FORT` 与 `SUP A/G` 主地图文案已改为“关隘”“粮台”。`BoardScene.drawSupplyRoutes` 会在 hex 图层读取 `SupplyRules.supplyPath(for:in:)`，把玩家势力当前可达粮台的 hex 线路画成金色虚线；线路 zPosition 低于 fog，高于道路/河流，避免穿透未探索格；显示受 `AppContainer.showsSupplyRoutes` 和顶部“粮道”按钮控制。`BoardScene.drawPlannedOperations` 读取当前回合玩家 `PlayerCommandState.plannedOperations`，把进取计划画成朱砂箭头和“进”令牌，把固守计划画成青绿“守”令牌；它只说明已记录的计划，不新建或执行计划。`RootGameView` 顶部图层名已改为舆图、州府、初划、战局、前线、布防，并在图层选择前新增只读“天下急势”条，用领先方、急务/主线任务数和五线压力把中华世界局势前置到地图第一视野；图例条继续解释城池、关隘、粮台、军牌、势力旗、军令计划、粮道和非 hex 图层含义。`RegionInspectorView` 已把州府详情做成州府牌，显示州府徽记、控制方旗号、原属章、地方治理、民力/银两/粮草、粮台/工坊/驿道、目标、友敌军和当前格旗号。以上变化只影响 SpriteKit/SwiftUI 展示，不改变 `Division` 组件、移动、攻击、补给、占领、经济、region 聚合或战区规则。
+v4.6 首片中，空地图/加载失败时的标题改为“明末棋策舆图”。`UnitNode` 不再绘制 NATO APP-6 椭圆/斜线/圆形兵牌，而是按单位组件显示中文军牌徽记：`城` 表示攻城/炮队，`旗` 表示旗骑/重骑，`火` 表示火器支援，`骑` 表示机动部队，`步` 表示步军；底部用兵力和 `守` / `退` 显示退守模式。势力旗号首片后，`Faction.bannerGlyph` 为明廷、后金/清、大顺、大西和地方中立提供“明/清/顺/西/乡”短旗号，地图军牌顶端显示该旗号，当前进一步在军牌内按既有部队状态显示“溃散/退中/被围/缺粮/已行”单个优先战备小签，让地图第一视野能看出断粮、被围、退却和已行动部队；`UnitInspectorView`、`UnitTooltipView` 和 `CommandPanelView` 的军牌印面同步显示旗号；`UnitTooltipView` 还以舆图军牌浮签只读展示选中地图部队的兵力条、粮草/行动/退守状态、攻守行程察指标和兵种组件 chip。`HexNode` 继续把城池、关隘/堡寨和补给源标成“城 / 关 / 粮”舆图 badge，旧 `FORT` 与 `SUP A/G` 主地图文案已改为“关隘”“粮台”。`BoardScene.drawSupplyRoutes` 会在 hex 图层读取 `SupplyRules.supplyPath(for:in:)`，把玩家势力当前可达粮台的 hex 线路画成金色虚线；线路 zPosition 低于 fog，高于道路/河流，避免穿透未探索格；显示受 `AppContainer.showsSupplyRoutes` 和顶部“粮道”按钮控制。`BoardScene.drawPlannedOperations` 读取当前回合玩家 `PlayerCommandState.plannedOperations`，把进取计划画成朱砂箭头和“进”令牌，把固守计划画成青绿“守”令牌；它只说明已记录的计划，不新建或执行计划。`RootGameView` 顶部图层名已改为舆图、州府、初划、战局、前线、布防，并在图层选择前新增只读“天下急势”条，用领先方、急务/主线任务数和五线压力把中华世界局势前置到地图第一视野；图例条继续解释城池、关隘、粮台、军牌、势力旗、军令计划、粮道和非 hex 图层含义。`RegionInspectorView` 已把州府详情做成州府牌，显示州府徽记、控制方旗号、原属章、州府主值、政粮械兵四要点、地方治理、民力/银两/粮草、粮台/工坊/驿道、目标、友敌军和当前格旗号。以上变化只影响 SpriteKit/SwiftUI 展示，不改变 `Division` 组件、移动、攻击、补给、占领、经济、region 聚合或战区规则。
 
 ### 7.2 MapDisplayAdapter
 
@@ -2126,7 +2126,7 @@ BoardScene / HexNode / UnitNode
 
 RegionInspectorState
   -> RegionInspectorView 州府牌
-  -> 城关粮坊 / 治理 / 钱粮城防
+  -> 州府主值 / 政粮械兵 / 城关粮坊 / 治理 / 钱粮城防
   -> 方面 / 防区 / 目标 / 友敌军 / 当前格
 ```
 
@@ -2143,7 +2143,7 @@ RegionInspectorState
 - `EventLogView` 以塘报战记展示最近 60 条 `GameLogEntry`，顶部用“报”印、候报/有急务/战役/有军情/粮情/战局/天下状态和急务/战役/战事/粮草/州府/天下计数组织当前局势；每条塘报保留回合、势力、阶段、分类图标、正文和相关回执，并把 `battle-task-`、`battle-cue-`、`objective-control-` 前缀只读翻译为本旬急务、战役提示和目标换手，其他常见 relatedRecordId 只显示战区军令、战区回执、军机回执、朱批回执或系统回执。它只负责 SwiftUI 展示，不改变 `GameLogEntry` schema、事件写入点、命令执行或任何规则权威。
 - `UnitInspectorView` 以军情牌展示选中部队，读取 `Division` 的兵力、补给、退守、行动、`effectiveStats` 和兵种组件，以及 `UnitInspectorStrategicState` 的坐标、州府、动态方面、防区、部署和前线归属；军令战备摘要只从现有 `Division` 派生可调/已行/断粮、粮道、战力和用兵定位；军械火力摘要只从现有 `Division.components`、火器/炮队/攻城器械比例、射程、粮草和兵力状态派生火力姿态，不新增 `Division` 字段，不改变 `CombatRules`；它只负责 SwiftUI 展示，不写入任何战术或战略状态。
 - `UnitTooltipView` 以明末舆图军牌浮签展示选中地图部队，读取同一 `Division` 的势力旗号、兵力、粮草/行动/退守、攻守行程察和兵种组件 chip；它不触发 `Command`，不改变 `Division`、`SupplyRules`、`CombatRules`、`WarDeploymentState` 或任何规则权威。
-- `RegionInspectorView` 以州府牌展示选中州府，读取 `RegionInspectorState` 的州府、治理、钱粮产出、控制方旗号、原属章、目标、友敌军、方面/防区和当前 hex 归属旗号；它只负责 SwiftUI 展示，不写入 hex、region、economy、front、deployment 或命令状态。
+- `RegionInspectorView` 以州府牌展示选中州府，读取 `RegionInspectorState` 的州府、治理、钱粮产出、控制方旗号、原属章、目标、友敌军、方面/防区和当前 hex 归属旗号；当前新增的州府主值区只读 `RegionNode`、`OccupationState`、`economicOutput`、目标、友敌军和前线压力，按战局要冲、前线承压、城关屏障、粮台重地、工坊军械、驿道节点或治理承压解释该州府的政策/经济/科技/军事价值；它只负责 SwiftUI 展示，不写入 hex、region、economy、front、deployment 或命令状态。
 - `EconomyPanelView` 以府库牌展示当前 active faction 的 `FactionEconomyLedger`，读取库存、入账、维护、补员、净收支、粮草/补员压力、内政钱粮治理摘要、军饷民心只读态势、生产成本、生产可用状态和 `ProductionOrder` 进度；治理摘要只读 `GovernanceAISummary`，把州府、不稳、民变、行政和最低行政州府前置给玩家；军饷民心只读当前势力未毁 `Division` 的补给状态、银两余势和同一治理摘要，派生军伍、缺粮、军饷和民心压力，不新增持久字段或规则效果；生产行只读库存与成本差额提示可开工或尚缺资源，生产入口仍只调用 `onQueueProduction -> AppContainer.queueProduction -> Command.queueProduction`，不直接写入 `EconomyState`。
 - `DiplomacyPanelView` 的“天下急势”读取当前势力外交关系、主要对手、战意和朝议四线压力；诸方势力列表用势力旗号、主战标记、战意条和离散值增强中华世界局势可读性；战和关系列表用双方旗号、关系状态、张力条和起始回合展示当前冲突线；阵营名义用旗号、成员和当前阵营高亮展示，不改变外交状态、朝议压力、AI 决策或规则权威。
 - `UnitNode` 改用中文军牌徽记，移除默认主地图上的 NATO 风格兵牌；军牌顶端读取 `Faction.bannerGlyph` 显示明/清/顺/西/乡等势力旗号，并只读显示溃散、退中、被围、缺粮或已行战备小签。
