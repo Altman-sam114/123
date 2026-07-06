@@ -16,6 +16,11 @@ struct CourtPanelView: View {
                 summary: summary,
                 recommendedProject: CourtProjectKind(focus: summary.recommendedFocus)
             )
+            CourtPolicyTicketSection(
+                summary: summary,
+                recommendedProject: CourtProjectKind(focus: summary.recommendedFocus),
+                lineBriefs: objectiveSummary.isMingScenario ? objectiveSummary.lineBriefs : []
+            )
             CourtRationaleView(summary: summary)
             CourtCampaignLineSection(
                 briefs: objectiveSummary.isMingScenario ? objectiveSummary.lineBriefs : []
@@ -248,6 +253,223 @@ private struct CourtCouncilPressureChip: View {
         .overlay {
             RoundedRectangle(cornerRadius: 6)
                 .stroke(signal.domain.tint.opacity(signal.isPrimary ? 0.42 : 0.18), lineWidth: 1)
+        }
+    }
+}
+
+private struct CourtPolicyTicketSection: View {
+    let summary: CourtStrategySummary
+    let recommendedProject: CourtProjectKind
+    let lineBriefs: [BattleObjectiveSummary.CampaignLineBrief]
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: MingDesignTokens.compactSpacing) {
+            HStack(alignment: .firstTextBaseline, spacing: 8) {
+                Label("朝议批票", systemImage: "checkmark.seal")
+                    .font(.subheadline.bold())
+                    .foregroundStyle(primaryDomain.tint)
+
+                Spacer(minLength: 8)
+
+                Text(ticketStatus)
+                    .font(.caption.bold())
+                    .foregroundStyle(primaryDomain.tint)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.78)
+            }
+
+            Text(ticketSummary)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+
+            LazyVGrid(columns: [GridItem(.adaptive(minimum: 112), spacing: 7)], alignment: .leading, spacing: 7) {
+                CourtPolicyTicketChip(
+                    title: "票拟",
+                    value: recommendedProject.displayName,
+                    detail: recommendedProject.domainDisplayName,
+                    systemImage: recommendedProject.systemImageName,
+                    tint: primaryDomain.tint
+                )
+                CourtPolicyTicketChip(
+                    title: leadingDomain.displayName,
+                    value: "\(leadingPressure)",
+                    detail: "四线最高",
+                    systemImage: leadingDomain.systemImageName,
+                    tint: leadingDomain.tint
+                )
+                CourtPolicyTicketChip(
+                    title: "战役",
+                    value: leadingLineTitle,
+                    detail: leadingLineDetail,
+                    systemImage: leadingLineSystemImage,
+                    tint: leadingLineTint
+                )
+            }
+
+            VStack(alignment: .leading, spacing: 4) {
+                Text("耗 \(recommendedProject.cost.compactDisplaySummary)\(gainText)")
+                    .font(.caption.bold())
+                    .foregroundStyle(primaryDomain.tint)
+                    .fixedSize(horizontal: false, vertical: true)
+
+                Text("\(recommendedProject.benefitSummary) 风险：\(recommendedProject.riskSummary)")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
+        .padding(MingDesignTokens.compactSpacing)
+        .background(MingDesignTokens.sectionBackground, in: RoundedRectangle(cornerRadius: MingDesignTokens.cornerRadius))
+        .overlay {
+            RoundedRectangle(cornerRadius: MingDesignTokens.cornerRadius)
+                .stroke(primaryDomain.tint.opacity(0.28), lineWidth: 1)
+        }
+        .accessibilityElement(children: .combine)
+    }
+
+    private var primaryDomain: CourtProjectDomain {
+        recommendedProject.primaryDomain
+    }
+
+    private var leadingDomain: CourtProjectDomain {
+        CourtProjectDomain.allCases.max {
+            let lhs = pressure(for: $0)
+            let rhs = pressure(for: $1)
+            if lhs == rhs {
+                return $0.rawValue > $1.rawValue
+            }
+            return lhs < rhs
+        } ?? primaryDomain
+    }
+
+    private var leadingPressure: Int {
+        pressure(for: leadingDomain)
+    }
+
+    private var urgentLine: BattleObjectiveSummary.CampaignLineBrief? {
+        lineBriefs.max {
+            if $0.urgentTaskCount == $1.urgentTaskCount {
+                if $0.pressure == $1.pressure {
+                    return $0.line.rawValue > $1.line.rawValue
+                }
+                return $0.pressure < $1.pressure
+            }
+            return $0.urgentTaskCount < $1.urgentTaskCount
+        }
+    }
+
+    private var leadingLineTitle: String {
+        urgentLine?.line.displayName ?? "待察"
+    }
+
+    private var leadingLineDetail: String {
+        guard let urgentLine else {
+            return "无明末战役线"
+        }
+        if urgentLine.urgentTaskCount > 0 {
+            return "急务 \(urgentLine.urgentTaskCount)"
+        }
+        if urgentLine.activeTaskCount > 0 {
+            return "主线 \(urgentLine.activeTaskCount)"
+        }
+        return "势 \(urgentLine.pressure)"
+    }
+
+    private var leadingLineSystemImage: String {
+        urgentLine?.line.systemImage ?? "eye"
+    }
+
+    private var leadingLineTint: Color {
+        guard let urgentLine else {
+            return .secondary
+        }
+        switch urgentLine.line {
+        case .world:
+            return MingDesignTokens.cinnabar
+        case .policy:
+            return MingDesignTokens.jade
+        case .economy:
+            return MingDesignTokens.imperialGold
+        case .technology:
+            return MingDesignTokens.porcelainBlue
+        case .military:
+            return MingDesignTokens.ink
+        }
+    }
+
+    private var gainText: String {
+        recommendedProject.resourceGain.isEmpty ? "" : " / 得 \(recommendedProject.resourceGain.compactDisplaySummary)"
+    }
+
+    private var ticketStatus: String {
+        if leadingPressure >= 75 || (urgentLine?.urgentTaskCount ?? 0) > 0 {
+            return "急批"
+        }
+        if recommendedProject.domains.count > 1 {
+            return "兼线"
+        }
+        return "可行"
+    }
+
+    private var ticketSummary: String {
+        let lineClause: String
+        if let urgentLine {
+            lineClause = "\(urgentLine.line.displayName)线\(urgentLine.status.displayName)，\(urgentLine.detail)"
+        } else {
+            lineClause = "暂无明末战役线急报"
+        }
+        return "据四线压力，\(leadingDomain.displayName)最急；据天下态势，\(lineClause)。本旬票拟 \(recommendedProject.displayName)，只作朝廷扫读，不自动执行。"
+    }
+
+    private func pressure(for domain: CourtProjectDomain) -> Int {
+        switch domain {
+        case .policy:
+            return summary.policyPressure
+        case .economy:
+            return summary.economyPressure
+        case .technology:
+            return summary.technologyPressure
+        case .military:
+            return summary.militaryPressure
+        }
+    }
+}
+
+private struct CourtPolicyTicketChip: View {
+    let title: String
+    let value: String
+    let detail: String
+    let systemImage: String
+    let tint: Color
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 5) {
+            Label(title, systemImage: systemImage)
+                .font(.caption2.bold())
+                .foregroundStyle(tint)
+                .lineLimit(1)
+                .minimumScaleFactor(0.78)
+
+            Text(value)
+                .font(.caption.bold())
+                .foregroundStyle(.primary)
+                .lineLimit(1)
+                .minimumScaleFactor(0.74)
+
+            Text(detail)
+                .font(.caption2)
+                .foregroundStyle(.secondary)
+                .lineLimit(1)
+                .minimumScaleFactor(0.76)
+        }
+        .padding(.horizontal, 7)
+        .padding(.vertical, 6)
+        .frame(maxWidth: .infinity, minHeight: 64, alignment: .leading)
+        .background(MingDesignTokens.panelBackground.opacity(0.58), in: RoundedRectangle(cornerRadius: 6))
+        .overlay {
+            RoundedRectangle(cornerRadius: 6)
+                .stroke(tint.opacity(0.2), lineWidth: 1)
         }
     }
 }

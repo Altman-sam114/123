@@ -12,6 +12,8 @@
 
 > v4.6 钱粮 UI 最新增量：`EconomyPanelView` 的府库牌新增只读“军饷民心”区，复用 `FactionEconomyLedger` 的银两库存、补员消耗、军粮维护和 `Division.supplyState`、`GovernanceAISummary` 的民变/行政摘要，派生军伍数、缺粮/被围数、军饷余势、民心综合和“军粮压顶/军饷吃紧/民心承压/军饷可支”等扫读状态。该增量只帮助玩家在钱粮面板联读经济、军队补给和地方治理压力，不新增军饷、士气、民心、灾荒字段或真实效果，不改变 `EconomyState`、`Division`、治理、补给、生产、命令或规则权威。
 
+> v4.6 朝廷 UI 最新增量：`CourtPanelView` 在“朝议总纲”之后新增只读“朝议批票”，把 `CourtStrategySummary` 的推荐项目、四线最高压力和 `BattleObjectiveSummary.CampaignLineBrief` 中最急的天下五线态势合成票拟摘要，并展示项目成本、收益与风险。该增量只帮助玩家理解本旬为什么批某个政策/经济/科技/军事项目，不新增朝廷状态，不自动执行项目，不改变 `CourtStrategySummary` 排序、`CourtProjectKind` 成本收益、命令校验、经济规则或规则权威。
+
 ---
 
 ## 项目定位
