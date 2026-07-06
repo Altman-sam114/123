@@ -1162,6 +1162,8 @@ guerrillaWarfare 额外参考 infrastructure
 
 以下提交不作为正式 v 版本，但影响项目资料完整性：
 
+- 2026-07-06：v4.7 明末舆图“要冲分布”首片落地：`RootGameView` 顶部 `MingMapSituationStrip` 在“天下急势”内新增只读“要冲分布”横向小条，复用现有 `BattleObjectiveSummary.scoreRows` 展示明廷、后金/清、大顺、大西等势力的 objective points 和控制要冲数量，并用旗号与冠标标出当前领先方，让玩家不进入目标面板也能在地图第一视野扫读中华世界局势与要冲归属。该片只影响 SwiftUI 展示，不提供目标定位按钮，不写塘报，不新增 `GameState`、胜负、任务、目标或 AI 字段，不改变 `BattleObjectiveSummary`、`VictoryRules`、`Command`、`WarCommandExecutor`、`CommandValidator`、`RuleEngine` 或任何 hex/region/theater/front/deploy 权威。并发子 Agent Darwin 只读复核文档同步边界；Ohm 代码定位子任务未在主线等待窗口内返回，主线程按既有代码插入点完成小切片并做整合检查。
+
 - 2026-07-06：v4.7 明末钱粮面板“府库四线牵引”首片落地：`EconomyPanelView` 在“收支急报”后新增只读“府库四线牵引”区，复用现有 `FactionEconomyLedger` 与当前势力 `CourtStrategySummary` 展示政策、经济、科技、军事四线压力、民力/银两/粮草库存、营造队列、主议和备议，让玩家在府库牌里直接联读朝廷取舍、钱粮余势、火器支点和接战压力。该片只影响 SwiftUI 展示，不新增经济、朝廷、科技、军饷或任务字段，不触发生产或朝廷项目，不改变 `EconomyState`、`CourtStrategySummary`、`Command.queueProduction`、`Command.enactCourtProject`、`CommandValidator`、`EconomyRules`、`WarCommandExecutor`、`RuleEngine` 或任何 hex/region/theater/front/deploy 权威。并发子 Agent Godel 只读复核经济面板插入点、可用字段和 compile 风险；Huygens 只读探查地图“舆图要冲分布”候选，建议后续在 `RootGameView` 顶部控件附近做独立小片，本片不纳入地图改动。
 
 - 2026-07-06：v4.7 明末目标面板天下棋眼首片落地：`BattleObjectivePanelView` 在目标面板 header 后新增只读“天下棋眼”区，复用现有 `BattleObjectiveSummary` 展示要冲分领先方、当前最急天下/政策/经济/科技/军事线、本旬先手任务和可定位目标，让玩家进入“目标”tab 后先扫读中华世界局势、四线压力和当旬落点。该片只影响 SwiftUI 展示，不新增 `GameState`、胜负、任务、目标、塘报或 AI 字段；天下棋眼定位按钮仍沿用 `onFocusObjective -> AppContainer.focusObjective(_:)` UI 定位回调，不提交命令，不写塘报，不改变 `BattleObjectiveSummary`、`VictoryRules`、`Command`、`WarCommandExecutor`、`CommandValidator`、`RuleEngine` 或任何 hex/region/theater/front/deploy 权威。并发子 Agent McClintock、Chandrasekhar 分别只读探查地图/目标与钱粮/朝廷候选；本轮主线程已先采纳目标面板小切片，两个候选“舆图要冲分布”和“府库四线牵引”记录为后续可选增量。

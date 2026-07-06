@@ -298,6 +298,11 @@ private struct MingMapSituationStrip: View {
                     MingMapSituationLeaderBadge(faction: summary.leadingFaction)
                 }
 
+                MingMapObjectiveScoreStrip(
+                    rows: objectiveScoreRows,
+                    leadingFaction: summary.leadingFaction
+                )
+
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: 6) {
                         ForEach(lineBriefs) { brief in
@@ -327,6 +332,15 @@ private struct MingMapSituationStrip: View {
         }
     }
 
+    private var objectiveScoreRows: [BattleObjectiveSummary.ScoreRow] {
+        summary.scoreRows.sorted { lhs, rhs in
+            if lhs.points == rhs.points {
+                return lhs.objectiveCount > rhs.objectiveCount
+            }
+            return lhs.points > rhs.points
+        }
+    }
+
     private var urgentTaskCount: Int {
         summary.tasks.filter { $0.priority == .urgent }.count
     }
@@ -337,6 +351,84 @@ private struct MingMapSituationStrip: View {
 
     private var leaderName: String {
         summary.leadingFaction?.displayName ?? "未定"
+    }
+}
+
+private struct MingMapObjectiveScoreStrip: View {
+    let rows: [BattleObjectiveSummary.ScoreRow]
+    let leadingFaction: Faction?
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 5) {
+            Label("要冲分布", systemImage: "mappin.and.ellipse")
+                .font(.caption.bold())
+                .foregroundStyle(MingDesignTokens.ink)
+                .lineLimit(1)
+
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 6) {
+                    ForEach(rows) { row in
+                        MingMapObjectiveScoreChip(
+                            row: row,
+                            isLeading: row.faction == leadingFaction
+                        )
+                    }
+                }
+                .padding(.vertical, 1)
+            }
+        }
+        .accessibilityElement(children: .contain)
+        .accessibilityLabel("要冲分布，\(scoreSummary)")
+    }
+
+    private var scoreSummary: String {
+        rows.map { row in
+            "\(row.faction.displayName)\(row.points)分\(row.objectiveCount)处"
+        }
+        .joined(separator: "，")
+    }
+}
+
+private struct MingMapObjectiveScoreChip: View {
+    let row: BattleObjectiveSummary.ScoreRow
+    let isLeading: Bool
+
+    var body: some View {
+        HStack(spacing: 5) {
+            MingFactionFlagBadge(faction: row.faction)
+
+            VStack(alignment: .leading, spacing: 1) {
+                HStack(spacing: 4) {
+                    Text(row.faction.displayName)
+                        .font(.caption.bold())
+                        .foregroundStyle(row.faction.mingBannerTint)
+                        .lineLimit(1)
+
+                    if isLeading {
+                        Image(systemName: "crown.fill")
+                            .font(.caption)
+                            .foregroundStyle(MingDesignTokens.imperialGold)
+                            .accessibilityHidden(true)
+                    }
+                }
+
+                Text("\(row.points) 分 / \(row.objectiveCount) 处")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.72)
+            }
+        }
+        .padding(.horizontal, 7)
+        .padding(.vertical, 6)
+        .frame(minWidth: 92, alignment: .leading)
+        .background(MingDesignTokens.panelBackground.opacity(isLeading ? 0.78 : 0.58), in: RoundedRectangle(cornerRadius: 6))
+        .overlay {
+            RoundedRectangle(cornerRadius: 6)
+                .stroke(row.faction.mingBannerTint.opacity(isLeading ? 0.5 : 0.18), lineWidth: 1)
+        }
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("\(row.faction.displayName)，要冲分 \(row.points)，控制 \(row.objectiveCount) 处")
     }
 }
 
