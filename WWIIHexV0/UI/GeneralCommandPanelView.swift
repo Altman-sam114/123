@@ -44,6 +44,15 @@ struct GeneralCommandPanelView: View {
                     targetZone: targetZone
                 )
 
+                GeneralCommandFourLineSection(
+                    zone: zone,
+                    general: general,
+                    assignment: assignment,
+                    assignedDivisions: assignedDivisions,
+                    targetRegion: targetRegion,
+                    hqUnderAttack: hqUnderAttack
+                )
+
                 GeneralCommandUnitsSection(divisions: assignedDivisions)
 
                 GeneralCommandActionSection(
@@ -341,6 +350,187 @@ private struct GeneralCommandTargetSection: View {
             return "目标 \(region.name) · \(targetZone.faction.displayName)"
         }
         return "目标 \(region.name)"
+    }
+}
+
+private struct GeneralCommandFourLineSection: View {
+    let zone: FrontZone
+    let general: GeneralData?
+    let assignment: GeneralAssignment?
+    let assignedDivisions: [Division]
+    let targetRegion: RegionNode?
+    let hqUnderAttack: Bool
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: MingDesignTokens.compactSpacing) {
+            HStack(spacing: 6) {
+                Label("帷幄四线", systemImage: "square.grid.2x2")
+                    .font(.caption)
+                    .bold()
+                    .foregroundStyle(MingDesignTokens.cinnabar)
+
+                Spacer(minLength: 8)
+
+                Text(summaryText)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.78)
+            }
+
+            LazyVGrid(columns: [GridItem(.adaptive(minimum: 128), spacing: MingDesignTokens.compactSpacing)], alignment: .leading, spacing: MingDesignTokens.compactSpacing) {
+                ForEach(signals) { signal in
+                    GeneralCommandFourLineChip(signal: signal)
+                }
+            }
+        }
+        .padding(MingDesignTokens.compactSpacing)
+        .background(MingDesignTokens.sectionBackground, in: RoundedRectangle(cornerRadius: MingDesignTokens.cornerRadius))
+        .accessibilityElement(children: .contain)
+    }
+
+    private var summaryText: String {
+        if hqUnderAttack {
+            return "先稳本营"
+        }
+        if zone.pressure >= 70 {
+            return "防区告急"
+        }
+        if assignedDivisions.isEmpty {
+            return "待集营伍"
+        }
+        return "军政同看"
+    }
+
+    private var signals: [GeneralCommandFourLineSignal] {
+        [
+            policySignal,
+            economySignal,
+            technologySignal,
+            militarySignal
+        ]
+    }
+
+    private var policySignal: GeneralCommandFourLineSignal {
+        let loyalty = assignment?.loyalty ?? general?.baseLoyalty ?? 0
+        let satisfaction = assignment?.satisfaction ?? general?.baseSatisfaction ?? 0
+        let interventionCount = assignment?.interventionCount ?? 0
+        let title = hqUnderAttack ? "本营承压" : "将心约束"
+        let value = "忠 \(loyalty) / 心 \(satisfaction)"
+        let detail = interventionCount > 0 ? "手令 \(interventionCount) 次，宜防将心摇动。" : "少干预，稳主将与军心。"
+        let tint: Color = hqUnderAttack || loyalty < 40 || satisfaction < 40 ? MingDesignTokens.cinnabar : loyalty < 60 || satisfaction < 60 ? MingDesignTokens.imperialGold : MingDesignTokens.jade
+
+        return GeneralCommandFourLineSignal(
+            id: "policy",
+            title: "政策",
+            value: value,
+            detail: title + "，" + detail,
+            systemImageName: "scroll",
+            tint: tint
+        )
+    }
+
+    private var economySignal: GeneralCommandFourLineSignal {
+        let shortSupply = assignedDivisions.filter { $0.supplyState != .supplied }.count
+        let supplyValue = targetRegion?.supplyValue ?? 0
+        let infrastructure = targetRegion?.infrastructure ?? 0
+        let value = shortSupply > 0 ? "缺粮 \(shortSupply)" : "粮道尚稳"
+        let detail = targetRegion.map { region in
+            "\(region.name) 粮台 \(supplyValue)，驿道 \(infrastructure)。"
+        } ?? "未定进取州府，先看本防区粮草。"
+
+        return GeneralCommandFourLineSignal(
+            id: "economy",
+            title: "经济",
+            value: value,
+            detail: detail,
+            systemImageName: "shippingbox",
+            tint: shortSupply > 0 ? MingDesignTokens.imperialGold : MingDesignTokens.jade
+        )
+    }
+
+    private var technologySignal: GeneralCommandFourLineSignal {
+        let fireUnits = assignedDivisions.filter(\.hasFireSupport).count
+        let siegeUnits = assignedDivisions.filter(\.isSiegeCapable).count
+        let factories = targetRegion?.factories ?? 0
+        let value = "火 \(fireUnits) / 城 \(siegeUnits)"
+        let detail = targetRegion.map { region in
+            factories > 0 ? "\(region.name) 有工坊 \(factories)，可作火器军械支点。" : "\(region.name) 工坊未显，火器仍看麾下编成。"
+        } ?? "火器、炮队和攻城器械只读自麾下编成。"
+
+        return GeneralCommandFourLineSignal(
+            id: "technology",
+            title: "科技",
+            value: value,
+            detail: detail,
+            systemImageName: "hammer",
+            tint: fireUnits + siegeUnits > 0 ? MingDesignTokens.porcelainBlue : .secondary
+        )
+    }
+
+    private var militarySignal: GeneralCommandFourLineSignal {
+        let readyUnits = assignedDivisions.filter { !$0.isDestroyed && !$0.hasActed }.count
+        let targetName = targetRegion?.name ?? "未定目标"
+        let value = "压 \(zone.pressure) / 可 \(readyUnits)"
+        let detail = "\(zone.state.displayName)，\(targetName)，麾下 \(assignedDivisions.count) 营。"
+        let tint: Color = zone.pressure >= 70 ? MingDesignTokens.cinnabar : zone.pressure >= 40 ? MingDesignTokens.imperialGold : MingDesignTokens.jade
+
+        return GeneralCommandFourLineSignal(
+            id: "military",
+            title: "军事",
+            value: value,
+            detail: detail,
+            systemImageName: "shield.lefthalf.filled",
+            tint: tint
+        )
+    }
+}
+
+private struct GeneralCommandFourLineSignal: Identifiable {
+    let id: String
+    let title: String
+    let value: String
+    let detail: String
+    let systemImageName: String
+    let tint: Color
+}
+
+private struct GeneralCommandFourLineChip: View {
+    let signal: GeneralCommandFourLineSignal
+
+    var body: some View {
+        HStack(alignment: .top, spacing: 7) {
+            Image(systemName: signal.systemImageName)
+                .font(.caption)
+                .foregroundStyle(signal.tint)
+                .frame(width: 16)
+                .accessibilityHidden(true)
+
+            VStack(alignment: .leading, spacing: 2) {
+                HStack(spacing: 5) {
+                    Text(signal.title)
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+
+                    Text(signal.value)
+                        .font(.caption.bold())
+                        .foregroundStyle(signal.tint)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.74)
+                }
+
+                Text(signal.detail)
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(2)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
+        .padding(7)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(MingDesignTokens.panelBackground.opacity(0.52), in: RoundedRectangle(cornerRadius: 6))
+        .accessibilityElement(children: .combine)
     }
 }
 
