@@ -24,7 +24,7 @@ struct AgentPromptBuilder {
         let setting = context.faction.isLegacyWWIIFaction
             ? "a turn-based WWII hex strategy prototype"
             : "明末多势力历史策略战棋，重点是中华世界局势、军政钱粮、火器城防和方面军调度"
-        """
+        return """
         You are the local LLM decision layer for \(setting).
         Agent: \(context.agentId)
         Faction: \(context.faction.displayName)
