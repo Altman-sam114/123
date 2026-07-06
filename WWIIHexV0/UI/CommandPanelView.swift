@@ -393,6 +393,26 @@ private struct CommandObjectiveOrderSection: View {
                     )
                 }
 
+                if !courtPressureBriefs.isEmpty {
+                    VStack(alignment: .leading, spacing: 5) {
+                        Label("朝议四线", systemImage: "seal")
+                            .font(.caption.bold())
+                            .foregroundStyle(.secondary)
+
+                        LazyVGrid(columns: [GridItem(.adaptive(minimum: 72), spacing: 5)], alignment: .leading, spacing: 5) {
+                            ForEach(courtPressureBriefs) { brief in
+                                CommandObjectiveChip(
+                                    title: brief.line.displayName,
+                                    value: "\(brief.status.displayName) · \(brief.pressure)势",
+                                    detail: pressureDetail(for: brief),
+                                    systemImageName: brief.line.systemImage,
+                                    tint: tint(for: brief.line)
+                                )
+                            }
+                        }
+                    }
+                }
+
                 Text(orderMinute)
                     .font(.caption)
                     .foregroundStyle(.secondary)
@@ -422,6 +442,13 @@ private struct CommandObjectiveOrderSection: View {
             .first
     }
 
+    private var courtPressureBriefs: [BattleObjectiveSummary.CampaignLineBrief] {
+        let lines: [BattleObjectiveSummary.CampaignLine] = [.policy, .economy, .technology, .military]
+        return lines.compactMap { line in
+            summary?.lineBriefs.first { $0.line == line }
+        }
+    }
+
     private var primaryTaskDetail: String {
         guard let primaryTask else {
             return "无急务"
@@ -429,18 +456,35 @@ private struct CommandObjectiveOrderSection: View {
         return "\(primaryTask.line.displayName) · \(primaryTask.priority.displayName)"
     }
 
-    private var targetTitle: String {
+    private var taskTarget: BattleObjectiveSummary.Target? {
         guard let objectiveId = primaryTask?.targetObjectiveId else {
-            return "看目标"
+            return nil
         }
-        return targetName(for: objectiveId) ?? "要冲"
+        return summary?.tracks
+            .flatMap(\.targets)
+            .first { $0.objectiveId == objectiveId }
+    }
+
+    private var taskTrack: BattleObjectiveSummary.Track? {
+        guard let objectiveId = primaryTask?.targetObjectiveId else {
+            return nil
+        }
+        return summary?.tracks
+            .first { track in
+                track.targets.contains { $0.objectiveId == objectiveId }
+            }
+    }
+
+    private var targetTitle: String {
+        taskTarget?.name ?? "看目标"
     }
 
     private var targetDetail: String {
-        guard primaryTask?.targetObjectiveId != nil else {
+        guard let taskTarget else {
             return "无定位"
         }
-        return "依舆图落子"
+        let lineTitle = taskTrack?.title ?? primaryTask?.line.displayName ?? "胜负线"
+        return "\(lineTitle) · \(taskTarget.controllerName) · \(taskTarget.points)分"
     }
 
     private var divisionFitTitle: String {
@@ -532,6 +576,44 @@ private struct CommandObjectiveOrderSection: View {
         guard let line = urgentLine?.line else {
             return MingDesignTokens.imperialGold
         }
+        return tint(for: line)
+    }
+
+    private var courtPressureText: String {
+        guard let brief = courtPressureBriefs
+            .sorted(by: pressureSort)
+            .first else {
+            return "朝议四线候报"
+        }
+        return "\(brief.line.displayName)\(brief.status.displayName)"
+    }
+
+    private var orderMinute: String {
+        let taskText = primaryTask.map { "\($0.line.displayName) \($0.priority.displayName)" } ?? "暂无急务"
+        return "军令会看：\(taskText)、目标现控、要冲分、本军兵势与\(courtPressureText)同判；调动和攻击仍在舆图点格，不在此处自动下令。"
+    }
+
+    private func pressureDetail(for brief: BattleObjectiveSummary.CampaignLineBrief) -> String {
+        if brief.urgentTaskCount > 0 {
+            return "急务 \(brief.urgentTaskCount)"
+        }
+        if brief.activeTaskCount > 0 {
+            return "任务 \(brief.activeTaskCount)"
+        }
+        return "候议"
+    }
+
+    private func pressureSort(
+        _ lhs: BattleObjectiveSummary.CampaignLineBrief,
+        _ rhs: BattleObjectiveSummary.CampaignLineBrief
+    ) -> Bool {
+        if lhs.status != rhs.status {
+            return statusRank(lhs.status) < statusRank(rhs.status)
+        }
+        return lhs.pressure > rhs.pressure
+    }
+
+    private func tint(for line: BattleObjectiveSummary.CampaignLine) -> Color {
         switch line {
         case .world:
             return MingDesignTokens.cinnabar
@@ -544,18 +626,6 @@ private struct CommandObjectiveOrderSection: View {
         case .military:
             return MingDesignTokens.ink
         }
-    }
-
-    private var orderMinute: String {
-        let taskText = primaryTask.map { "\($0.line.displayName) \($0.priority.displayName)" } ?? "暂无急务"
-        return "军令会看：\(taskText)、目标落点与本军兵势同判；调动和攻击仍在舆图点格，不在此处自动下令。"
-    }
-
-    private func targetName(for objectiveId: String) -> String? {
-        summary?.tracks
-            .flatMap(\.targets)
-            .first { $0.objectiveId == objectiveId }?
-            .name
     }
 
     private func statusRank(_ status: BattleObjectiveSummary.CampaignStageStatus) -> Int {
