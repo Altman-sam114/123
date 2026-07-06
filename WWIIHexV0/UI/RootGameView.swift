@@ -192,6 +192,7 @@ struct RootGameView: View {
                         phase: container.gameState.phase,
                         playerFaction: container.playerFaction,
                         observerModeEnabled: container.observerModeEnabled,
+                        objectiveSummary: BattleObjectiveSummary.from(state: container.gameState),
                         lastCommandMessage: container.lastCommandMessage,
                         onHold: container.holdSelected,
                         onAllowRetreat: container.allowRetreatSelected,

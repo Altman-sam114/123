@@ -6,6 +6,7 @@ struct CommandPanelView: View {
     let phase: GamePhase
     let playerFaction: Faction
     let observerModeEnabled: Bool
+    let objectiveSummary: BattleObjectiveSummary?
     let lastCommandMessage: String?
     let onHold: () -> Void
     let onAllowRetreat: () -> Void
@@ -138,6 +139,10 @@ struct CommandPanelView: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
 
             CommandMapOrderHint(text: mapOrderHintText)
+            CommandObjectiveOrderSection(
+                summary: objectiveSummary,
+                selectedDivision: selectedDivision
+            )
 
             LazyVGrid(columns: commandActionColumns, alignment: .leading, spacing: 6) {
                 CommandActionButton(
@@ -342,6 +347,259 @@ private struct CommandMapOrderHint: View {
         .padding(.horizontal, 8)
         .padding(.vertical, 7)
         .background(MingDesignTokens.panelBackground.opacity(0.5), in: RoundedRectangle(cornerRadius: 6))
+        .accessibilityElement(children: .combine)
+    }
+}
+
+private struct CommandObjectiveOrderSection: View {
+    let summary: BattleObjectiveSummary?
+    let selectedDivision: Division?
+
+    var body: some View {
+        if let summary, summary.isMingScenario {
+            VStack(alignment: .leading, spacing: 6) {
+                HStack(alignment: .firstTextBaseline, spacing: 8) {
+                    Label("要冲军令", systemImage: urgentLine?.line.systemImage ?? "flag.2.crossed")
+                        .font(.caption.bold())
+                        .foregroundStyle(sectionTint)
+                    Spacer(minLength: 8)
+                    Text(primaryTask?.priority.displayName ?? "候报")
+                        .font(.caption.bold())
+                        .foregroundStyle(sectionTint)
+                        .lineLimit(1)
+                }
+
+                LazyVGrid(columns: [GridItem(.adaptive(minimum: 88), spacing: 6)], alignment: .leading, spacing: 6) {
+                    CommandObjectiveChip(
+                        title: "本旬",
+                        value: primaryTask?.title ?? "候塘报",
+                        detail: primaryTaskDetail,
+                        systemImageName: primaryTask?.priority.systemImage ?? "scroll",
+                        tint: sectionTint
+                    )
+                    CommandObjectiveChip(
+                        title: "落点",
+                        value: targetTitle,
+                        detail: targetDetail,
+                        systemImageName: "mappin.and.ellipse",
+                        tint: MingDesignTokens.cinnabar
+                    )
+                    CommandObjectiveChip(
+                        title: "兵势",
+                        value: divisionFitTitle,
+                        detail: divisionFitDetail,
+                        systemImageName: divisionFitImage,
+                        tint: divisionFitTint
+                    )
+                }
+
+                Text(orderMinute)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            .padding(.horizontal, 8)
+            .padding(.vertical, 7)
+            .background(MingDesignTokens.panelBackground.opacity(0.5), in: RoundedRectangle(cornerRadius: 6))
+            .accessibilityElement(children: .combine)
+        }
+    }
+
+    private var primaryTask: BattleObjectiveSummary.CampaignTask? {
+        summary?.tasks.first { $0.priority == .urgent }
+            ?? summary?.tasks.first { $0.priority == .main }
+            ?? summary?.tasks.first
+    }
+
+    private var urgentLine: BattleObjectiveSummary.CampaignLineBrief? {
+        summary?.lineBriefs
+            .sorted {
+                if $0.status != $1.status {
+                    return statusRank($0.status) < statusRank($1.status)
+                }
+                return $0.pressure > $1.pressure
+            }
+            .first
+    }
+
+    private var primaryTaskDetail: String {
+        guard let primaryTask else {
+            return "无急务"
+        }
+        return "\(primaryTask.line.displayName) · \(primaryTask.priority.displayName)"
+    }
+
+    private var targetTitle: String {
+        guard let objectiveId = primaryTask?.targetObjectiveId else {
+            return "看目标"
+        }
+        return targetName(for: objectiveId) ?? "要冲"
+    }
+
+    private var targetDetail: String {
+        guard primaryTask?.targetObjectiveId != nil else {
+            return "无定位"
+        }
+        return "依舆图落子"
+    }
+
+    private var divisionFitTitle: String {
+        guard let selectedDivision else {
+            return "未选军"
+        }
+        switch selectedDivision.supplyState {
+        case .encircled:
+            return "先救粮"
+        case .lowSupply:
+            return "近线稳"
+        case .supplied:
+            if selectedDivision.isSiegeCapable {
+                return "攻城破口"
+            }
+            if selectedDivision.hasFireSupport {
+                return "火器压城"
+            }
+            if selectedDivision.effectiveStats.movement >= 3 {
+                return "机动截援"
+            }
+            if selectedDivision.retreatMode == .hold {
+                return "守线稳军"
+            }
+            return "步军守要"
+        }
+    }
+
+    private var divisionFitDetail: String {
+        guard let selectedDivision else {
+            return "点己方军牌"
+        }
+        switch selectedDivision.supplyState {
+        case .encircled:
+            return "断粮被围"
+        case .lowSupply:
+            return "粮草偏紧"
+        case .supplied:
+            if selectedDivision.isSiegeCapable {
+                return "城关优先"
+            }
+            if selectedDivision.hasFireSupport {
+                return "配合守城"
+            }
+            if selectedDivision.effectiveStats.movement >= 3 {
+                return "截援追击"
+            }
+            if selectedDivision.retreatMode == .hold {
+                return "据点固守"
+            }
+            return selectedDivision.commandPanelRoleName
+        }
+    }
+
+    private var divisionFitImage: String {
+        guard let selectedDivision else {
+            return "hand.tap"
+        }
+        if selectedDivision.supplyState != .supplied {
+            return "shippingbox"
+        }
+        if selectedDivision.isSiegeCapable {
+            return "building.columns"
+        }
+        if selectedDivision.hasFireSupport {
+            return "scope"
+        }
+        if selectedDivision.effectiveStats.movement >= 3 {
+            return "arrow.triangle.swap"
+        }
+        return "shield"
+    }
+
+    private var divisionFitTint: Color {
+        guard let selectedDivision else {
+            return .secondary
+        }
+        switch selectedDivision.supplyState {
+        case .encircled:
+            return MingDesignTokens.cinnabar
+        case .lowSupply:
+            return MingDesignTokens.imperialGold
+        case .supplied:
+            return selectedDivision.commandPanelReadinessTint
+        }
+    }
+
+    private var sectionTint: Color {
+        guard let line = urgentLine?.line else {
+            return MingDesignTokens.imperialGold
+        }
+        switch line {
+        case .world:
+            return MingDesignTokens.cinnabar
+        case .policy:
+            return MingDesignTokens.porcelainBlue
+        case .economy:
+            return MingDesignTokens.jade
+        case .technology:
+            return MingDesignTokens.imperialGold
+        case .military:
+            return MingDesignTokens.ink
+        }
+    }
+
+    private var orderMinute: String {
+        let taskText = primaryTask.map { "\($0.line.displayName) \($0.priority.displayName)" } ?? "暂无急务"
+        return "军令会看：\(taskText)、目标落点与本军兵势同判；调动和攻击仍在舆图点格，不在此处自动下令。"
+    }
+
+    private func targetName(for objectiveId: String) -> String? {
+        summary?.tracks
+            .flatMap(\.targets)
+            .first { $0.objectiveId == objectiveId }?
+            .name
+    }
+
+    private func statusRank(_ status: BattleObjectiveSummary.CampaignStageStatus) -> Int {
+        switch status {
+        case .warning:
+            return 0
+        case .focus:
+            return 1
+        case .watch:
+            return 2
+        case .achieved:
+            return 3
+        }
+    }
+}
+
+private struct CommandObjectiveChip: View {
+    let title: String
+    let value: String
+    let detail: String
+    let systemImageName: String
+    let tint: Color
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 3) {
+            Label(title, systemImage: systemImageName)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .lineLimit(1)
+            Text(value)
+                .font(.caption.bold())
+                .foregroundStyle(tint)
+                .lineLimit(1)
+                .minimumScaleFactor(0.72)
+            Text(detail)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .lineLimit(1)
+                .minimumScaleFactor(0.72)
+        }
+        .padding(.horizontal, 7)
+        .padding(.vertical, 6)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(MingDesignTokens.sectionBackground.opacity(0.72), in: RoundedRectangle(cornerRadius: 6))
         .accessibilityElement(children: .combine)
     }
 }
