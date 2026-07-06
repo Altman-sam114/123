@@ -85,7 +85,7 @@ struct DiplomacyPanelView: View {
                     value: courtSummary.recommendedFocus.displayName,
                     detail: courtSummary.rationale,
                     systemImageName: courtSummary.recommendedFocus.systemImageName,
-                    tint: courtSummary.recommendedFocus.displayTint
+                    tint: policyFocusTint(courtSummary.recommendedFocus)
                 )
 
                 WorldOrderPressureStrip(summary: courtSummary)
@@ -253,6 +253,24 @@ struct DiplomacyPanelView: View {
             return nil
         }
         return summary
+    }
+
+    private func policyFocusTint(_ focus: CourtPolicyFocus) -> Color {
+        switch focus {
+        case .relief,
+             .appeaseGentry,
+             .trainMilitia:
+            return MingDesignTokens.jade
+        case .raiseTax,
+             .agrarianReform,
+             .grainTransport:
+            return MingDesignTokens.imperialGold
+        case .firearmReform,
+             .redCannonMaintenance:
+            return MingDesignTokens.porcelainBlue
+        case .fortify:
+            return MingDesignTokens.cinnabar
+        }
     }
 
     private var worldPressureText: String {
