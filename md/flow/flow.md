@@ -1,4 +1,4 @@
-# WWIIHexV0 核心流程文档（明末迁移 v4.7 剧本胜利条件数据驱动、明末胜负链、战役目标面板、天下五线态势、朝廷五线态势、军机五线态势、本旬任务链/任务塘报、开封围城压力提示、AI doctrine、军机势力军略展示、目标定位舆图反馈、目标换手塘报与阶段战局链首片，v4.6 UI、朝廷项目、整训团练地方驻防、朝议总纲、朝议批票、朝议争点、朝报令条、军令牌、将印军令/将领名帖、军机复盘牌/军机底稿/命令短令、塘报战记/急务战役分类/默认中文塘报、军情牌/军令战备/军械火力、舆图军牌浮签、地图军牌战备小签、州府牌归属旗号、府库牌收支急报/军饷民心/生产状态提示、天下急势、舆图天下急势、地图标识、粮道线路/开关、军令计划线、势力旗号、舆图图例与四线项目分组首片）
+# WWIIHexV0 核心流程文档（明末迁移 v4.7 剧本胜利条件数据驱动、明末胜负链、战役目标面板、天下五线态势、朝廷五线态势、军机五线态势、本旬任务链/任务塘报、开封围城压力提示、AI doctrine、军机势力军略展示、目标定位舆图反馈、目标换手塘报与阶段战局链首片，v4.6 UI、朝廷项目、朝廷项目行动状态提示、整训团练地方驻防、朝议总纲、朝议批票、朝议争点、朝报令条、军令牌、将印军令/将领名帖、军机复盘牌/军机底稿/命令短令、塘报战记/急务战役分类/默认中文塘报、军情牌/军令战备/军械火力、舆图军牌浮签、地图军牌战备小签、州府牌归属旗号、府库牌收支急报/军饷民心/生产状态提示、天下急势、舆图天下急势、地图标识、粮道线路/开关、军令计划线、势力旗号、舆图图例与四线项目分组首片）
 
 > 本文是项目当前核心逻辑的接手文档。目标不是复述历史设计，而是按当前代码真实链路说明：数据如何进入游戏，hex / region / theater / front / deploy 如何派生，主游戏和地图编辑器如何共同维护同一套地图语义，AI / 玩家命令如何落到规则系统。
 
@@ -22,7 +22,7 @@ MapEditor / JSON 数据
   -> EconomyState 收入 / 生产 / 补员
   -> CourtStrategySummary 政策 / 经济 / 科技 / 军事摘要（可读取战役线压力加权主议）
   -> CourtPanelView 朝议批票 / 朝议争点 / 天下五线态势只读展示
-  -> CourtProjectDomain / CourtProjectKind / Command.enactCourtProject 朝廷四线项目
+  -> CourtProjectDomain / CourtProjectKind / Command.enactCourtProject 朝廷四线项目（UI 只读显示行动状态）
   -> Initial Theater snapshot + runtime hexToTheater
   -> FrontLine 动态 hex 接触
   -> WarDeployment hexToFrontZone + FRONT/DEPTH/GARRISON
@@ -76,7 +76,7 @@ MapEditor / JSON 数据
 - v4.6 府库牌首片中，`EconomyPanelView` 从表格/按钮列表升级为只读府库牌加生产入口，展示民力、银两、粮草库存、本回合入账、军粮维护、补员消耗、收支急报、净民力/银两/粮草、内政钱粮治理摘要、军饷民心只读态势、募兵筹粮和营造队列；“内政钱粮”只读 `GovernanceAISummary.from(faction:map:)`，显示州府、不稳、民变、行政和最低行政州府，“军饷民心”只读 `FactionEconomyLedger`、当前势力未毁部队补给状态和同一治理摘要，派生军伍、缺粮、军饷余势与民心综合，不新增军饷、士气、民心或灾荒规则；募兵筹粮行只读 `FactionEconomyLedger.stockpile`、`ProductionKind.cost`、观战状态和当前 phase，显示“可开工 / 尚缺民力、银两、粮草 / 待本方 / 观战”，生产按钮仍只走 `Command.queueProduction -> CommandValidator -> EconomyRules`，不直接改经济账本。
 - v4.6 天下急势首片中，`DiplomacyPanelView` 从 `DiplomacyState` 和只读 `CourtStrategySummary` 派生顶部“天下急势”、势力战意条、主要对手和政策/经济/科技/军事四线压力；当前增强让朝议/军议主事和重心、国家/阵营 fallback 走 `MingMapLabelFormat`，避免 `ruler_*`、`theater_*`、`ming_court` 等 id 直出；该片只影响 SwiftUI 展示，不改变外交关系、朝廷项目或规则执行。
 - v4.6 朝廷项目首片中，`CourtProjectKind` 将征饷、赈济安民、招抚乡绅、农政屯田、修城固守、整训团练、火器整备、红衣炮维护、粮台驿道收口为一次性项目；玩家从朝廷面板触发 `Command.enactCourtProject(kind:)`，再经 `CommandValidator` 与 `EconomyRules` 执行；招抚乡绅只改善己控地方州府的民变/行政，不直接改变 hex/region 控制或外交关系；农政屯田只提升己控州府粮草与基础设施，不直接补现粮或新增科技树；整训团练作为政策/军事兼线项目，只轻量稳定最多 2 个己控不稳州府并追加 1 回合地方守备队列，不新增持久驻防层或改变控制权；红衣炮维护只校修受损攻城炮队或转入造炮队队列，不新增持久科技树或改变战斗规则权威；粮台驿道只补粮、恢复缺粮部队并整修己控粮道州府基础，不改变 hex 补给路径判定或新增持久科技树。
-- v4.6 四线项目分组首片中，`CourtProjectDomain` 将朝廷项目归入政策、经济、科技、军事四线；`CourtPanelView` 按四线展示压力值、关注点、项目成本收益和风险，后续增强改为读取 `CourtProjectKind.domains`，让农政屯田、红衣炮维护、粮台驿道等交叉项目出现在全部相关线组并以“兼线”标注，不新增持久政策/科技状态。
+- v4.6 四线项目分组首片中，`CourtProjectDomain` 将朝廷项目归入政策、经济、科技、军事四线；`CourtPanelView` 按四线展示压力值、关注点、项目成本收益、风险和行动状态，后续增强改为读取 `CourtProjectKind.domains`，让农政屯田、红衣炮维护、粮台驿道等交叉项目出现在全部相关线组并以“兼线”标注；当前行动状态只读观战、本方行动阶段和库存/成本差额，显示可批、尚缺民力/银两/粮草、待本方或观战，不新增持久政策/科技状态。
 - v4.6 朝议总纲、朝议批票和朝议争点首片中，`CourtPanelView` 继续只读 `CourtStrategySummary`，在朝廷 header 后新增“朝议总纲”扫读区，把主议、推荐项目归属、备议和政策/经济/科技/军事四线压力聚合成奏疏式摘要；后续新增“朝议批票”，把推荐项目、四线最高压力、明末战役最急线、项目成本、收益和风险合成只读票拟摘要，解释本旬为什么批该项目但不自动执行；争点区把安民与征饷、火器与团练、粮道与城防三组冲突做成紧凑摘要，让玩家看到政策、经济、科技、军事之间的取舍；再后续增强又复用 `BattleObjectiveSummary.CampaignLineBrief` 增加只读“天下五线态势”区，让朝议同时扫读天下、政策、经济、科技、军事五线告急状态、压力和急务数量；该片不新增朝廷状态、不改变项目执行链。
 - v4.6 地图标识首片中，`BaseTerrain.displayName` 已切为明末中文地形名；`HexNode` 用“城 / 关 / 粮”badge 标识城池、关隘/堡寨和粮台，并把旧主地图 `FORT`、`SUP A/G` 标记改为“关隘”“粮台”。该变化只影响 SpriteKit 展示，不改补给、占领、战区或经济规则。
 - v4.6 粮道线路首片中，`SupplyRules.supplyPath` 在既有补给通行/成本规则上返回只读 hex 路线；`BoardScene` 仅在默认 hex 图层为玩家势力有有效补给线的军队绘制粮道虚线，路线位于战争迷雾下方，不新增粮道状态、不改变补给判定。
@@ -2152,12 +2152,12 @@ RegionInspectorState
 - `AppContainer.showsSupplyRoutes` 默认开启，只通过 `BoardRenderState` 进入 SpriteKit；`RootGameView` 顶部“粮道”按钮可在 hex 图层开关显示，并用图例标出金色虚线含义。
 - `BoardScene.drawPlannedOperations` 读取 `PlayerCommandState.plannedOperations` 并只显示当前回合、当前 viewer faction 的计划，进取计划显示朱砂箭头和“进”令牌，固守计划显示青绿“守”令牌；它不修改 `PlayerCommandState`，也不触发 `ZoneDirective` 或 `WarCommandExecutor`。
 - `MapDisplayLayer.displayName` 改为舆图、州府、初划、战局、前线、布防；顶部图例条按当前 layer 展示图标、说明和城/关/粮/步/军令计划/粮道符号，只作 SwiftUI 说明，不改变底层 rawValue 或 overlay 计算。
-- `CourtProjectDomain` 目前包含政策、经济、科技、军事四类，`CourtProjectKind` 目前包含征饷、赈济安民、招抚乡绅、农政屯田、修城固守、整训团练、火器整备、红衣炮维护、粮台驿道九项；`CourtPanelView` 按 `CourtProjectKind.domains` 多线展示项目，整训团练显示为政策/军事交叉项目，农政屯田显示为经济/科技交叉项目，红衣炮维护显示为科技/军事交叉项目，粮台驿道显示为经济/科技/军事交叉项目，并在说明中以“兼线”提示这是同一项目的多领域归属。
+- `CourtProjectDomain` 目前包含政策、经济、科技、军事四类，`CourtProjectKind` 目前包含征饷、赈济安民、招抚乡绅、农政屯田、修城固守、整训团练、火器整备、红衣炮维护、粮台驿道九项；`CourtPanelView` 按 `CourtProjectKind.domains` 多线展示项目，整训团练显示为政策/军事交叉项目，农政屯田显示为经济/科技交叉项目，红衣炮维护显示为科技/军事交叉项目，粮台驿道显示为经济/科技/军事交叉项目，并在说明中以“兼线”提示这是同一项目的多领域归属；项目按钮右侧只读显示可批、尚缺民力/银两/粮草、待本方或观战。
 - `CourtCampaignLineSection` 只在明末剧本中读取 `BattleObjectiveSummary.CampaignLineBrief`，展示天下、政策、经济、科技、军事五线压力和当前摘要，不保存状态、不执行任务、不写塘报，也不影响 `CourtStrategySummary` 的主议/备议排序。
 - `CourtCouncilBriefSection` 只在朝廷面板中读取 `CourtStrategySummary.displaySummary`、`recommendedFocus`、`secondaryFocuses`、四线压力和推荐 `CourtProjectKind`，把主议、备议、推荐项目领域与四线压力做成只读“朝议总纲”；它不写入 `GameState`，不改变 `CourtStrategySummary` 排序，不触发朝廷项目，也不影响 `Command.enactCourtProject` 的可用性。
 - `CourtPolicyTicketSection` 只在朝廷面板中读取同一个 `CourtStrategySummary`、推荐 `CourtProjectKind` 和明末 `BattleObjectiveSummary.CampaignLineBrief`，把本旬票拟项目、四线最高压力、战役最急线、成本、收益和风险做成只读“朝议批票”；它不新增朝廷状态，不自动执行项目，不改变 `CourtStrategySummary` 排序、`CourtProjectKind` 成本收益、命令校验、`EconomyRules` 或任何规则权威。
 - `CourtDebateSection` 只在朝廷面板中读取现有压力值、州府数、火器/炮队数和前线数，展示安民与征饷、火器与团练、粮道与城防三组争点，不写入 `GameState`，也不影响 `CourtProjectKind` 的执行可用性。
-- `Command.enactCourtProject(kind:)` 与生产命令同级，`actingDivisionId` 为 nil；校验只允许可行动 phase 且资源足够时执行。
+- `Command.enactCourtProject(kind:)` 与生产命令同级，`actingDivisionId` 为 nil；`CourtPanelView` 的项目行动状态只是 UI 预判和解释，真正校验仍只允许可行动 phase 且资源足够时执行。
 - `EconomyRules.enactCourtProject` 会扣除项目成本、追加即时资源收益，并按项目轻量调整地方治理、州府 infrastructure/supplyValue、生产队列、火器/炮队兵力或缺粮部队状态；农政屯田优先选择己控低粮草/低基础设施州府，提升后续粮草基础，不直接改变库存、控制权或外交关系；整训团练会保留 1 回合地方守备/募营兵队列，并优先对最多 2 个己控不稳州府做地方驻防，轻量降低民变、提高行政掌控，不新增独立治安资源或真实驻防层；红衣炮维护优先给己方受损攻城炮队恢复兵力，没有候选时只追加 1 回合造炮队订单。
 
 仍未完成：

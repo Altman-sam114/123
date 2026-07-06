@@ -30,7 +30,7 @@ struct CourtPanelView: View {
             CourtProjectSection(
                 summary: summary,
                 recommendedProject: CourtProjectKind(focus: summary.recommendedFocus),
-                canEnact: canEnact,
+                actionState: actionState,
                 onEnactProject: onEnactProject
             )
             CourtSecondaryFocusSection(focuses: summary.secondaryFocuses)
@@ -45,11 +45,19 @@ struct CourtPanelView: View {
         .clipShape(RoundedRectangle(cornerRadius: MingDesignTokens.cornerRadius))
     }
 
-    private func canEnact(_ kind: CourtProjectKind) -> Bool {
-        !observerModeEnabled &&
-            gameState.activeFaction == playerFaction &&
-            gameState.phase.allowsHumanCommands &&
-            gameState.economyState.ledger(for: gameState.activeFaction).stockpile.canAfford(kind.cost)
+    private func actionState(for kind: CourtProjectKind) -> CourtProjectActionState {
+        if observerModeEnabled {
+            return .observer
+        }
+        if gameState.activeFaction != playerFaction || !gameState.phase.allowsHumanCommands {
+            return .waitingTurn
+        }
+        let stockpile = gameState.economyState.ledger(for: gameState.activeFaction).stockpile
+        let shortage = stockpile.courtShortageSummary(comparedTo: kind.cost)
+        if !shortage.isEmpty {
+            return .missing(shortage)
+        }
+        return .ready
     }
 }
 
@@ -831,7 +839,7 @@ private struct CourtDebateMetric: View {
 private struct CourtProjectSection: View {
     let summary: CourtStrategySummary
     let recommendedProject: CourtProjectKind
-    let canEnact: (CourtProjectKind) -> Bool
+    let actionState: (CourtProjectKind) -> CourtProjectActionState
     let onEnactProject: (CourtProjectKind) -> Void
 
     var body: some View {
@@ -845,7 +853,7 @@ private struct CourtProjectSection: View {
                     pressure: pressure(for: domain),
                     projects: projects(for: domain),
                     recommendedProject: recommendedProject,
-                    canEnact: canEnact,
+                    actionState: actionState,
                     onEnactProject: onEnactProject
                 )
             }
@@ -879,7 +887,7 @@ private struct CourtProjectDomainGroup: View {
     let pressure: Int
     let projects: [CourtProjectKind]
     let recommendedProject: CourtProjectKind
-    let canEnact: (CourtProjectKind) -> Bool
+    let actionState: (CourtProjectKind) -> CourtProjectActionState
     let onEnactProject: (CourtProjectKind) -> Void
 
     var body: some View {
@@ -902,7 +910,7 @@ private struct CourtProjectDomainGroup: View {
                 CourtProjectRow(
                     project: project,
                     isRecommended: project == recommendedProject,
-                    isEnabled: canEnact(project),
+                    actionState: actionState(project),
                     onEnactProject: onEnactProject
                 )
             }
@@ -916,19 +924,19 @@ private struct CourtProjectDomainGroup: View {
 private struct CourtProjectRow: View {
     let project: CourtProjectKind
     let isRecommended: Bool
-    let isEnabled: Bool
+    let actionState: CourtProjectActionState
     let onEnactProject: (CourtProjectKind) -> Void
 
     var body: some View {
         VStack(alignment: .leading, spacing: 5) {
             Button(action: enactProject) {
-                Label(project.displayName, systemImage: project.systemImageName)
-                    .frame(maxWidth: .infinity, alignment: .leading)
+                projectActionLabel
             }
             .buttonStyle(.bordered)
             .frame(minHeight: MingDesignTokens.minimumTapSize)
-            .disabled(!isEnabled)
-            .accessibilityHint(isRecommended ? "当前主议项目" : project.domainDisplayName)
+            .disabled(!actionState.isEnabled)
+            .accessibilityValue(actionState.title)
+            .accessibilityHint(accessibilityHint)
 
             Text(detailText)
                 .font(.caption)
@@ -945,11 +953,115 @@ private struct CourtProjectRow: View {
         onEnactProject(project)
     }
 
+    private var projectActionLabel: some View {
+        ViewThatFits(in: .horizontal) {
+            HStack(alignment: .center, spacing: 8) {
+                projectNameLabel
+
+                Spacer(minLength: 8)
+
+                actionStatusLabel
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.72)
+            }
+
+            VStack(alignment: .leading, spacing: 4) {
+                projectNameLabel
+                actionStatusLabel
+                    .lineLimit(2)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    private var projectNameLabel: some View {
+        Label(project.displayName, systemImage: project.systemImageName)
+            .lineLimit(1)
+            .minimumScaleFactor(0.78)
+    }
+
+    private var actionStatusLabel: some View {
+        Label(actionState.title, systemImage: actionState.systemImageName)
+            .font(.caption)
+            .foregroundStyle(actionState.tint)
+            .labelStyle(.titleAndIcon)
+    }
+
     private var detailText: String {
         let gain = project.resourceGain.isEmpty ? "" : " / 得 \(project.resourceGain.compactDisplaySummary)"
         let tag = isRecommended ? "主议 / " : ""
         let domainTag = project.domains.count > 1 ? "兼线 \(project.domainDisplayName)" : project.domainDisplayName
         return "\(tag)\(domainTag) / 耗 \(project.cost.compactDisplaySummary)\(gain)。\(project.benefitSummary) 风险：\(project.riskSummary)"
+    }
+
+    private var accessibilityHint: String {
+        isRecommended ? "当前主议项目" : project.domainDisplayName
+    }
+}
+
+private enum CourtProjectActionState {
+    case ready
+    case missing(String)
+    case waitingTurn
+    case observer
+
+    var title: String {
+        switch self {
+        case .ready:
+            return "可批"
+        case let .missing(shortage):
+            return "尚缺 \(shortage)"
+        case .waitingTurn:
+            return "待本方"
+        case .observer:
+            return "观战"
+        }
+    }
+
+    var systemImageName: String {
+        switch self {
+        case .ready:
+            return "checkmark.seal"
+        case .missing:
+            return "exclamationmark.triangle"
+        case .waitingTurn:
+            return "hourglass"
+        case .observer:
+            return "eye"
+        }
+    }
+
+    var tint: Color {
+        switch self {
+        case .ready:
+            return MingDesignTokens.jade
+        case .missing:
+            return MingDesignTokens.cinnabar
+        case .waitingTurn,
+             .observer:
+            return .secondary
+        }
+    }
+
+    var isEnabled: Bool {
+        if case .ready = self {
+            return true
+        }
+        return false
+    }
+}
+
+private extension EconomyResources {
+    func courtShortageSummary(comparedTo cost: EconomyResources) -> String {
+        let deficits: [String] = [
+            cost.manpower > manpower ? "民力" : nil,
+            cost.industry > industry ? "银两" : nil,
+            cost.supplies > supplies ? "粮草" : nil
+        ].compactMap { $0 }
+
+        return deficits
+            .joined(separator: " / ")
     }
 }
 
