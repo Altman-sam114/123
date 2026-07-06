@@ -11,6 +11,7 @@ struct EconomyPanelView: View {
         let ledger = gameState.economyState.ledger(for: faction)
         let governance = GovernanceAISummary.from(faction: faction, map: gameState.map)
         let courtSummary = CourtStrategySummary.from(faction: faction, state: gameState)
+        let objectiveSummary = BattleObjectiveSummary.from(state: gameState)
         let divisions = gameState.divisions.filter { $0.faction == faction && !$0.isDestroyed }
 
         VStack(alignment: .leading, spacing: 10) {
@@ -22,6 +23,11 @@ struct EconomyPanelView: View {
             TreasuryStockpileSection(ledger: ledger)
             TreasuryFlowSection(ledger: ledger)
             TreasuryFourLineSection(ledger: ledger, summary: courtSummary)
+            TreasuryWorldPolicySection(
+                ledger: ledger,
+                courtSummary: courtSummary,
+                objectiveSummary: objectiveSummary
+            )
             TreasuryMilitaryPaySection(
                 ledger: ledger,
                 governance: governance,
@@ -376,6 +382,203 @@ private struct TreasuryFourLineBadge: View {
             Text("\(value)")
                 .font(.caption.bold())
                 .foregroundStyle(value >= 65 ? MingDesignTokens.cinnabar : tint)
+                .lineLimit(1)
+                .minimumScaleFactor(0.72)
+            Text(detail)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .lineLimit(1)
+                .minimumScaleFactor(0.72)
+        }
+        .padding(.horizontal, 7)
+        .padding(.vertical, 6)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(MingDesignTokens.panelBackground.opacity(0.52), in: RoundedRectangle(cornerRadius: 6))
+        .accessibilityElement(children: .combine)
+    }
+}
+
+private struct TreasuryWorldPolicySection: View {
+    let ledger: FactionEconomyLedger
+    let courtSummary: CourtStrategySummary
+    let objectiveSummary: BattleObjectiveSummary
+
+    var body: some View {
+        if objectiveSummary.isMingScenario {
+            VStack(alignment: .leading, spacing: MingDesignTokens.compactSpacing) {
+                HStack(alignment: .firstTextBaseline) {
+                    Label("经世策眼", systemImage: leadingBrief?.line.systemImage ?? "globe.asia.australia")
+                        .font(.caption.bold())
+                        .foregroundStyle(leadingTint)
+                    Spacer(minLength: 8)
+                    Text(courtSummary.recommendedFocus.displayName)
+                        .font(.caption.bold())
+                        .foregroundStyle(leadingTint)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.72)
+                }
+
+                LazyVGrid(columns: [GridItem(.adaptive(minimum: 92), spacing: 6)], alignment: .leading, spacing: 6) {
+                    TreasuryWorldPolicyBadge(
+                        title: "天下",
+                        value: objectiveSummary.leadingFaction?.displayName ?? "未定",
+                        detail: leadingScoreDetail,
+                        systemImageName: "crown",
+                        tint: objectiveSummary.leadingFaction?.mingBannerTint ?? MingDesignTokens.imperialGold
+                    )
+                    TreasuryWorldPolicyBadge(
+                        title: "最急五线",
+                        value: urgentLineTitle,
+                        detail: urgentLineDetail,
+                        systemImageName: leadingBrief?.line.systemImage ?? "scope",
+                        tint: leadingTint
+                    )
+                    TreasuryWorldPolicyBadge(
+                        title: "府库余势",
+                        value: treasuryReserveTitle,
+                        detail: "粮 \(ledger.stockpile.supplies)",
+                        systemImageName: "shippingbox",
+                        tint: treasuryReserveTint
+                    )
+                    TreasuryWorldPolicyBadge(
+                        title: "本旬取舍",
+                        value: courtSummary.recommendedFocus.displayName,
+                        detail: secondaryFocusDetail,
+                        systemImageName: courtSummary.recommendedFocus.systemImageName,
+                        tint: leadingTint
+                    )
+                }
+
+                Text(worldMinute)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            .padding(MingDesignTokens.compactSpacing)
+            .background(MingDesignTokens.sectionBackground)
+            .clipShape(RoundedRectangle(cornerRadius: MingDesignTokens.cornerRadius))
+            .accessibilityElement(children: .combine)
+        }
+    }
+
+    private var leadingBrief: BattleObjectiveSummary.CampaignLineBrief? {
+        objectiveSummary.lineBriefs
+            .sorted {
+                if $0.status != $1.status {
+                    return statusRank($0.status) < statusRank($1.status)
+                }
+                return $0.pressure > $1.pressure
+            }
+            .first
+    }
+
+    private var leadingScoreDetail: String {
+        guard let faction = objectiveSummary.leadingFaction,
+              let row = objectiveSummary.scoreRows.first(where: { $0.faction == faction }) else {
+            return "要冲未分"
+        }
+        return "\(row.points) 分 / \(row.objectiveCount) 处"
+    }
+
+    private var urgentLineTitle: String {
+        guard let leadingBrief else {
+            return "暂无"
+        }
+        return leadingBrief.line.displayName
+    }
+
+    private var urgentLineDetail: String {
+        guard let leadingBrief else {
+            return "五线未启"
+        }
+        return "\(leadingBrief.status.displayName) · 势 \(leadingBrief.pressure)"
+    }
+
+    private var treasuryReserveTitle: String {
+        if ledger.stockpile.supplies < max(1, ledger.lastUpkeep.supplies) {
+            return "粮紧"
+        }
+        if ledger.stockpile.industry < 20 {
+            return "银紧"
+        }
+        return "可支"
+    }
+
+    private var treasuryReserveTint: Color {
+        switch treasuryReserveTitle {
+        case "粮紧", "银紧":
+            return MingDesignTokens.cinnabar
+        default:
+            return MingDesignTokens.jade
+        }
+    }
+
+    private var leadingTint: Color {
+        guard let leadingBrief else {
+            return MingDesignTokens.imperialGold
+        }
+        switch leadingBrief.line {
+        case .world:
+            return MingDesignTokens.cinnabar
+        case .policy:
+            return MingDesignTokens.porcelainBlue
+        case .economy:
+            return MingDesignTokens.jade
+        case .technology:
+            return MingDesignTokens.imperialGold
+        case .military:
+            return MingDesignTokens.ink
+        }
+    }
+
+    private var secondaryFocusDetail: String {
+        let secondary = courtSummary.secondaryFocuses
+            .prefix(2)
+            .map(\.displayName)
+            .joined(separator: "、")
+        return secondary.isEmpty ? "无备议" : "备 \(secondary)"
+    }
+
+    private var worldMinute: String {
+        let urgentClause: String
+        if let leadingBrief {
+            urgentClause = "\(leadingBrief.line.displayName) \(leadingBrief.status.displayName)"
+        } else {
+            urgentClause = "五线未启"
+        }
+        return "经世会看：要冲分、粮道、地方治理与府库余势同判；当前 \(urgentClause)，主议 \(courtSummary.recommendedFocus.displayName)，只作票拟提醒，不自动下令。"
+    }
+
+    private func statusRank(_ status: BattleObjectiveSummary.CampaignStageStatus) -> Int {
+        switch status {
+        case .warning:
+            return 0
+        case .focus:
+            return 1
+        case .watch:
+            return 2
+        case .achieved:
+            return 3
+        }
+    }
+}
+
+private struct TreasuryWorldPolicyBadge: View {
+    let title: String
+    let value: String
+    let detail: String
+    let systemImageName: String
+    let tint: Color
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 3) {
+            Label(title, systemImage: systemImageName)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .lineLimit(1)
+            Text(value)
+                .font(.caption.bold())
+                .foregroundStyle(tint)
                 .lineLimit(1)
                 .minimumScaleFactor(0.72)
             Text(detail)
