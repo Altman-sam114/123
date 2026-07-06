@@ -27,6 +27,7 @@ struct RegionInspectorView: View {
         return VStack(alignment: .leading, spacing: 8) {
             RegionMandateHeader(state: state)
             RegionPrimaryValueSection(state: state, occupation: occupation)
+            RegionFourLineSection(state: state, occupation: occupation)
             RegionGovernanceSection(occupation: occupation)
             RegionYieldSection(state: state, occupation: occupation)
             RegionFrontSection(state: state)
@@ -241,6 +242,131 @@ private struct RegionPrimaryValueSection: View {
                 tint: state.frontPressureTint
             )
         ]
+    }
+}
+
+private struct RegionFourLineSection: View {
+    let state: RegionInspectorState
+    let occupation: OccupationState
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: MingDesignTokens.compactSpacing) {
+            HStack(alignment: .top, spacing: 8) {
+                Label("州府四线牵引", systemImage: "square.grid.2x2")
+                    .font(.caption.bold())
+                    .foregroundStyle(MingDesignTokens.cinnabar)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.78)
+
+                Spacer(minLength: 8)
+
+                Text(summary)
+                    .font(.caption.bold())
+                    .foregroundStyle(summaryTint)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.72)
+                    .padding(.horizontal, 7)
+                    .padding(.vertical, 4)
+                    .background(summaryTint.opacity(0.12), in: RoundedRectangle(cornerRadius: 6))
+            }
+
+            LazyVGrid(columns: [GridItem(.adaptive(minimum: 126), spacing: 6)], alignment: .leading, spacing: 6) {
+                ForEach(signals) { signal in
+                    RegionValueChip(signal: signal)
+                }
+            }
+        }
+        .padding(MingDesignTokens.compactSpacing)
+        .background(MingDesignTokens.sectionBackground)
+        .clipShape(RoundedRectangle(cornerRadius: MingDesignTokens.cornerRadius))
+        .accessibilityElement(children: .combine)
+    }
+
+    private var summary: String {
+        if !state.objectiveNames.isEmpty {
+            return "要冲在案"
+        }
+        if state.frontPressure > 0 {
+            return "前线牵动"
+        }
+        if occupation.resistance >= 30 || occupation.compliance < 55 {
+            return "先稳地方"
+        }
+        return "政粮械兵"
+    }
+
+    private var summaryTint: Color {
+        if !state.objectiveNames.isEmpty || state.frontPressure >= 3 {
+            return MingDesignTokens.cinnabar
+        }
+        if state.frontPressure > 0 || occupation.resistance >= 30 || occupation.compliance < 55 {
+            return MingDesignTokens.imperialGold
+        }
+        return MingDesignTokens.jade
+    }
+
+    private var signals: [RegionValueSignal] {
+        [
+            RegionValueSignal(
+                title: "政策",
+                detail: policyDetail,
+                badge: "民变 \(occupation.resistance) / 行政 \(occupation.compliance)",
+                systemImageName: "scroll",
+                tint: occupation.governanceTint
+            ),
+            RegionValueSignal(
+                title: "经济",
+                detail: "银两 \(state.economicOutput.industry)，粮台 \(state.region.supplyValue)，修正 \(occupation.economicYieldPercent)%。",
+                badge: "民力 \(state.economicOutput.manpower) / 粮 \(state.economicOutput.supplies)",
+                systemImageName: "shippingbox",
+                tint: MingDesignTokens.imperialGold
+            ),
+            RegionValueSignal(
+                title: "科技",
+                detail: technologyDetail,
+                badge: "工 \(state.region.factories) / 驿 \(state.region.infrastructure)",
+                systemImageName: "hammer",
+                tint: MingDesignTokens.porcelainBlue
+            ),
+            RegionValueSignal(
+                title: "军事",
+                detail: militaryDetail,
+                badge: "压 \(pressureBadge) / 友 \(state.friendlyDivisions.count)",
+                systemImageName: "shield.lefthalf.filled",
+                tint: state.frontPressureTint
+            )
+        ]
+    }
+
+    private var policyDetail: String {
+        if occupation.resistance >= 30 || occupation.compliance < 55 {
+            return "宜赈济、招抚或团练，先压民变再承征饷。"
+        }
+        return "行政尚稳，可承接征饷、守备和地方营造。"
+    }
+
+    private var technologyDetail: String {
+        if state.region.factories > 0 {
+            return "工坊可作火器、炮队和军械支点。"
+        }
+        if state.region.infrastructure > 0 {
+            return "驿道利转运、修城和粮道整备。"
+        }
+        return "军械根基薄，仍需朝廷营造。"
+    }
+
+    private var militaryDetail: String {
+        if !state.objectiveNames.isEmpty {
+            return "\(state.objectiveNames.displaySummary)：\(state.objectiveStatus)。敌情 \(state.visibleEnemyDivisions.count) 支。"
+        }
+        if state.frontPressure > 0 {
+            return "\(state.frontPressureDisplay)，敌情 \(state.visibleEnemyDivisions.count) 支。"
+        }
+        return "暂无要冲压力，适合整补、筹粮或稳住地方。"
+    }
+
+    private var pressureBadge: String {
+        state.frontPressure <= 0 ? "0" : state.frontPressure.formatted(.number.precision(.fractionLength(1)))
     }
 }
 
