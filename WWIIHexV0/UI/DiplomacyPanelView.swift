@@ -123,14 +123,14 @@ struct DiplomacyPanelView: View {
             Text("朝议/军议")
                 .font(.subheadline.weight(.semibold))
             LabeledContent("主事") {
-                Text(record.rulerAgentId)
+                Text(MingMapLabelFormat.agentTitle(record.rulerAgentId))
             }
             LabeledContent("态势") {
                 Text(record.posture.displayName)
             }
             if let zoneId = record.preferredFrontZoneId {
                 LabeledContent("重心") {
-                    Text(zoneId.rawValue)
+                    Text(MingMapLabelFormat.frontZoneTitle(zoneId))
                 }
             }
             Text(record.rationale)
@@ -199,7 +199,7 @@ struct DiplomacyPanelView: View {
     }
 
     private func countryName(for countryId: CountryId) -> String {
-        diplomacyState.countries.first { $0.id == countryId }?.name ?? countryId.rawValue
+        diplomacyState.countries.first { $0.id == countryId }?.name ?? MingMapLabelFormat.countryTitle(countryId)
     }
 
     private func country(for countryId: CountryId) -> CountryProfile? {
@@ -207,7 +207,7 @@ struct DiplomacyPanelView: View {
     }
 
     private func blocName(for blocId: DiplomaticBlocId) -> String {
-        diplomacyState.blocs.first { $0.id == blocId }?.name ?? blocId.rawValue
+        diplomacyState.blocs.first { $0.id == blocId }?.name ?? MingMapLabelFormat.blocTitle(blocId)
     }
 
     private func statusColor(for status: DiplomaticStatus) -> Color {
@@ -287,7 +287,7 @@ private struct DiplomaticRelationRow: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
             HStack(alignment: .center, spacing: 8) {
-                relationSide(country: firstCountry, fallback: relation.firstCountryId.rawValue)
+                relationSide(country: firstCountry, fallback: MingMapLabelFormat.countryTitle(relation.firstCountryId))
 
                 Image(systemName: relation.status.isHostile ? "bolt.horizontal.fill" : "arrow.left.arrow.right")
                     .font(.caption.bold())
@@ -295,7 +295,7 @@ private struct DiplomaticRelationRow: View {
                     .frame(width: 20)
                     .accessibilityHidden(true)
 
-                relationSide(country: secondCountry, fallback: relation.secondCountryId.rawValue)
+                relationSide(country: secondCountry, fallback: MingMapLabelFormat.countryTitle(relation.secondCountryId))
 
                 Spacer(minLength: 8)
 

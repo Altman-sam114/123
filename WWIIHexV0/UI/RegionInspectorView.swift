@@ -240,8 +240,8 @@ private struct RegionFrontSection: View {
             }
 
             Grid(alignment: .leading, horizontalSpacing: 10, verticalSpacing: 5) {
-                RegionInfoRow(label: "方面", value: state.theaterId?.rawValue ?? "无")
-                RegionInfoRow(label: "防区", value: state.frontZoneId?.rawValue ?? "无")
+                RegionInfoRow(label: "方面", value: MingMapLabelFormat.theaterTitle(state.theaterId))
+                RegionInfoRow(label: "防区", value: MingMapLabelFormat.frontZoneTitle(state.frontZoneId))
                 RegionInfoRow(label: "目标", value: state.objectiveNames.displaySummary)
                 RegionInfoRow(label: "目标状态", value: state.objectiveStatus)
                 RegionInfoRow(label: "友军", value: state.friendlyDivisions.unitDisplaySummary)
@@ -266,15 +266,15 @@ private struct SelectedHexSection: View {
                 .font(.caption.bold())
 
             Grid(alignment: .leading, horizontalSpacing: 10, verticalSpacing: 5) {
-                RegionInfoRow(label: "坐标", value: "\(selectedHex.q),\(selectedHex.r)")
+                RegionInfoRow(label: "格位", value: MingMapLabelFormat.coordinate(selectedHex))
                 GridRow {
                     Text("控制")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                     HexControllerValue(controller: controller)
                 }
-                RegionInfoRow(label: "方面", value: dynamicTheaterId?.rawValue ?? "无")
-                RegionInfoRow(label: "防区", value: frontZoneId?.rawValue ?? "无")
+                RegionInfoRow(label: "方面", value: MingMapLabelFormat.theaterTitle(dynamicTheaterId))
+                RegionInfoRow(label: "防区", value: MingMapLabelFormat.frontZoneTitle(frontZoneId))
             }
         }
         .padding(MingDesignTokens.compactSpacing)

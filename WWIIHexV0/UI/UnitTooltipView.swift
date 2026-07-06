@@ -270,7 +270,7 @@ private extension Division {
     }
 
     var tooltipCoordText: String {
-        "舆图 \(coord.q),\(coord.r)"
+        MingMapLabelFormat.coordinate(coord)
     }
 
     var tooltipActionText: String {
@@ -278,14 +278,14 @@ private extension Division {
             return "已溃"
         }
         if isRetreating {
-            return "退中"
+            return "退守中"
         }
         return canAct ? "待令" : "已行"
     }
 
     var tooltipRetreatText: String {
         if isRetreating {
-            return "退守\(retreatTurnsRemaining)"
+            return "余 \(retreatTurnsRemaining) 旬"
         }
         return retreatMode.tooltipDisplayName
     }

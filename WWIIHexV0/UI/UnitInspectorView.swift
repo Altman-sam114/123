@@ -65,10 +65,10 @@ private struct UnitCommandHeader: View {
                     .lineLimit(2)
                     .fixedSize(horizontal: false, vertical: true)
 
-                Text("\(division.faction.displayName) / \(division.commandRoleName)")
+                Text("\(division.faction.displayName)旗下 · \(division.commandRoleName)")
                     .font(.caption)
                     .foregroundStyle(.secondary)
-                    .lineLimit(1)
+                    .lineLimit(2)
                     .minimumScaleFactor(0.78)
             }
 
@@ -76,7 +76,7 @@ private struct UnitCommandHeader: View {
 
             UnitStatusChip(
                 title: "控制",
-                value: division.faction == playerFaction ? "玩家" : "只读",
+                value: division.faction == playerFaction ? "本方可调" : "他方军情",
                 tint: division.faction == playerFaction ? MingDesignTokens.jade : .secondary
             )
         }
@@ -322,12 +322,12 @@ private struct UnitPositionSection: View {
                 .font(.caption.bold())
 
             Grid(alignment: .leading, horizontalSpacing: 10, verticalSpacing: 5) {
-                UnitPositionRow(label: "坐标", value: "\(strategicState.coord.q),\(strategicState.coord.r)")
-                UnitPositionRow(label: "州府", value: strategicState.regionId?.rawValue ?? "无")
-                UnitPositionRow(label: "方面", value: strategicState.dynamicTheaterId?.rawValue ?? "无")
-                UnitPositionRow(label: "防区", value: strategicState.frontZoneId?.rawValue ?? "无")
+                UnitPositionRow(label: "格位", value: MingMapLabelFormat.coordinate(strategicState.coord))
+                UnitPositionRow(label: "州府", value: MingMapLabelFormat.regionTitle(strategicState.regionId))
+                UnitPositionRow(label: "方面", value: MingMapLabelFormat.theaterTitle(strategicState.dynamicTheaterId))
+                UnitPositionRow(label: "防区", value: MingMapLabelFormat.frontZoneTitle(strategicState.frontZoneId))
                 UnitPositionRow(label: "部署", value: strategicState.deploymentRole.displayName)
-                UnitPositionRow(label: "前线", value: strategicState.frontLineIds.displaySummary)
+                UnitPositionRow(label: "前线", value: MingMapLabelFormat.frontLineSummary(strategicState.frontLineIds))
             }
         }
         .padding(MingDesignTokens.compactSpacing)
@@ -471,7 +471,7 @@ private extension Division {
             return "军伍已溃，当前只能作为战损塘报和复盘依据。"
         }
         if isRetreating {
-            let target = retreatTarget.map { "\($0.q),\($0.r)" } ?? "后方"
+            let target = retreatTarget.map(MingMapLabelFormat.coordinate) ?? "后方格位"
             return "部队正在向 \(target) 退守，剩余 \(retreatTurnsRemaining) 旬；应先稳住粮道与兵力。"
         }
         if supplyState == .encircled {
@@ -680,7 +680,7 @@ private extension UnitDeploymentRole {
 
 private extension Array where Element == FrontLineId {
     var displaySummary: String {
-        isEmpty ? "无" : map(\.rawValue).joined(separator: ", ")
+        MingMapLabelFormat.frontLineSummary(self)
     }
 }
 
