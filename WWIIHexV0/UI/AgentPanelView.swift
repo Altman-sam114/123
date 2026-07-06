@@ -30,6 +30,7 @@ struct AgentPanelView: View {
 
             decisionSection
             AgentCampaignSituationSection(summary: campaignSummary)
+            AgentDoctrineCompareSection(summary: campaignSummary)
 
             if let rulerRecord {
                 AgentRulerCard(record: rulerRecord)
@@ -420,6 +421,87 @@ private struct AgentRulerCard: View {
             return "不变"
         }
         return record.reserveBias > 0 ? "+\(record.reserveBias)" : "\(record.reserveBias)"
+    }
+}
+
+private struct AgentDoctrineCompareSection: View {
+    let summary: CampaignAISummary
+
+    var body: some View {
+        if summary.isMingScenario {
+            AgentSectionCard(title: "诸势军略", systemImage: "person.3.sequence", tint: MingDesignTokens.imperialGold) {
+                VStack(alignment: .leading, spacing: MingDesignTokens.compactSpacing) {
+                    Text("军机会看诸方性情：明廷谨守京畿粮道，清方旗骑合围，大顺破城扩粮，大西流动夺粮，地方团练自保。")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+
+                    LazyVGrid(columns: [GridItem(.adaptive(minimum: 132), spacing: 6)], alignment: .leading, spacing: 6) {
+                        ForEach(Faction.mingLaunchCases, id: \.self) { faction in
+                            AgentDoctrineCompareTile(faction: faction)
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+private struct AgentDoctrineCompareTile: View {
+    let faction: Faction
+
+    private var doctrine: ZoneCommanderDoctrine {
+        ZoneCommanderDoctrine.profile(for: faction)
+    }
+
+    private var skillText: String {
+        doctrine.skills
+            .prefix(2)
+            .map(AgentPanelFormat.doctrineSkillText)
+            .joined(separator: " / ")
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 5) {
+            HStack(alignment: .center, spacing: 6) {
+                MingFactionFlagBadge(faction: faction)
+
+                VStack(alignment: .leading, spacing: 1) {
+                    Text(faction.displayName)
+                        .font(.caption.bold())
+                        .foregroundStyle(doctrine.commandStyle.agentPanelTint)
+                        .lineLimit(1)
+                    Text(doctrine.commandStyle.agentPanelDisplayName)
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                }
+
+                Spacer(minLength: 4)
+            }
+
+            Text(doctrine.title)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .lineLimit(1)
+                .minimumScaleFactor(0.76)
+
+            Text(skillText)
+                .font(.caption.bold())
+                .foregroundStyle(doctrine.commandStyle.agentPanelTint)
+                .lineLimit(1)
+                .minimumScaleFactor(0.72)
+
+            Text(AgentPanelFormat.doctrineTacticBiasText(for: faction))
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .lineLimit(2)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .padding(8)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(MingDesignTokens.panelBackground.opacity(0.58), in: RoundedRectangle(cornerRadius: 6))
+        .accessibilityElement(children: .combine)
     }
 }
 
