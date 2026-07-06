@@ -12,6 +12,10 @@ struct CourtPanelView: View {
 
         VStack(alignment: .leading, spacing: MingDesignTokens.sectionSpacing) {
             CourtHeaderView(faction: gameState.activeFaction, focus: summary.recommendedFocus)
+            CourtCouncilBriefSection(
+                summary: summary,
+                recommendedProject: CourtProjectKind(focus: summary.recommendedFocus)
+            )
             CourtRationaleView(summary: summary)
             CourtCampaignLineSection(
                 briefs: objectiveSummary.isMingScenario ? objectiveSummary.lineBriefs : []
@@ -90,6 +94,161 @@ private struct CourtRationaleView: View {
         .padding(MingDesignTokens.panelPadding)
         .background(MingDesignTokens.sectionBackground)
         .clipShape(RoundedRectangle(cornerRadius: MingDesignTokens.cornerRadius))
+    }
+}
+
+private struct CourtCouncilBriefSection: View {
+    let summary: CourtStrategySummary
+    let recommendedProject: CourtProjectKind
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: MingDesignTokens.compactSpacing) {
+            HStack(alignment: .top, spacing: 10) {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("朝议总纲")
+                        .font(.subheadline.bold())
+                        .foregroundStyle(MingDesignTokens.ink)
+
+                    Text("主议 \(summary.recommendedFocus.displayName) · \(recommendedProject.domainDisplayName)")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.78)
+                }
+
+                Spacer(minLength: 8)
+
+                CourtCouncilSeal(title: leadingDomain.displayName, value: leadingPressure, tint: leadingDomain.tint)
+            }
+
+            Text(summary.displaySummary)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+
+            LazyVGrid(columns: [GridItem(.adaptive(minimum: 94), spacing: 6)], alignment: .leading, spacing: 6) {
+                ForEach(signals) { signal in
+                    CourtCouncilPressureChip(signal: signal)
+                }
+            }
+        }
+        .padding(MingDesignTokens.compactSpacing)
+        .background(MingDesignTokens.sectionBackground, in: RoundedRectangle(cornerRadius: MingDesignTokens.cornerRadius))
+        .overlay {
+            RoundedRectangle(cornerRadius: MingDesignTokens.cornerRadius)
+                .stroke(leadingDomain.tint.opacity(0.26), lineWidth: 1)
+        }
+        .accessibilityElement(children: .combine)
+    }
+
+    private var signals: [CourtCouncilPressureSignal] {
+        CourtProjectDomain.allCases.map { domain in
+            CourtCouncilPressureSignal(
+                domain: domain,
+                value: pressure(for: domain),
+                isPrimary: recommendedProject.domains.contains(domain)
+            )
+        }
+    }
+
+    private var leadingDomain: CourtProjectDomain {
+        signals.max {
+            if $0.value == $1.value {
+                return $0.domain.rawValue > $1.domain.rawValue
+            }
+            return $0.value < $1.value
+        }?.domain ?? recommendedProject.primaryDomain
+    }
+
+    private var leadingPressure: Int {
+        pressure(for: leadingDomain)
+    }
+
+    private func pressure(for domain: CourtProjectDomain) -> Int {
+        switch domain {
+        case .policy:
+            return summary.policyPressure
+        case .economy:
+            return summary.economyPressure
+        case .technology:
+            return summary.technologyPressure
+        case .military:
+            return summary.militaryPressure
+        }
+    }
+}
+
+private struct CourtCouncilPressureSignal: Identifiable {
+    let domain: CourtProjectDomain
+    let value: Int
+    let isPrimary: Bool
+
+    var id: CourtProjectDomain {
+        domain
+    }
+}
+
+private struct CourtCouncilSeal: View {
+    let title: String
+    let value: Int
+    let tint: Color
+
+    var body: some View {
+        VStack(spacing: 2) {
+            Text(title)
+                .font(.caption2)
+                .foregroundStyle(.secondary)
+                .lineLimit(1)
+            Text("\(value)")
+                .font(.subheadline.bold().monospacedDigit())
+                .foregroundStyle(tint)
+                .lineLimit(1)
+        }
+        .padding(.horizontal, 8)
+        .padding(.vertical, 6)
+        .frame(minWidth: 54)
+        .background(MingDesignTokens.panelBackground.opacity(0.66), in: RoundedRectangle(cornerRadius: 6))
+    }
+}
+
+private struct CourtCouncilPressureChip: View {
+    let signal: CourtCouncilPressureSignal
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            HStack(spacing: 4) {
+                Label(signal.domain.displayName, systemImage: signal.domain.systemImageName)
+                    .font(.caption2.bold())
+                    .foregroundStyle(signal.domain.tint)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.78)
+
+                Spacer(minLength: 4)
+
+                if signal.isPrimary {
+                    Text("主")
+                        .font(.caption2.bold())
+                        .foregroundStyle(MingDesignTokens.cinnabar)
+                        .lineLimit(1)
+                }
+            }
+
+            ProgressView(value: Double(signal.value), total: 100)
+                .tint(signal.domain.tint)
+
+            Text("势 \(signal.value)")
+                .font(.caption2.monospacedDigit())
+                .foregroundStyle(.secondary)
+                .lineLimit(1)
+        }
+        .padding(.horizontal, 7)
+        .padding(.vertical, 6)
+        .frame(maxWidth: .infinity, minHeight: 58, alignment: .leading)
+        .background(MingDesignTokens.panelBackground.opacity(signal.isPrimary ? 0.78 : 0.52), in: RoundedRectangle(cornerRadius: 6))
+        .overlay {
+            RoundedRectangle(cornerRadius: 6)
+                .stroke(signal.domain.tint.opacity(signal.isPrimary ? 0.42 : 0.18), lineWidth: 1)
+        }
     }
 }
 
