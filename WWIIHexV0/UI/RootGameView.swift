@@ -304,6 +304,13 @@ private struct MingMapSituationStrip: View {
                     leadingFaction: summary.leadingFaction
                 )
 
+                if let highlightedTask {
+                    MingMapFirstMoveCue(
+                        task: highlightedTask,
+                        target: highlightedTarget
+                    )
+                }
+
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: 6) {
                         ForEach(lineBriefs) { brief in
@@ -350,8 +357,34 @@ private struct MingMapSituationStrip: View {
         summary.tasks.filter { $0.priority == .main }.count
     }
 
+    private var highlightedTask: BattleObjectiveSummary.CampaignTask? {
+        summary.tasks.sorted { lhs, rhs in
+            if lhs.priority.sortRank == rhs.priority.sortRank {
+                let lhsPressure = pressure(for: lhs.line)
+                let rhsPressure = pressure(for: rhs.line)
+                if lhsPressure == rhsPressure {
+                    return lhs.title < rhs.title
+                }
+                return lhsPressure > rhsPressure
+            }
+            return lhs.priority.sortRank < rhs.priority.sortRank
+        }
+        .first
+    }
+
+    private var highlightedTarget: BattleObjectiveSummary.Target? {
+        guard let targetObjectiveId = highlightedTask?.targetObjectiveId else { return nil }
+        return summary.tracks.flatMap(\.targets).first { target in
+            target.objectiveId == targetObjectiveId
+        }
+    }
+
     private var leaderName: String {
         summary.leadingFaction?.displayName ?? "未定"
+    }
+
+    private func pressure(for line: BattleObjectiveSummary.CampaignLine) -> Int {
+        summary.lineBriefs.first { $0.line == line }?.pressure ?? 0
     }
 }
 
@@ -387,6 +420,102 @@ private struct MingMapObjectiveScoreStrip: View {
             "\(row.faction.displayName)\(row.points)分\(row.objectiveCount)处"
         }
         .joined(separator: "，")
+    }
+}
+
+private struct MingMapFirstMoveCue: View {
+    let task: BattleObjectiveSummary.CampaignTask
+    let target: BattleObjectiveSummary.Target?
+
+    var body: some View {
+        HStack(alignment: .center, spacing: 8) {
+            Image(systemName: task.priority.systemImage)
+                .font(.caption.bold())
+                .foregroundStyle(tint)
+                .frame(width: 18)
+                .accessibilityHidden(true)
+
+            VStack(alignment: .leading, spacing: 4) {
+                HStack(spacing: 6) {
+                    Text("本旬先手")
+                        .font(.caption.bold())
+                        .foregroundStyle(MingDesignTokens.ink)
+                        .lineLimit(1)
+
+                    Text("\(task.line.displayName) · \(task.priority.displayName)")
+                        .font(.caption2.bold())
+                        .foregroundStyle(tint)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.82)
+                }
+
+                Text(task.title)
+                    .font(.caption.bold())
+                    .foregroundStyle(MingDesignTokens.ink)
+                    .lineLimit(2)
+                    .fixedSize(horizontal: false, vertical: true)
+
+                HStack(spacing: 6) {
+                    if let target {
+                        if let controller = target.controller {
+                            MingFactionFlagBadge(faction: controller)
+                        }
+
+                        Text(target.name)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.76)
+
+                        Text(target.controllerName)
+                            .font(.caption2.bold())
+                            .foregroundStyle(target.controller?.mingBannerTint ?? .secondary)
+                            .lineLimit(1)
+
+                        Text("\(target.points) 分")
+                            .font(.caption2.monospacedDigit().bold())
+                            .foregroundStyle(MingDesignTokens.imperialGold)
+                            .lineLimit(1)
+                    } else {
+                        Text(task.detail)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.76)
+                    }
+                }
+            }
+
+            Spacer(minLength: 0)
+        }
+        .padding(.horizontal, 8)
+        .padding(.vertical, 7)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(MingDesignTokens.panelBackground.opacity(0.7), in: RoundedRectangle(cornerRadius: 6))
+        .overlay {
+            RoundedRectangle(cornerRadius: 6)
+                .stroke(tint.opacity(0.28), lineWidth: 1)
+        }
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel(accessibilityText)
+    }
+
+    private var tint: Color {
+        switch task.priority {
+        case .urgent:
+            return MingDesignTokens.cinnabar
+        case .main:
+            return MingDesignTokens.jade
+        case .watch:
+            return MingDesignTokens.porcelainBlue
+        }
+    }
+
+    private var accessibilityText: String {
+        if let target {
+            return "本旬先手，\(task.line.displayName)线，\(task.priority.displayName)，\(task.title)，目标 \(target.name)，当前 \(target.controllerName)，\(target.points) 分"
+        }
+        return "本旬先手，\(task.line.displayName)线，\(task.priority.displayName)，\(task.title)，\(task.detail)"
     }
 }
 
