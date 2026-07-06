@@ -137,6 +137,8 @@ struct CommandPanelView: View {
                 .foregroundStyle(.secondary)
                 .frame(maxWidth: .infinity, alignment: .leading)
 
+            CommandMapOrderHint(text: mapOrderHintText)
+
             LazyVGrid(columns: commandActionColumns, alignment: .leading, spacing: 6) {
                 CommandActionButton(
                     title: "固守",
@@ -247,6 +249,37 @@ struct CommandPanelView: View {
         return "可移动或攻击。"
     }
 
+    private var mapOrderHintText: String {
+        if observerModeEnabled {
+            return "观察模式只可阅军情，不能在舆图落子。"
+        }
+
+        guard let selectedDivision else {
+            return "先点选己方军牌；调动或攻击在舆图上点目标格。"
+        }
+
+        guard selectedDivision.faction == playerFaction else {
+            return "敌军只供观测；请改点本方军牌再下令。"
+        }
+
+        guard activeFaction == playerFaction, phase.allowsHumanCommands else {
+            return "待本方行令阶段，再在舆图点目标格调动或攻击。"
+        }
+
+        guard !selectedDivision.hasActed else {
+            return "该军本旬已行；可阅军情，不能再落子。"
+        }
+
+        switch selectedDivision.supplyState {
+        case .encircled:
+            return "被围断粮：宜先固守或补给；调动与攻击仍在舆图点目标格。"
+        case .lowSupply:
+            return "粮草偏紧：可先补给，或在舆图点近处格位稳线。"
+        case .supplied:
+            return "调动、攻击请在舆图点目标格；固守、准退、补给在此牌批令。"
+        }
+    }
+
     private var readinessTitle: String {
         if observerModeEnabled {
             return "观战"
@@ -281,6 +314,35 @@ struct CommandPanelView: View {
 
     private var commandActionColumns: [GridItem] {
         [GridItem(.adaptive(minimum: 96), spacing: 6, alignment: .leading)]
+    }
+}
+
+private struct CommandMapOrderHint: View {
+    let text: String
+
+    var body: some View {
+        HStack(alignment: .top, spacing: 7) {
+            Image(systemName: "mappin.and.ellipse")
+                .font(.caption.bold())
+                .foregroundStyle(MingDesignTokens.porcelainBlue)
+                .frame(width: 18, height: 18)
+                .accessibilityHidden(true)
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text("舆图军令")
+                    .font(.caption.bold())
+                    .foregroundStyle(MingDesignTokens.porcelainBlue)
+                Text(text)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.horizontal, 8)
+        .padding(.vertical, 7)
+        .background(MingDesignTokens.panelBackground.opacity(0.5), in: RoundedRectangle(cornerRadius: 6))
+        .accessibilityElement(children: .combine)
     }
 }
 
@@ -456,6 +518,6 @@ private extension SupplyState {
 
 private extension HexCoord {
     var commandPanelDisplayName: String {
-        "\(q), \(r)"
+        MingMapLabelFormat.coordinate(self)
     }
 }
