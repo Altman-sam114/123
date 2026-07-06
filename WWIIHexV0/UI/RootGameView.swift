@@ -483,7 +483,7 @@ private enum CompactInfoPanel: String, CaseIterable, Identifiable {
     case court = "朝廷"
     case objective = "目标"
     case diplomacy = "天下"
-    case agent = "AI"
+    case agent = "军机"
 
     var id: String {
         rawValue

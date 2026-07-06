@@ -41,10 +41,14 @@ struct SupplyRules {
 
         if hpRecovered > 0 {
             state.appendEvent(
-                "\(after.name) reinforced in \(after.supplyState.rawValue): +\(hpRecovered) strength."
+                "\(after.name)就地补给，粮草状态\(after.supplyState.reportDisplayName)，兵力 +\(hpRecovered)。",
+                category: .reinforce
             )
         } else {
-            state.appendEvent("\(after.name) could not recover while \(after.supplyState.rawValue).")
+            state.appendEvent(
+                "\(after.name)当前\(after.supplyState.reportDisplayName)，暂不能恢复兵力。",
+                category: after.supplyState == .supplied ? .reinforce : .supply
+            )
         }
     }
 
@@ -62,12 +66,14 @@ struct SupplyRules {
             }
             state.divisions[index].beginRetreat(to: destination)
             state.appendEvent(
-                "\(division.name) retreated from \(origin.q),\(origin.r) to \(destination.q),\(destination.r)."
+                "\(division.name)自舆图格 \(origin.q),\(origin.r) 退守至 \(destination.q),\(destination.r)。",
+                category: .retreat
             )
         } else {
             state.divisions[index].hp = max(1, state.divisions[index].hp - failedRetreatHPLoss)
             state.appendEvent(
-                "\(division.name) failed to retreat and lost \(failedRetreatHPLoss) strength."
+                "\(division.name)退守失败，兵力 -\(failedRetreatHPLoss)。",
+                category: .retreat
             )
         }
     }
@@ -91,7 +97,8 @@ struct SupplyRules {
             let hpLost = beforeHP - state.divisions[index].hp
             if hpLost > 0 {
                 state.appendEvent(
-                    "\(state.divisions[index].name) suffered encirclement attrition: -\(hpLost) strength."
+                    "\(state.divisions[index].name)遭合围消耗，兵力 -\(hpLost)。",
+                    category: .encircle
                 )
             }
         }
@@ -293,7 +300,10 @@ struct SupplyRules {
         let wasRetreating = state.divisions[index].isRetreating
         state.divisions[index].advanceRetreatTurn()
         if wasRetreating && !state.divisions[index].isRetreating {
-            state.appendEvent("\(state.divisions[index].name) completed retreat recovery.")
+            state.appendEvent(
+                "\(state.divisions[index].name)退守整顿完毕。",
+                category: .retreat
+            )
         }
 
         return true
@@ -322,6 +332,19 @@ struct SupplyRules {
         }
 
         return path.reversed()
+    }
+}
+
+private extension SupplyState {
+    var reportDisplayName: String {
+        switch self {
+        case .supplied:
+            return "有粮"
+        case .lowSupply:
+            return "缺粮"
+        case .encircled:
+            return "被围"
+        }
     }
 }
 

@@ -155,7 +155,7 @@ struct DataLoader {
                     turn: turn,
                     faction: initialActiveFaction(for: scenario),
                     phase: GamePhase(rawValue: scenario.initialPhase) ?? .germanAI,
-                    message: "Loaded \(scenario.id) from MapEditor-compatible JSON."
+                    message: "已载入\(scenario.displayName)剧本，舆图与州府数据来自地图编辑器格式。"
                 )
             ]
         )

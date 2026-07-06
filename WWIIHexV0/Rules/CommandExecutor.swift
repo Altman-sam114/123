@@ -73,7 +73,7 @@ struct CommandExecutor {
             )
         }
 
-        state.appendEvent("\(state.divisions[index].name) moved to \(destination.q),\(destination.r).")
+        state.appendEvent("\(state.divisions[index].name)行军至舆图格 \(destination.q),\(destination.r)。")
     }
 
     private func executeAttack(attackerId: String, targetId: String, in state: inout GameState) {
@@ -94,11 +94,12 @@ struct CommandExecutor {
         let attackOutcome = resolveCombatResult(for: defender, damage: damage, in: &state)
         state.appendEvent(
             combatLog(
-                prefix: "\(attacker.name) attacked \(defender.name)",
+                prefix: "\(attacker.name)攻打\(defender.name)",
                 subjectName: defender.name,
                 damage: damage,
                 outcome: attackOutcome
-            )
+            ),
+            category: .combat
         )
 
         if attackOutcome.wasDestroyed {
@@ -122,11 +123,12 @@ struct CommandExecutor {
             let counterOutcome = resolveCombatResult(for: updatedAttacker, damage: counterDamage, in: &state)
             state.appendEvent(
                 combatLog(
-                    prefix: "\(updatedDefender.name) counterattacked \(updatedAttacker.name)",
+                    prefix: "\(updatedDefender.name)反击\(updatedAttacker.name)",
                     subjectName: updatedAttacker.name,
                     damage: counterDamage,
                     outcome: counterOutcome
-                )
+                ),
+                category: .combat
             )
 
             if counterOutcome.shouldRetreat && !counterOutcome.wasDestroyed {
@@ -142,7 +144,10 @@ struct CommandExecutor {
 
         state.divisions[index].retreatMode = .hold
         state.divisions[index].hasActed = true
-        state.appendEvent("\(state.divisions[index].name) set stance to HOLD: no retreat, +20% defense, +20% losses.")
+        state.appendEvent(
+            "\(state.divisions[index].name)改令死守：不得退守，防御加成，伤亡也会加重。",
+            category: .retreat
+        )
     }
 
     private func executeAllowRetreat(divisionId: String, in state: inout GameState) {
@@ -152,7 +157,10 @@ struct CommandExecutor {
 
         state.divisions[index].retreatMode = .retreatable
         state.divisions[index].hasActed = true
-        state.appendEvent("\(state.divisions[index].name) set stance to RETREATABLE: auto-retreat after severe losses.")
+        state.appendEvent(
+            "\(state.divisions[index].name)改令可撤：遭重创时自动退守。",
+            category: .retreat
+        )
     }
 
     private func executeResupply(divisionId: String, in state: inout GameState) {
@@ -202,7 +210,7 @@ struct CommandExecutor {
 
         resetActionsForActiveFaction(in: &state)
         state = StrategicStateBootstrapper().refreshRuntimeState(state)
-        state.appendEvent("Turn advanced to \(state.turn), \(state.activeFaction.displayName) active.")
+        state.appendEvent("回合推进至第 \(state.turn) 回合，\(state.activeFaction.displayName)行动。")
     }
 
     private func appendBattleCueEvents(in state: inout GameState) {
@@ -399,7 +407,7 @@ struct CommandExecutor {
         }
 
         state.appendEvent(
-            "Hex \(hex.q),\(hex.r) reassigned to dynamic theater \(advancingTheaterId.rawValue).",
+            "舆图格 \(hex.q),\(hex.r) 改隶动态方面 \(advancingTheaterId.rawValue)。",
             category: .theaterChange,
             relatedRecordId: nil
         )
@@ -432,22 +440,22 @@ struct CommandExecutor {
         outcome: CombatResultSummary
     ) -> String {
         var parts = [
-            "\(prefix): strength -\(damage.strengthDamage)"
+            "\(prefix)：兵力 -\(damage.strengthDamage)"
         ]
 
         if outcome.shouldRetreat {
-            parts.append("\(subjectName) triggered automatic retreat")
+            parts.append("\(subjectName)触发自动退守")
         }
 
         if outcome.extraStrengthDamage > 0 {
-            parts.append("extra strength -\(outcome.extraStrengthDamage)")
+            parts.append("额外兵力 -\(outcome.extraStrengthDamage)")
         }
 
         if outcome.wasDestroyed {
-            parts.append("\(subjectName) was destroyed")
+            parts.append("\(subjectName)已溃灭")
         }
 
-        return parts.joined(separator: "; ") + "."
+        return parts.joined(separator: "；") + "。"
     }
 }
 

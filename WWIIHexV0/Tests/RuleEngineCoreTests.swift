@@ -548,7 +548,7 @@ final class RuleEngineCoreTests: XCTestCase {
         let retreated = try XCTUnwrap(result.state.division(id: "g"))
         XCTAssertTrue(result.succeeded)
         XCTAssertEqual(retreated.coord, expectedDestination)
-        XCTAssertTrue(result.state.eventLog.contains { $0.message.localizedCaseInsensitiveContains("retreat") })
+        XCTAssertTrue(result.state.eventLog.contains { $0.category == .retreat && $0.message.contains("退守") })
     }
 
     func testRetreatableDivisionDoesNotRetreatAfterMinorLoss() throws {
@@ -590,11 +590,11 @@ final class RuleEngineCoreTests: XCTestCase {
         let result = RuleEngine().execute(.attack(attackerId: "a", targetId: "g"), in: state)
 
         let updated = try XCTUnwrap(result.state.division(id: "g"))
-        let logText = result.state.eventLog.map(\.message).joined(separator: "\n").lowercased()
+        let retreatLogs = result.state.eventLog.filter { $0.category == .retreat }
 
         XCTAssertEqual(updated.coord, defender.coord)
         XCTAssertLessThan(updated.hp, defender.hp)
-        XCTAssertTrue(logText.contains("failed to retreat"))
+        XCTAssertTrue(retreatLogs.contains { $0.message.contains("退守失败") })
     }
 
     func testBastogneGermanControlRequiresFullTurnBeforeVictory() {

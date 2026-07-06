@@ -529,7 +529,7 @@ private struct AgentCommandResultCard: View {
 
                 Spacer(minLength: 8)
 
-                Text(result.commandDisplayName ?? result.orderType?.displayName ?? "军令")
+                Text(AgentPanelFormat.commandDisplayText(result))
                     .font(.caption.bold())
                     .lineLimit(1)
                     .minimumScaleFactor(0.72)
@@ -735,6 +735,43 @@ private enum AgentPanelFormat {
         case .defense:
             return "守势"
         }
+    }
+
+    static func commandDisplayText(_ result: CommandResultSummary) -> String {
+        if let commandDisplayName = result.commandDisplayName,
+           let text = localizedCommandText(commandDisplayName) {
+            return text
+        }
+
+        return result.orderType?.displayName ?? "军令"
+    }
+
+    private static func localizedCommandText(_ commandDisplayName: String) -> String? {
+        if commandDisplayName.hasPrefix("Move(") {
+            return "调动"
+        }
+        if commandDisplayName.hasPrefix("Attack(") {
+            return "攻击"
+        }
+        if commandDisplayName.hasPrefix("Hold(") {
+            return "固守"
+        }
+        if commandDisplayName.hasPrefix("AllowRetreat(") {
+            return "准退"
+        }
+        if commandDisplayName.hasPrefix("Resupply(") {
+            return "补给整备"
+        }
+        if commandDisplayName.hasPrefix("QueueProduction(") {
+            return "营造筹备"
+        }
+        if commandDisplayName.hasPrefix("朝廷项目(") {
+            return commandDisplayName
+        }
+        if commandDisplayName == "End Turn" {
+            return "结束阶段"
+        }
+        return nil
     }
 
     static func doctrineSkillText(_ skill: String) -> String {
