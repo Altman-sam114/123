@@ -49,7 +49,10 @@ struct RootGameView: View {
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomLeading)
                 .padding(10)
 
-                UnitTooltipView(division: container.selectedDivision)
+                UnitTooltipView(
+                    division: container.selectedDivision,
+                    strategicState: container.selectedUnitInspectorStrategicState
+                )
                     .allowsHitTesting(false)
             }
         }

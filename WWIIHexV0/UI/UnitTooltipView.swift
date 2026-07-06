@@ -2,6 +2,7 @@ import SwiftUI
 
 struct UnitTooltipView: View {
     let division: Division?
+    let strategicState: UnitInspectorStrategicState?
 
     var body: some View {
         if let division {
@@ -13,6 +14,10 @@ struct UnitTooltipView: View {
                     UnitTooltipStatusChip(title: "粮草", value: division.supplyState.tooltipDisplayName, tint: division.supplyState.tooltipTint)
                     UnitTooltipStatusChip(title: "行动", value: division.tooltipActionText, tint: division.canAct ? MingDesignTokens.jade : .secondary)
                     UnitTooltipStatusChip(title: "退守", value: division.tooltipRetreatText, tint: division.tooltipRetreatTint)
+                }
+
+                if let strategicState {
+                    UnitTooltipStrategicStrip(strategicState: strategicState)
                 }
 
                 UnitTooltipStatsRow(stats: division.effectiveStats)
@@ -29,6 +34,62 @@ struct UnitTooltipView: View {
             .accessibilityElement(children: .combine)
             .accessibilityLabel(division.tooltipAccessibilityLabel)
         }
+    }
+}
+
+private struct UnitTooltipStrategicStrip: View {
+    let strategicState: UnitInspectorStrategicState
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 5) {
+            Text("军位")
+                .font(.caption2)
+                .foregroundStyle(.secondary)
+
+            HStack(spacing: 5) {
+                UnitTooltipStrategicChip(
+                    title: "方面",
+                    value: MingMapLabelFormat.theaterTitle(strategicState.dynamicTheaterId),
+                    tint: MingDesignTokens.porcelainBlue
+                )
+                UnitTooltipStrategicChip(
+                    title: "防区",
+                    value: MingMapLabelFormat.frontZoneTitle(strategicState.frontZoneId),
+                    tint: MingDesignTokens.jade
+                )
+                UnitTooltipStrategicChip(
+                    title: "部署",
+                    value: strategicState.deploymentRole.tooltipDisplayName,
+                    tint: strategicState.deploymentRole.tooltipTint
+                )
+            }
+        }
+        .accessibilityElement(children: .combine)
+    }
+}
+
+private struct UnitTooltipStrategicChip: View {
+    let title: String
+    let value: String
+    let tint: Color
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 2) {
+            Text(title)
+                .font(.caption2)
+                .foregroundStyle(.secondary)
+                .lineLimit(1)
+
+            Text(value)
+                .font(.caption2.bold())
+                .foregroundStyle(tint)
+                .lineLimit(1)
+                .minimumScaleFactor(0.68)
+        }
+        .padding(.horizontal, 6)
+        .padding(.vertical, 5)
+        .frame(maxWidth: .infinity, minHeight: 40, alignment: .leading)
+        .background(tint.opacity(0.1), in: RoundedRectangle(cornerRadius: 6))
     }
 }
 
@@ -318,6 +379,30 @@ private extension RetreatMode {
             return MingDesignTokens.imperialGold
         case .hold:
             return MingDesignTokens.cinnabar
+        }
+    }
+}
+
+private extension UnitDeploymentRole {
+    var tooltipDisplayName: String {
+        switch self {
+        case .frontUnit:
+            return "前线"
+        case .depthUnit:
+            return "纵深"
+        case .garrisonUnit:
+            return "驻防"
+        }
+    }
+
+    var tooltipTint: Color {
+        switch self {
+        case .frontUnit:
+            return MingDesignTokens.cinnabar
+        case .depthUnit:
+            return MingDesignTokens.imperialGold
+        case .garrisonUnit:
+            return MingDesignTokens.jade
         }
     }
 }
