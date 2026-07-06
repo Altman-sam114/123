@@ -7,6 +7,8 @@ struct GeneralCommandPanelView: View {
     let assignedDivisions: [Division]
     let targetRegion: RegionNode?
     let targetZone: FrontZone?
+    let objectiveSummary: BattleObjectiveSummary?
+    let map: MapState?
     let hqUnderAttack: Bool
     let plannedOperations: [PlayerPlannedOperation]
     let canHoldLine: Bool
@@ -52,6 +54,16 @@ struct GeneralCommandPanelView: View {
                     targetRegion: targetRegion,
                     hqUnderAttack: hqUnderAttack
                 )
+
+                if let objectiveContext = GeneralCommandObjectiveContext(
+                    zone: zone,
+                    assignedDivisions: assignedDivisions,
+                    targetRegion: targetRegion,
+                    summary: objectiveSummary,
+                    map: map
+                ) {
+                    GeneralCommandObjectiveSection(context: objectiveContext)
+                }
 
                 GeneralCommandUnitsSection(divisions: assignedDivisions)
 
@@ -521,6 +533,201 @@ private struct GeneralCommandFourLineChip: View {
                 }
 
                 Text(signal.detail)
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(2)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
+        .padding(7)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(MingDesignTokens.panelBackground.opacity(0.52), in: RoundedRectangle(cornerRadius: 6))
+        .accessibilityElement(children: .combine)
+    }
+}
+
+private struct GeneralCommandObjectiveContext {
+    let taskTitle: String
+    let taskDetail: String
+    let targetName: String
+    let targetDetail: String
+    let forceTitle: String
+    let forceDetail: String
+    let councilMinute: String
+    let taskImageName: String
+    let taskTint: Color
+    let forceTint: Color
+
+    init?(
+        zone: FrontZone,
+        assignedDivisions: [Division],
+        targetRegion: RegionNode?,
+        summary: BattleObjectiveSummary?,
+        map: MapState?
+    ) {
+        guard let summary, summary.isMingScenario, let map else {
+            return nil
+        }
+        guard let task = summary.tasks.sorted(by: Self.taskSort).first,
+              let targetObjectiveId = task.targetObjectiveId,
+              let target = summary.tracks.flatMap(\.targets).first(where: { $0.objectiveId == targetObjectiveId }),
+              let objective = map.objective(id: targetObjectiveId) else {
+            return nil
+        }
+
+        let activeDivisions = assignedDivisions.filter { !$0.isDestroyed }
+        let nearest = activeDivisions.min {
+            $0.coord.distance(to: objective.coord) < $1.coord.distance(to: objective.coord)
+        }
+        let readyCount = activeDivisions.filter { !$0.hasActed }.count
+        let fireCount = activeDivisions.filter(\.hasFireSupport).count
+        let siegeCount = activeDivisions.filter(\.isSiegeCapable).count
+        let shortSupplyCount = activeDivisions.filter { $0.supplyState != .supplied }.count
+
+        taskTitle = task.title
+        taskDetail = "\(task.line.displayName) · \(task.priority.displayName)"
+        targetName = target.name
+        targetDetail = "现由\(target.controllerName)据守 · 要冲分 \(target.points)"
+        taskImageName = task.priority.systemImage
+        taskTint = Self.tint(for: task.priority)
+        forceTint = Self.forceTint(
+            readyCount: readyCount,
+            fireCount: fireCount,
+            siegeCount: siegeCount,
+            shortSupplyCount: shortSupplyCount
+        )
+
+        if let nearest {
+            let distance = nearest.coord.distance(to: objective.coord)
+            forceTitle = "近军 \(distance) 格"
+            forceDetail = "\(nearest.name) 牵头，麾下可调 \(readyCount) 营。"
+        } else {
+            forceTitle = "待集营伍"
+            forceDetail = "当前防区暂无未溃军伍承接要冲。"
+        }
+
+        let regionText = targetRegion.map { "本令目标 \($0.name)" } ?? "本令尚未定州府"
+        let weaponText = fireCount + siegeCount > 0 ? "火器攻城 \(fireCount + siegeCount) 营" : "火器攻城未显"
+        let supplyText = shortSupplyCount > 0 ? "缺粮 \(shortSupplyCount) 营" : "粮道尚稳"
+        councilMinute = "\(zone.name) 牵动 \(target.name)，\(regionText)，\(weaponText)，\(supplyText)。"
+    }
+
+    private static func taskSort(_ lhs: BattleObjectiveSummary.CampaignTask, _ rhs: BattleObjectiveSummary.CampaignTask) -> Bool {
+        if lhs.priority.sortRank == rhs.priority.sortRank {
+            return lhs.title < rhs.title
+        }
+        return lhs.priority.sortRank < rhs.priority.sortRank
+    }
+
+    private static func tint(for priority: BattleObjectiveSummary.CampaignTask.Priority) -> Color {
+        switch priority {
+        case .urgent:
+            return MingDesignTokens.cinnabar
+        case .main:
+            return MingDesignTokens.imperialGold
+        case .watch:
+            return MingDesignTokens.porcelainBlue
+        }
+    }
+
+    private static func forceTint(
+        readyCount: Int,
+        fireCount: Int,
+        siegeCount: Int,
+        shortSupplyCount: Int
+    ) -> Color {
+        if readyCount == 0 || shortSupplyCount > readyCount {
+            return MingDesignTokens.cinnabar
+        }
+        if shortSupplyCount > 0 || fireCount + siegeCount > 0 {
+            return MingDesignTokens.imperialGold
+        }
+        return MingDesignTokens.jade
+    }
+}
+
+private struct GeneralCommandObjectiveSection: View {
+    let context: GeneralCommandObjectiveContext
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: MingDesignTokens.compactSpacing) {
+            HStack(alignment: .firstTextBaseline, spacing: 8) {
+                Label("督师要冲", systemImage: context.taskImageName)
+                    .font(.caption.bold())
+                    .foregroundStyle(context.taskTint)
+
+                Spacer(minLength: 8)
+
+                Text(context.taskDetail)
+                    .font(.caption.bold())
+                    .foregroundStyle(context.taskTint)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.78)
+            }
+
+            LazyVGrid(columns: [GridItem(.adaptive(minimum: 104), spacing: MingDesignTokens.compactSpacing)], alignment: .leading, spacing: MingDesignTokens.compactSpacing) {
+                GeneralCommandObjectiveChip(
+                    title: "本旬",
+                    value: context.taskTitle,
+                    detail: context.taskDetail,
+                    systemImageName: context.taskImageName,
+                    tint: context.taskTint
+                )
+                GeneralCommandObjectiveChip(
+                    title: "落点",
+                    value: context.targetName,
+                    detail: context.targetDetail,
+                    systemImageName: "mappin.and.ellipse",
+                    tint: MingDesignTokens.cinnabar
+                )
+                GeneralCommandObjectiveChip(
+                    title: "麾下",
+                    value: context.forceTitle,
+                    detail: context.forceDetail,
+                    systemImageName: "person.3.fill",
+                    tint: context.forceTint
+                )
+            }
+
+            Text(context.councilMinute)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .padding(MingDesignTokens.compactSpacing)
+        .background(MingDesignTokens.sectionBackground, in: RoundedRectangle(cornerRadius: MingDesignTokens.cornerRadius))
+        .accessibilityElement(children: .combine)
+    }
+}
+
+private struct GeneralCommandObjectiveChip: View {
+    let title: String
+    let value: String
+    let detail: String
+    let systemImageName: String
+    let tint: Color
+
+    var body: some View {
+        HStack(alignment: .top, spacing: 7) {
+            Image(systemName: systemImageName)
+                .font(.caption)
+                .foregroundStyle(tint)
+                .frame(width: 16)
+                .accessibilityHidden(true)
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text(title)
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+
+                Text(value)
+                    .font(.caption.bold())
+                    .foregroundStyle(tint)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.72)
+
+                Text(detail)
                     .font(.caption2)
                     .foregroundStyle(.secondary)
                     .lineLimit(2)
