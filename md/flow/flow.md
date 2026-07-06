@@ -496,7 +496,7 @@ artilleryDivision -> 造炮队
 supplyStockpile -> 筹粮
 ```
 
-排产时预付资源，完成时才部署新单位或发放粮草。完成单位只能放到本方控制、passable、空置、非敌邻，且位于首都、城镇/大都会、工坊、高基建、高粮草 region 或 supply source 的后方 hex。找不到安全部署点时订单保留到下回合继续尝试。
+排产时预付资源，完成时才部署新单位或发放粮草。完成单位只能放到本方控制、passable、空置、非敌邻，且位于首都、城镇/大都会、工坊、高基建、高粮草 region 或 supply source 的后方 hex；这里的敌邻统一按 `GameState.diplomacyState.isHostile` 判定，不把地方中立、停战、通行、协战或同盟军伍当作敌军。找不到安全部署点时订单保留到下回合继续尝试。
 
 明末势力生产完成后不再生成 legacy 装甲/摩托化组件：
 
@@ -517,7 +517,7 @@ Germany / Allies legacy 生产仍使用 `.infantry/.panzer/.motorized/.artillery
 未撤退
 supplied
 strength < maxStrength
-不与敌军相邻
+不与外交敌对军伍相邻
 ```
 
 每个单位每回合最多恢复 2 strength，并按机动、火力和单位组成扣民力、银两、粮草。当前仍不恢复 organization。
