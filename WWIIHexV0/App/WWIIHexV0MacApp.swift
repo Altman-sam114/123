@@ -17,6 +17,10 @@ struct WWIIHexV0MacApp: App {
                 Button("结束回合", action: container.advanceOrRunAI)
                     .keyboardShortcut(.return, modifiers: [.command])
 
+                Button("继续战局", action: container.continueSavedGame)
+                    .keyboardShortcut("o", modifiers: [.command])
+                    .disabled(container.savedGameInfo == nil)
+
                 Button("新开战局", action: container.resetGame)
                     .keyboardShortcut("n", modifiers: [.command, .shift])
             }

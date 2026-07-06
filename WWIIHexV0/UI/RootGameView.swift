@@ -17,8 +17,10 @@ struct RootGameView: View {
                 VStack {
                     HUDView(
                         gameState: container.gameState,
+                        savedGameInfo: container.savedGameInfo,
                         onEndTurn: container.advanceOrRunAI,
-                        onNewGame: container.resetGame
+                        onNewGame: container.resetGame,
+                        onContinueSavedGame: container.continueSavedGame
                     )
                     .padding(8)
                     .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: MingDesignTokens.cornerRadius))

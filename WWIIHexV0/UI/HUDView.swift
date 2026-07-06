@@ -2,13 +2,23 @@ import SwiftUI
 
 struct HUDView: View {
     let gameState: GameState
+    let savedGameInfo: SavedGameInfo?
     let onEndTurn: () -> Void
     let onNewGame: (() -> Void)?
+    let onContinueSavedGame: (() -> Void)?
 
-    init(gameState: GameState, onEndTurn: @escaping () -> Void, onNewGame: (() -> Void)? = nil) {
+    init(
+        gameState: GameState,
+        savedGameInfo: SavedGameInfo? = nil,
+        onEndTurn: @escaping () -> Void,
+        onNewGame: (() -> Void)? = nil,
+        onContinueSavedGame: (() -> Void)? = nil
+    ) {
         self.gameState = gameState
+        self.savedGameInfo = savedGameInfo
         self.onEndTurn = onEndTurn
         self.onNewGame = onNewGame
+        self.onContinueSavedGame = onContinueSavedGame
     }
 
     var body: some View {
@@ -49,7 +59,11 @@ struct HUDView: View {
                 HUDStatusBadge(title: victoryText, systemImage: victoryIconName, tint: victoryTint)
 
                 if let onNewGame {
-                    NewGameButton(action: onNewGame)
+                    NewGameButton(
+                        action: onNewGame,
+                        continueAction: onContinueSavedGame,
+                        savedGameInfo: savedGameInfo
+                    )
                 }
 
                 Button(action: onEndTurn) {

@@ -1,8 +1,68 @@
 import Combine
 import Foundation
 
+struct SavedGameInfo: Equatable {
+    let scenarioId: String
+    let turn: Int
+    let activeFaction: Faction
+    let savedAt: Date
+}
+
+private struct SavedGameSnapshot: Codable {
+    let schemaVersion: Int
+    let savedAt: Date
+    let state: GameState
+
+    var info: SavedGameInfo {
+        SavedGameInfo(
+            scenarioId: state.scenarioId,
+            turn: state.turn,
+            activeFaction: state.activeFaction,
+            savedAt: savedAt
+        )
+    }
+}
+
+private enum SavedGameStore {
+    private static let key = "wwiihexv0.ming.savedGame.v1"
+    private static let schemaVersion = 1
+
+    static func loadSnapshot() -> SavedGameSnapshot? {
+        guard let data = UserDefaults.standard.data(forKey: key) else {
+            return nil
+        }
+
+        guard let snapshot = try? JSONDecoder().decode(SavedGameSnapshot.self, from: data),
+              snapshot.schemaVersion == schemaVersion else {
+            return nil
+        }
+        return snapshot
+    }
+
+    @discardableResult
+    static func save(_ state: GameState) -> SavedGameInfo? {
+        let snapshot = SavedGameSnapshot(
+            schemaVersion: schemaVersion,
+            savedAt: Date(),
+            state: state
+        )
+
+        guard let data = try? JSONEncoder().encode(snapshot) else {
+            return nil
+        }
+
+        UserDefaults.standard.set(data, forKey: key)
+        return snapshot.info
+    }
+
+    static func clear() {
+        UserDefaults.standard.removeObject(forKey: key)
+    }
+}
+
 final class AppContainer: ObservableObject {
     @Published private(set) var gameState: GameState
+    @Published private(set) var savedGameInfo: SavedGameInfo?
     @Published private(set) var selectedUnitId: String?
     @Published private(set) var selectedHex: HexCoord?
     @Published private(set) var selectedRegionId: RegionId?
@@ -20,10 +80,11 @@ final class AppContainer: ObservableObject {
     let commandHandler: GameCommandHandling
     let dataLoader: DataLoader
     let generalRegistry: GeneralRegistry
-    let playerFaction: Faction
+    @Published private(set) var playerFaction: Faction
     let warPipelineMode: WarPipelineMode
     let turnManager: TurnManager?
     private var isRunningAI = false
+    private var aiRunToken = UUID()
 
     init(
         gameState: GameState,
@@ -35,10 +96,12 @@ final class AppContainer: ObservableObject {
         warPipelineMode: WarPipelineMode = .marshalDirective,
         observerModeEnabled: Bool = false,
         mapDisplayLayer: MapDisplayLayer = .hex,
-        showsSupplyRoutes: Bool = true
+        showsSupplyRoutes: Bool = true,
+        savedGameInfo: SavedGameInfo? = nil
     ) {
         let bootstrappedState = StrategicStateBootstrapper().bootstrapIfNeeded(gameState)
         self.gameState = Self.refreshGeneralAssignments(in: bootstrappedState, registry: generalRegistry)
+        self.savedGameInfo = savedGameInfo
         self.commandHandler = commandHandler
         self.dataLoader = dataLoader
         self.generalRegistry = generalRegistry
@@ -63,6 +126,7 @@ final class AppContainer: ObservableObject {
     static func bootstrap() -> AppContainer {
         let dataLoader = DataLoader()
         let gameState = dataLoader.loadInitialGameState()
+        let savedSnapshot = SavedGameStore.loadSnapshot()
         let commandHandler = RuleEngine()
         let generalRegistry = (try? dataLoader.loadGeneralRegistry()) ?? .empty
         let guderian = GameAgent.guderian(from: dataLoader, state: gameState)
@@ -85,7 +149,8 @@ final class AppContainer: ObservableObject {
             generalRegistry: generalRegistry,
             playerFaction: bootstrappedState.humanControlledFactions.first ?? .allies,
             turnManager: turnManager,
-            warPipelineMode: .marshalDirective
+            warPipelineMode: .marshalDirective,
+            savedGameInfo: savedSnapshot?.info
         )
     }
 
@@ -107,6 +172,9 @@ final class AppContainer: ObservableObject {
         let status = result.succeeded ? "军令已受理" : "军令被驳回"
         appendInteractionEvent("\(status)：\(commandText)。\(lastCommandMessage ?? "")")
         refreshSelectionAfterStateChange()
+        if result.succeeded {
+            saveCurrentGame()
+        }
         runAIIfNeeded()
     }
 
@@ -121,6 +189,8 @@ final class AppContainer: ObservableObject {
         }
 
         isRunningAI = true
+        let runToken = UUID()
+        aiRunToken = runToken
         let stateSnapshot = gameState
         let pipelineMode = warPipelineMode
         let observerEnabled = observerModeEnabled
@@ -132,6 +202,9 @@ final class AppContainer: ObservableObject {
                 observerEnabled: observerEnabled
             )
             await MainActor.run {
+                guard runToken == self.aiRunToken else {
+                    return
+                }
                 self.gameState = self.refreshedRuntimeState(outcome.state)
                 self.lastAgentDecisionRecord = outcome.record
                 self.lastWarDirectiveRecords = outcome.directiveRecords
@@ -141,6 +214,7 @@ final class AppContainer: ObservableObject {
                 self.appendInteractionEvent("军机已结算 \(outcome.record.commandResults.count) 道命令回执。")
                 self.isRunningAI = false
                 self.refreshSelectionAfterStateChange()
+                self.saveCurrentGame()
             }
         }
     }
@@ -296,6 +370,33 @@ final class AppContainer: ObservableObject {
         showsSupplyRoutes = enabled
     }
 
+    func continueSavedGame() {
+        guard let snapshot = SavedGameStore.loadSnapshot() else {
+            savedGameInfo = nil
+            appendInteractionEvent("续战失败：未找到可用存档。")
+            return
+        }
+
+        isRunningAI = false
+        aiRunToken = UUID()
+        gameState = refreshGeneralAssignments(
+            in: StrategicStateBootstrapper().bootstrapIfNeeded(snapshot.state)
+        )
+        playerFaction = gameState.humanControlledFactions.first ?? playerFaction
+        savedGameInfo = snapshot.info
+        selectedUnitId = nil
+        selectedHex = nil
+        selectedRegionId = nil
+        focusedObjectiveId = nil
+        movementHighlights = []
+        attackHighlights = []
+        interactionLog = []
+        lastCommandMessage = "已续读第 \(gameState.turn) 回合战局。"
+        lastAgentDecisionRecord = nil
+        lastWarDirectiveRecords = Array(gameState.warDirectiveRecords.suffix(12))
+        appendInteractionEvent("已续读存档：第 \(gameState.turn) 回合，当前 \(gameState.activeFaction.displayName)。")
+    }
+
     func focusObjective(_ objectiveId: String) {
         guard let objective = gameState.map.objective(id: objectiveId) else {
             appendInteractionEvent("要冲定位失败：缺少目标记录。")
@@ -312,9 +413,13 @@ final class AppContainer: ObservableObject {
 
     func resetGame() {
         isRunningAI = false
+        aiRunToken = UUID()
+        SavedGameStore.clear()
         gameState = refreshGeneralAssignments(
             in: StrategicStateBootstrapper().bootstrapIfNeeded(dataLoader.loadInitialGameState())
         )
+        playerFaction = gameState.humanControlledFactions.first ?? playerFaction
+        savedGameInfo = nil
         selectedUnitId = nil
         selectedHex = nil
         selectedRegionId = nil
@@ -665,6 +770,7 @@ final class AppContainer: ObservableObject {
             "将令已提交：\(directiveTypeText(directive.type)) \(MingMapLabelFormat.frontZoneTitle(directive.zoneId))。"
         )
         refreshSelectionAfterStateChange()
+        saveCurrentGame()
     }
 
     private func playerDirectiveMessage(
@@ -940,6 +1046,10 @@ final class AppContainer: ObservableObject {
         if interactionLog.count > 80 {
             interactionLog.removeFirst(interactionLog.count - 80)
         }
+    }
+
+    private func saveCurrentGame() {
+        savedGameInfo = SavedGameStore.save(gameState)
     }
 
 }
