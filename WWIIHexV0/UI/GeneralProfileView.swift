@@ -19,6 +19,14 @@ struct GeneralProfileView: View {
                     hqUnderAttack: hqUnderAttack
                 )
 
+                GeneralProfileFourLineSection(
+                    general: general,
+                    assignment: assignment,
+                    zone: zone,
+                    assignedDivisions: assignedDivisions,
+                    hqUnderAttack: hqUnderAttack
+                )
+
                 GeneralProfileSectionCard(title: "履历奏记", systemImage: "scroll", tint: MingDesignTokens.imperialGold) {
                     Text(general.biography)
                         .font(.body)
@@ -133,6 +141,194 @@ private struct GeneralProfileHero: View {
             RoundedRectangle(cornerRadius: MingDesignTokens.cornerRadius)
                 .stroke(MingDesignTokens.courtStroke.opacity(0.72), lineWidth: 1)
         }
+    }
+}
+
+private struct GeneralProfileFourLineSection: View {
+    let general: GeneralData
+    let assignment: GeneralAssignment?
+    let zone: FrontZone?
+    let assignedDivisions: [Division]
+    let hqUnderAttack: Bool
+
+    private let columns = [
+        GridItem(.adaptive(minimum: 136), spacing: MingDesignTokens.compactSpacing)
+    ]
+
+    var body: some View {
+        GeneralProfileSectionCard(title: "帷幄四策", systemImage: "rectangle.grid.2x2", tint: MingDesignTokens.cinnabar) {
+            LazyVGrid(columns: columns, alignment: .leading, spacing: MingDesignTokens.compactSpacing) {
+                GeneralProfilePolicyTile(
+                    title: "政策",
+                    value: policyValue,
+                    detail: policyDetail,
+                    systemImage: "seal",
+                    tint: policyTint
+                )
+                GeneralProfilePolicyTile(
+                    title: "经济",
+                    value: economyValue,
+                    detail: economyDetail,
+                    systemImage: "shippingbox",
+                    tint: economyTint
+                )
+                GeneralProfilePolicyTile(
+                    title: "科技",
+                    value: technologyValue,
+                    detail: technologyDetail,
+                    systemImage: "scope",
+                    tint: technologyTint
+                )
+                GeneralProfilePolicyTile(
+                    title: "军事",
+                    value: militaryValue,
+                    detail: militaryDetail,
+                    systemImage: "shield.lefthalf.filled",
+                    tint: militaryTint
+                )
+            }
+        }
+    }
+
+    private var loyalty: Int {
+        assignment?.loyalty ?? general.baseLoyalty
+    }
+
+    private var satisfaction: Int {
+        assignment?.satisfaction ?? general.baseSatisfaction
+    }
+
+    private var interventionCount: Int {
+        assignment?.interventionCount ?? 0
+    }
+
+    private var lowSupplyCount: Int {
+        assignedDivisions.filter { $0.supplyState != .supplied }.count
+    }
+
+    private var fireSupportCount: Int {
+        assignedDivisions.filter(\.hasFireSupport).count
+    }
+
+    private var siegeCount: Int {
+        assignedDivisions.filter(\.isSiegeCapable).count
+    }
+
+    private var actionableCount: Int {
+        assignedDivisions.filter(\.canAct).count
+    }
+
+    private var policyValue: String {
+        if hqUnderAttack {
+            return "本营受压"
+        }
+        if loyalty < 40 || satisfaction < 40 {
+            return "君臣待抚"
+        }
+        return "将心可用"
+    }
+
+    private var policyDetail: String {
+        "忠 \(loyalty) / 军心 \(satisfaction) / 手令 \(interventionCount)"
+    }
+
+    private var policyTint: Color {
+        hqUnderAttack || loyalty < 40 || satisfaction < 40 ? MingDesignTokens.cinnabar : profilePercentTint(min(loyalty, satisfaction))
+    }
+
+    private var economyValue: String {
+        lowSupplyCount > 0 ? "缺粮 \(lowSupplyCount) 营" : "粮道尚稳"
+    }
+
+    private var economyDetail: String {
+        assignedDivisions.isEmpty ? "暂无麾下营伍" : "麾下 \(assignedDivisions.count) 营 / \(supplySummary)"
+    }
+
+    private var economyTint: Color {
+        lowSupplyCount > 0 ? MingDesignTokens.imperialGold : MingDesignTokens.jade
+    }
+
+    private var technologyValue: String {
+        if fireSupportCount == 0 && siegeCount == 0 {
+            return "军械平平"
+        }
+        return "火器 \(fireSupportCount) / 攻城 \(siegeCount)"
+    }
+
+    private var technologyDetail: String {
+        if fireSupportCount == 0 && siegeCount == 0 {
+            return "暂以步骑团练支撑攻守"
+        }
+        return "火器炮队可支援守城或破关"
+    }
+
+    private var technologyTint: Color {
+        fireSupportCount > 0 || siegeCount > 0 ? MingDesignTokens.porcelainBlue : MingDesignTokens.imperialGold
+    }
+
+    private var militaryValue: String {
+        guard let zone else {
+            return "未领防区"
+        }
+        return "\(zone.profileStateName) · 压 \(zone.pressure)"
+    }
+
+    private var militaryDetail: String {
+        let zoneName = zone?.name ?? "暂无防区"
+        return "\(zoneName) / 可调 \(actionableCount) 营"
+    }
+
+    private var militaryTint: Color {
+        guard let zone else {
+            return MingDesignTokens.imperialGold
+        }
+        return zone.profileTint
+    }
+
+    private var supplySummary: String {
+        let supplied = assignedDivisions.filter { $0.supplyState == .supplied }.count
+        let encircled = assignedDivisions.filter { $0.supplyState == .encircled }.count
+        if encircled > 0 {
+            return "断粮被围 \(encircled)"
+        }
+        if lowSupplyCount > 0 {
+            return "缺粮 \(lowSupplyCount)"
+        }
+        return "有粮 \(supplied)"
+    }
+}
+
+private struct GeneralProfilePolicyTile: View {
+    let title: String
+    let value: String
+    let detail: String
+    let systemImage: String
+    let tint: Color
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 5) {
+            Label(title, systemImage: systemImage)
+                .font(.caption)
+                .bold()
+                .foregroundStyle(tint)
+                .lineLimit(1)
+
+            Text(value)
+                .font(.subheadline)
+                .bold()
+                .foregroundStyle(MingDesignTokens.ink)
+                .lineLimit(1)
+                .minimumScaleFactor(0.82)
+
+            Text(detail)
+                .font(.caption2)
+                .foregroundStyle(.secondary)
+                .lineLimit(2)
+                .minimumScaleFactor(0.82)
+        }
+        .frame(maxWidth: .infinity, minHeight: 82, alignment: .topLeading)
+        .padding(MingDesignTokens.compactSpacing)
+        .background(MingDesignTokens.panelBackground.opacity(0.55), in: RoundedRectangle(cornerRadius: 6))
     }
 }
 
@@ -348,5 +544,31 @@ private extension Division {
             return 0
         }
         return Int((Double(strength) / Double(maxStrength) * 100).rounded())
+    }
+}
+
+private extension FrontZone {
+    var profileStateName: String {
+        switch state {
+        case .peace:
+            return "整备"
+        case .lowIntensity:
+            return "接战"
+        case .highIntensity:
+            return "激战"
+        case .totalWar:
+            return "决战"
+        }
+    }
+
+    var profileTint: Color {
+        switch state {
+        case .peace:
+            return MingDesignTokens.jade
+        case .lowIntensity:
+            return MingDesignTokens.imperialGold
+        case .highIntensity, .totalWar:
+            return MingDesignTokens.cinnabar
+        }
     }
 }
