@@ -28,6 +28,13 @@ struct EconomyPanelView: View {
                 courtSummary: courtSummary,
                 objectiveSummary: objectiveSummary
             )
+            TreasuryWorkBenchSection(
+                ledger: ledger,
+                courtSummary: courtSummary,
+                objectiveSummary: objectiveSummary,
+                governance: governance,
+                divisions: divisions
+            )
             TreasuryFamineRiskSection(
                 ledger: ledger,
                 governance: governance,
@@ -595,6 +602,271 @@ private struct TreasuryWorldPolicyBadge: View {
         .padding(.horizontal, 7)
         .padding(.vertical, 6)
         .frame(maxWidth: .infinity, alignment: .leading)
+        .background(MingDesignTokens.panelBackground.opacity(0.52), in: RoundedRectangle(cornerRadius: 6))
+        .accessibilityElement(children: .combine)
+    }
+}
+
+private struct TreasuryWorkBenchSection: View {
+    let ledger: FactionEconomyLedger
+    let courtSummary: CourtStrategySummary
+    let objectiveSummary: BattleObjectiveSummary
+    let governance: GovernanceAISummary
+    let divisions: [Division]
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: MingDesignTokens.compactSpacing) {
+            HStack(alignment: .firstTextBaseline) {
+                Label("户工施政盘", systemImage: "rectangle.grid.2x2")
+                    .font(.caption.bold())
+                    .foregroundStyle(leadingTint)
+                Spacer(minLength: 8)
+                Text(benchStatus)
+                    .font(.caption.bold())
+                    .foregroundStyle(leadingTint)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.72)
+            }
+
+            LazyVGrid(columns: [GridItem(.adaptive(minimum: 118), spacing: 6)], alignment: .leading, spacing: 6) {
+                TreasuryWorkBenchTile(
+                    title: "政策",
+                    value: policyValue,
+                    detail: policyDetail,
+                    systemImageName: "scroll",
+                    tint: policyTint
+                )
+                TreasuryWorkBenchTile(
+                    title: "经济",
+                    value: economyValue,
+                    detail: economyDetail,
+                    systemImageName: "banknote",
+                    tint: economyTint
+                )
+                TreasuryWorkBenchTile(
+                    title: "科技",
+                    value: technologyValue,
+                    detail: technologyDetail,
+                    systemImageName: "scope",
+                    tint: technologyTint
+                )
+                TreasuryWorkBenchTile(
+                    title: "军事",
+                    value: militaryValue,
+                    detail: militaryDetail,
+                    systemImageName: "shield",
+                    tint: militaryTint
+                )
+            }
+
+            Text(benchMinute)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .padding(MingDesignTokens.compactSpacing)
+        .background(MingDesignTokens.sectionBackground)
+        .clipShape(RoundedRectangle(cornerRadius: MingDesignTokens.cornerRadius))
+        .accessibilityElement(children: .combine)
+    }
+
+    private var urgentBrief: BattleObjectiveSummary.CampaignLineBrief? {
+        objectiveSummary.lineBriefs
+            .sorted {
+                if $0.status != $1.status {
+                    return statusRank($0.status) < statusRank($1.status)
+                }
+                if $0.pressure != $1.pressure {
+                    return $0.pressure > $1.pressure
+                }
+                return $0.urgentTaskCount > $1.urgentTaskCount
+            }
+            .first
+    }
+
+    private var projectReadyCount: Int {
+        CourtProjectKind.allCases.filter { ledger.stockpile.canAfford($0.cost) }.count
+    }
+
+    private var productionReadyCount: Int {
+        ProductionKind.allCases.filter { ledger.stockpile.canAfford($0.cost) }.count
+    }
+
+    private var queueReadyCount: Int {
+        ledger.productionQueue.filter(\.isReady).count
+    }
+
+    private var lowSupplyCount: Int {
+        divisions.filter { $0.supplyState != .supplied }.count
+    }
+
+    private var firearmUnitCount: Int {
+        divisions.filter(\.hasFireSupport).count
+    }
+
+    private var siegeUnitCount: Int {
+        divisions.filter(\.isSiegeCapable).count
+    }
+
+    private var grainGap: Int {
+        max(0, ledger.lastUpkeep.supplies + ledger.lastReinforcementSpend.supplies - ledger.lastIncome.supplies)
+    }
+
+    private var netIndustry: Int {
+        ledger.lastIncome.industry - ledger.lastReinforcementSpend.industry
+    }
+
+    private var leadingTint: Color {
+        if projectReadyCount == 0 || lowSupplyCount > 0 {
+            return MingDesignTokens.cinnabar
+        }
+        if queueReadyCount > 0 {
+            return MingDesignTokens.porcelainBlue
+        }
+        return MingDesignTokens.imperialGold
+    }
+
+    private var benchStatus: String {
+        if projectReadyCount == 0 {
+            return "府库待蓄"
+        }
+        if queueReadyCount > 0 {
+            return "营造待发"
+        }
+        return "可票拟"
+    }
+
+    private var policyValue: String {
+        if governance.unstableRegions > 0 {
+            return "不稳 \(governance.unstableRegions)"
+        }
+        return courtSummary.recommendedFocus.displayName
+    }
+
+    private var policyDetail: String {
+        let ready = readyProjects(in: .policy)
+        return ready.isEmpty ? "暂无可批政策项目" : "可批 \(ready)"
+    }
+
+    private var policyTint: Color {
+        governance.unstableRegions > 0 ? MingDesignTokens.cinnabar : MingDesignTokens.jade
+    }
+
+    private var economyValue: String {
+        if grainGap > 0 {
+            return "粮差 \(grainGap)"
+        }
+        if netIndustry < 0 {
+            return "银差 \(abs(netIndustry))"
+        }
+        return "可办 \(projectReadyCount)"
+    }
+
+    private var economyDetail: String {
+        let readyProduction = ProductionKind.allCases
+            .filter { ledger.stockpile.canAfford($0.cost) }
+            .prefix(2)
+            .map(\.displayName)
+            .joined(separator: "、")
+        return readyProduction.isEmpty ? "募兵筹粮尚缺钱粮" : "营造可开 \(readyProduction)"
+    }
+
+    private var economyTint: Color {
+        grainGap > 0 || netIndustry < 0 ? MingDesignTokens.cinnabar : MingDesignTokens.imperialGold
+    }
+
+    private var technologyValue: String {
+        let ready = readyProjects(in: .technology)
+        if ready.isEmpty {
+            return "军械待蓄"
+        }
+        return ready
+    }
+
+    private var technologyDetail: String {
+        "火器 \(firearmUnitCount) / 攻城 \(siegeUnitCount)"
+    }
+
+    private var technologyTint: Color {
+        readyProjects(in: .technology).isEmpty ? .secondary : MingDesignTokens.porcelainBlue
+    }
+
+    private var militaryValue: String {
+        if lowSupplyCount > 0 {
+            return "缺粮 \(lowSupplyCount)"
+        }
+        if queueReadyCount > 0 {
+            return "待部署 \(queueReadyCount)"
+        }
+        return "接战 \(courtSummary.activeFronts)"
+    }
+
+    private var militaryDetail: String {
+        let ready = readyProjects(in: .military)
+        return ready.isEmpty ? "整训修城尚待府库" : "可批 \(ready)"
+    }
+
+    private var militaryTint: Color {
+        lowSupplyCount > 0 ? MingDesignTokens.cinnabar : MingDesignTokens.jade
+    }
+
+    private var benchMinute: String {
+        let urgentText = urgentBrief.map { "\($0.line.displayName) \($0.status.displayName) 势 \($0.pressure)" } ?? "五线候报"
+        return "施政盘只读联判：\(urgentText)，主议 \(courtSummary.recommendedFocus.displayName)，朝廷项目可批 \(projectReadyCount) 项，募兵筹粮可开 \(productionReadyCount) 项，营造队列 \(ledger.productionQueue.count) 项。"
+    }
+
+    private func readyProjects(in domain: CourtProjectDomain) -> String {
+        let names = CourtProjectKind.allCases
+            .filter { $0.domains.contains(domain) && ledger.stockpile.canAfford($0.cost) }
+            .prefix(2)
+            .map(\.displayName)
+            .joined(separator: "、")
+        return names
+    }
+
+    private func statusRank(_ status: BattleObjectiveSummary.CampaignStageStatus) -> Int {
+        switch status {
+        case .warning:
+            return 0
+        case .focus:
+            return 1
+        case .watch:
+            return 2
+        case .achieved:
+            return 3
+        }
+    }
+}
+
+private struct TreasuryWorkBenchTile: View {
+    let title: String
+    let value: String
+    let detail: String
+    let systemImageName: String
+    let tint: Color
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Label(title, systemImage: systemImageName)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .lineLimit(1)
+
+            Text(value)
+                .font(.caption.bold())
+                .foregroundStyle(tint)
+                .lineLimit(1)
+                .minimumScaleFactor(0.72)
+
+            Text(detail)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .lineLimit(2)
+                .minimumScaleFactor(0.76)
+        }
+        .padding(.horizontal, 7)
+        .padding(.vertical, 6)
+        .frame(maxWidth: .infinity, minHeight: 76, alignment: .topLeading)
         .background(MingDesignTokens.panelBackground.opacity(0.52), in: RoundedRectangle(cornerRadius: 6))
         .accessibilityElement(children: .combine)
     }
