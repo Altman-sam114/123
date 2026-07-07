@@ -233,6 +233,17 @@ final class BoardScene: SKScene {
         let supplyByCoord = Dictionary(uniqueKeysWithValues: state.map.supplySources.compactMap { source in
             state.map.controllingFaction(for: source).map { (source.coord, $0) }
         })
+        let objectiveByCoord: [HexCoord: Objective]
+        if BattleObjectiveSummary.from(state: state).isMingScenario {
+            objectiveByCoord = Dictionary(
+                state.map.objectives
+                    .filter { $0.id != renderState.focusedObjectiveId }
+                    .map { ($0.coord, $0) },
+                uniquingKeysWith: { current, _ in current }
+            )
+        } else {
+            objectiveByCoord = [:]
+        }
         let adapter = renderState.displayAdapter
 
         for tile in state.map.tiles.values.sorted(by: tileSort) {
@@ -243,6 +254,7 @@ final class BoardScene: SKScene {
             let node = HexNode(
                 displayState: displayState,
                 layout: layout,
+                objective: displayState.visibility == .visible ? objectiveByCoord[tile.coord] : nil,
                 supplySourceFaction: supplyByCoord[tile.coord],
                 isSelected: renderState.selectedHex == tile.coord,
                 isMoveHighlighted: renderState.movementHighlights.contains(tile.coord),

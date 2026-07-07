@@ -6,6 +6,7 @@ final class HexNode: SKNode {
     init(
         displayState: HexDisplayState,
         layout: HexLayout,
+        objective: Objective?,
         supplySourceFaction: Faction?,
         isSelected: Bool,
         isMoveHighlighted: Bool,
@@ -37,6 +38,10 @@ final class HexNode: SKNode {
 
         if isAttackHighlighted {
             addHighlight(path: path, color: TerrainStyle.attackFill, zPosition: 3)
+        }
+
+        if let objective {
+            addObjectiveSeal(objective: objective, controller: displayState.controller, layout: layout)
         }
 
         if isSelected {
@@ -71,6 +76,28 @@ final class HexNode: SKNode {
         overlay.lineWidth = max(1.5, layout.hexSize * 0.04)
         overlay.zPosition = 1
         addChild(overlay)
+    }
+
+    private func addObjectiveSeal(objective: Objective, controller: Faction?, layout: HexLayout) {
+        let position = CGPoint(x: layout.hexSize * 0.38, y: -layout.hexSize * 0.46)
+        let badgeSize = CGSize(width: layout.hexSize * 0.38, height: layout.hexSize * 0.24)
+        let badge = SKShapeNode(rectOf: badgeSize, cornerRadius: max(3, layout.hexSize * 0.05))
+        badge.position = position
+        badge.fillColor = TerrainStyle.controllerColor(for: controller).withAlphaComponent(0.92)
+        badge.strokeColor = SKColor(red: 0.96, green: 0.82, blue: 0.42, alpha: 0.92)
+        badge.lineWidth = 1
+        badge.zPosition = 6.6
+        addChild(badge)
+
+        let label = SKLabelNode(text: objective.points > 0 ? "要\(objective.points)" : "要")
+        label.fontName = "PingFangSC-Semibold"
+        label.fontSize = max(6, layout.hexSize * 0.12)
+        label.fontColor = SKColor(white: 0.97, alpha: 1)
+        label.horizontalAlignmentMode = .center
+        label.verticalAlignmentMode = .center
+        label.position = position
+        label.zPosition = 7.6
+        addChild(label)
     }
 
     private func addTerrainMotif(for terrain: BaseTerrain, layout: HexLayout) {
