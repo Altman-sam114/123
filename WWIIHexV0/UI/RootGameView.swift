@@ -111,15 +111,10 @@ struct RootGameView: View {
                 showsSupplyRoutes: container.mapDisplayLayer == .hex && container.showsSupplyRoutes
             )
 
-            Picker("图层", selection: Binding(
-                get: { container.mapDisplayLayer },
-                set: { container.setMapDisplayLayer($0) }
-            )) {
-                ForEach(MapDisplayLayer.allCases) { layer in
-                    Text(layer.displayName).tag(layer)
-                }
-            }
-            .pickerStyle(.segmented)
+            MapLayerNavigation(
+                selectedLayer: container.mapDisplayLayer,
+                onSelectLayer: container.setMapDisplayLayer
+            )
 
             HStack(spacing: 8) {
                 Toggle(isOn: Binding(
@@ -662,6 +657,73 @@ private struct MingInfoEntryBadge: View {
             return "要0"
         }
         return "要\(row.points)"
+    }
+}
+
+private struct MapLayerNavigation: View {
+    let selectedLayer: MapDisplayLayer
+    let onSelectLayer: (MapDisplayLayer) -> Void
+
+    var body: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 6) {
+                ForEach(MapDisplayLayer.allCases) { layer in
+                    MapLayerNavigationButton(
+                        layer: layer,
+                        isSelected: layer == selectedLayer
+                    ) {
+                        onSelectLayer(layer)
+                    }
+                }
+            }
+            .padding(.vertical, 1)
+        }
+        .accessibilityElement(children: .contain)
+        .accessibilityLabel("舆图图层")
+    }
+}
+
+private struct MapLayerNavigationButton: View {
+    let layer: MapDisplayLayer
+    let isSelected: Bool
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: 7) {
+                Image(systemName: layer.systemImageName)
+                    .font(.caption.bold())
+                    .foregroundStyle(isSelected ? .white : layer.navigationTint)
+                    .frame(width: 17)
+                    .accessibilityHidden(true)
+
+                VStack(alignment: .leading, spacing: 1) {
+                    Text(layer.displayName)
+                        .font(.caption.bold())
+                        .foregroundStyle(isSelected ? .white : MingDesignTokens.ink)
+                        .lineLimit(1)
+
+                    Text(layer.legendTitle)
+                        .font(.caption2)
+                        .foregroundStyle(isSelected ? .white.opacity(0.82) : .secondary)
+                        .lineLimit(1)
+                }
+            }
+            .padding(.horizontal, 10)
+            .padding(.vertical, 7)
+            .frame(minWidth: 78, minHeight: MingDesignTokens.minimumTapSize, alignment: .leading)
+            .background(
+                isSelected ? layer.navigationTint : MingDesignTokens.panelBackground.opacity(0.62),
+                in: RoundedRectangle(cornerRadius: 7)
+            )
+            .overlay {
+                RoundedRectangle(cornerRadius: 7)
+                    .stroke(layer.navigationTint.opacity(isSelected ? 0.72 : 0.22), lineWidth: 1)
+            }
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("切换到\(layer.displayName)图层")
+        .accessibilityValue(isSelected ? "当前，\(layer.legendTitle)" : layer.legendTitle)
     }
 }
 
@@ -1681,6 +1743,23 @@ private struct ObjectiveFocusLegendBadge: View {
 }
 
 private extension MapDisplayLayer {
+    var navigationTint: Color {
+        switch self {
+        case .hex:
+            return MingDesignTokens.cinnabar
+        case .province:
+            return MingDesignTokens.jade
+        case .initialTheater:
+            return MingDesignTokens.porcelainBlue
+        case .dynamicTheater:
+            return MingDesignTokens.imperialGold
+        case .frontLine:
+            return MingDesignTokens.cinnabar
+        case .deployment:
+            return MingDesignTokens.ink
+        }
+    }
+
     var readingNotes: [MapLayerReadingNote] {
         switch self {
         case .hex:
