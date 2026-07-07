@@ -2,11 +2,13 @@ import SwiftUI
 
 struct EventLogView: View {
     let entries: [GameLogEntry]
+    let objectiveSummary: BattleObjectiveSummary?
 
     var body: some View {
         VStack(alignment: .leading, spacing: MingDesignTokens.sectionSpacing) {
             EventLogHeader(summary: summary)
             EventLogSummaryGrid(summary: summary)
+            EventLogCampaignLineDigest(summary: objectiveSummary)
 
             ScrollView {
                 LazyVStack(alignment: .leading, spacing: MingDesignTokens.compactSpacing) {
@@ -39,6 +41,132 @@ struct EventLogView: View {
 
     private var summary: EventLogSummary {
         EventLogSummary(entries: recentEntries)
+    }
+}
+
+private struct EventLogCampaignLineDigest: View {
+    let summary: BattleObjectiveSummary?
+
+    var body: some View {
+        if let summary, summary.isMingScenario, !lineBriefs.isEmpty {
+            VStack(alignment: .leading, spacing: MingDesignTokens.compactSpacing) {
+                HStack(alignment: .firstTextBaseline, spacing: MingDesignTokens.compactSpacing) {
+                    Label("五线急报", systemImage: "waveform.path.ecg")
+                        .font(.subheadline.bold())
+                        .foregroundStyle(MingDesignTokens.ink)
+
+                    Spacer(minLength: MingDesignTokens.compactSpacing)
+
+                    Text(headline)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.78)
+                }
+
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(alignment: .top, spacing: MingDesignTokens.compactSpacing) {
+                        ForEach(lineBriefs) { brief in
+                            EventLogCampaignLineChip(brief: brief)
+                        }
+                    }
+                    .padding(.vertical, 1)
+                }
+            }
+            .padding(MingDesignTokens.compactSpacing)
+            .background(MingDesignTokens.sectionBackground, in: RoundedRectangle(cornerRadius: MingDesignTokens.cornerRadius))
+            .accessibilityElement(children: .combine)
+            .accessibilityLabel("五线急报，\(headline)")
+        }
+    }
+
+    private var lineBriefs: [BattleObjectiveSummary.CampaignLineBrief] {
+        guard let summary, summary.isMingScenario else {
+            return []
+        }
+        return summary.lineBriefs.sorted { lhs, rhs in
+            if lhs.status.sortRank == rhs.status.sortRank {
+                if lhs.pressure == rhs.pressure {
+                    return lhs.line.rawValue < rhs.line.rawValue
+                }
+                return lhs.pressure > rhs.pressure
+            }
+            return lhs.status.sortRank < rhs.status.sortRank
+        }
+    }
+
+    private var headline: String {
+        guard let leading = lineBriefs.first else {
+            return "五线候报"
+        }
+        if leading.urgentTaskCount > 0 {
+            return "\(leading.line.displayName)\(leading.status.displayName) · 急务 \(leading.urgentTaskCount)"
+        }
+        if leading.activeTaskCount > 0 {
+            return "\(leading.line.displayName)\(leading.status.displayName) · 主线 \(leading.activeTaskCount)"
+        }
+        return "\(leading.line.displayName)\(leading.status.displayName) · 势 \(leading.pressure)"
+    }
+}
+
+private struct EventLogCampaignLineChip: View {
+    let brief: BattleObjectiveSummary.CampaignLineBrief
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Label(brief.line.displayName, systemImage: brief.line.systemImage)
+                .font(.caption.bold())
+                .foregroundStyle(tint)
+                .lineLimit(1)
+                .minimumScaleFactor(0.8)
+
+            HStack(spacing: 6) {
+                Text(brief.status.displayName)
+                    .font(.caption.bold())
+                    .foregroundStyle(tint)
+
+                Text("势 \(brief.pressure)")
+                    .font(.caption.monospacedDigit())
+                    .foregroundStyle(.secondary)
+
+                if brief.urgentTaskCount > 0 {
+                    Text("急 \(brief.urgentTaskCount)")
+                        .font(.caption.bold())
+                        .foregroundStyle(MingDesignTokens.cinnabar)
+                } else if brief.activeTaskCount > 0 {
+                    Text("事 \(brief.activeTaskCount)")
+                        .font(.caption.bold())
+                        .foregroundStyle(tint)
+                }
+            }
+
+            Text(brief.detail)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .lineLimit(2)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .frame(width: 154, alignment: .leading)
+        .padding(8)
+        .background(MingDesignTokens.panelBackground.opacity(0.58), in: RoundedRectangle(cornerRadius: 6))
+        .overlay {
+            RoundedRectangle(cornerRadius: 6)
+                .stroke(tint.opacity(0.22), lineWidth: 1)
+        }
+        .accessibilityElement(children: .combine)
+    }
+
+    private var tint: Color {
+        switch brief.status {
+        case .warning:
+            return MingDesignTokens.cinnabar
+        case .focus:
+            return MingDesignTokens.imperialGold
+        case .watch:
+            return MingDesignTokens.porcelainBlue
+        case .achieved:
+            return MingDesignTokens.jade
+        }
     }
 }
 
@@ -326,6 +454,21 @@ private struct EventLogSummary {
             return MingDesignTokens.porcelainBlue
         }
         return .secondary
+    }
+}
+
+private extension BattleObjectiveSummary.CampaignStageStatus {
+    var sortRank: Int {
+        switch self {
+        case .warning:
+            return 0
+        case .focus:
+            return 1
+        case .watch:
+            return 2
+        case .achieved:
+            return 3
+        }
     }
 }
 

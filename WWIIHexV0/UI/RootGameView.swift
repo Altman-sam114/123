@@ -255,7 +255,10 @@ struct RootGameView: View {
                         onAttackRegion: container.orderSelectedGeneralAttackRegion
                     )
                 case .log:
-                    EventLogView(entries: container.displayEventLog)
+                    EventLogView(
+                        entries: container.displayEventLog,
+                        objectiveSummary: BattleObjectiveSummary.from(state: container.gameState)
+                    )
                 case .economy:
                     EconomyPanelView(
                         gameState: container.gameState,
