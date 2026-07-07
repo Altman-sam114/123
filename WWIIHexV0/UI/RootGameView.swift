@@ -381,6 +381,12 @@ private struct MingMapPointInspectionStrip: View {
             }
             .accessibilityElement(children: .contain)
             .accessibilityLabel(accessibilityText(for: state))
+        } else if objectiveSummary.isMingScenario {
+            MingMapPointInspectionEmptyStrip(
+                objectiveSummary: objectiveSummary,
+                selectedDivision: selectedDivision,
+                showsSupplyRoutes: showsSupplyRoutes
+            )
         }
     }
 
@@ -522,6 +528,164 @@ private struct MingMapPointInspectionStrip: View {
 
     private func accessibilityText(for state: RegionInspectorState) -> String {
         "舆图点验，\(coordinateText(for: state))，\(state.region.name)，控制 \(controller(for: state).displayName)，方面 \(MingMapLabelFormat.theaterTitle(theaterId(for: state)))，防区 \(MingMapLabelFormat.frontZoneTitle(frontZoneId(for: state)))，要冲 \(objectiveTitle(for: state))，四线 \(lineTitle)，粮道 \(supplyTitle)，部队 \(divisionTitle)"
+    }
+}
+
+private struct MingMapPointInspectionEmptyStrip: View {
+    let objectiveSummary: BattleObjectiveSummary
+    let selectedDivision: Division?
+    let showsSupplyRoutes: Bool
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            HStack(alignment: .center, spacing: 7) {
+                Label("点舆图格", systemImage: "scope")
+                    .font(.caption.bold())
+                    .foregroundStyle(MingDesignTokens.ink)
+                    .lineLimit(1)
+
+                Spacer(minLength: 6)
+
+                if let leadingFaction = objectiveSummary.leadingFaction {
+                    MingFactionFlagBadge(faction: leadingFaction)
+
+                    Text(leadingFaction.displayName)
+                        .font(.caption.bold())
+                        .foregroundStyle(leadingFaction.mingBannerTint)
+                        .lineLimit(1)
+                } else {
+                    Text("局势未分")
+                        .font(.caption.bold())
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                }
+            }
+
+            LazyVGrid(columns: [GridItem(.adaptive(minimum: 104), spacing: 6)], alignment: .leading, spacing: 6) {
+                MingMapPointInspectionChip(
+                    title: "城关",
+                    value: objectiveCountText,
+                    detail: objectiveDetailText,
+                    systemImageName: "building.columns",
+                    tint: MingDesignTokens.imperialGold
+                )
+                MingMapPointInspectionChip(
+                    title: "粮台",
+                    value: showsSupplyRoutes ? "粮道已开" : "粮道候开",
+                    detail: "驿道与军粮",
+                    systemImageName: showsSupplyRoutes ? "shippingbox.fill" : "shippingbox",
+                    tint: showsSupplyRoutes ? MingDesignTokens.jade : .secondary
+                )
+                MingMapPointInspectionChip(
+                    title: "军牌",
+                    value: divisionTitle,
+                    detail: divisionDetail,
+                    systemImageName: "flag",
+                    tint: divisionTint
+                )
+                MingMapPointInspectionChip(
+                    title: "四线",
+                    value: lineTitle,
+                    detail: lineDetail,
+                    systemImageName: lineSystemImage,
+                    tint: lineTint
+                )
+            }
+        }
+        .padding(8)
+        .background(MingDesignTokens.sectionBackground.opacity(0.68), in: RoundedRectangle(cornerRadius: MingDesignTokens.cornerRadius))
+        .overlay {
+            RoundedRectangle(cornerRadius: MingDesignTokens.cornerRadius)
+                .stroke(MingDesignTokens.courtStroke.opacity(0.45), lineWidth: 1)
+        }
+        .accessibilityElement(children: .contain)
+        .accessibilityLabel(accessibilityText)
+    }
+
+    private var objectiveScoreRows: [BattleObjectiveSummary.ScoreRow] {
+        objectiveSummary.scoreRows.sorted { lhs, rhs in
+            if lhs.points == rhs.points {
+                return lhs.objectiveCount > rhs.objectiveCount
+            }
+            return lhs.points > rhs.points
+        }
+    }
+
+    private var leadingLine: BattleObjectiveSummary.CampaignLineBrief? {
+        objectiveSummary.lineBriefs.sorted { lhs, rhs in
+            if lhs.status.sortRank == rhs.status.sortRank {
+                return lhs.pressure > rhs.pressure
+            }
+            return lhs.status.sortRank < rhs.status.sortRank
+        }
+        .first
+    }
+
+    private var objectiveCountText: String {
+        guard let leadingRow = objectiveScoreRows.first else {
+            return "待判"
+        }
+        return "\(leadingRow.objectiveCount) 处"
+    }
+
+    private var objectiveDetailText: String {
+        guard let leadingRow = objectiveScoreRows.first else {
+            return "点城关/州府看归属"
+        }
+        return "要冲 \(leadingRow.points) 分"
+    }
+
+    private var divisionTitle: String {
+        selectedDivision?.faction.displayName ?? "未选军"
+    }
+
+    private var divisionDetail: String {
+        guard let selectedDivision else {
+            return "点军牌看兵势"
+        }
+        return "兵力 \(selectedDivision.strength)/\(selectedDivision.maxStrength)"
+    }
+
+    private var divisionTint: Color {
+        selectedDivision?.faction.mingBannerTint ?? MingDesignTokens.porcelainBlue
+    }
+
+    private var lineTitle: String {
+        leadingLine?.line.displayName ?? "待判"
+    }
+
+    private var lineDetail: String {
+        guard let leadingLine else {
+            return "点舆图读四线"
+        }
+        if leadingLine.urgentTaskCount > 0 {
+            return "\(leadingLine.status.displayName) · 急务 \(leadingLine.urgentTaskCount)"
+        }
+        return "\(leadingLine.status.displayName) · 压力 \(leadingLine.pressure)"
+    }
+
+    private var lineSystemImage: String {
+        leadingLine?.line.systemImage ?? "chart.line.uptrend.xyaxis"
+    }
+
+    private var lineTint: Color {
+        guard let leadingLine else { return .secondary }
+        switch leadingLine.line {
+        case .world:
+            return MingDesignTokens.cinnabar
+        case .policy:
+            return MingDesignTokens.porcelainBlue
+        case .economy:
+            return MingDesignTokens.jade
+        case .technology:
+            return MingDesignTokens.imperialGold
+        case .military:
+            return MingDesignTokens.ink
+        }
+    }
+
+    private var accessibilityText: String {
+        "点舆图格开始点验，城关 \(objectiveCountText)，粮台 \(showsSupplyRoutes ? "粮道已开" : "粮道候开")，军牌 \(divisionTitle)，四线 \(lineTitle)"
     }
 }
 
