@@ -281,14 +281,34 @@ final class BoardScene: SKScene {
                 path.move(to: start)
                 path.addLine(to: end)
 
+                let underlay = SKShapeNode(path: path)
+                underlay.strokeColor = SKColor(red: 0.28, green: 0.18, blue: 0.08, alpha: 0.34)
+                underlay.lineWidth = max(4, layout.hexSize * 0.13)
+                underlay.lineCap = .round
+                underlay.zPosition = 14.8
+                addChild(underlay)
+
                 let road = SKShapeNode(path: path)
                 road.strokeColor = TerrainStyle.roadStroke
-                road.lineWidth = max(2, layout.hexSize * 0.08)
+                road.lineWidth = max(2, layout.hexSize * 0.06)
                 road.lineCap = .round
                 road.zPosition = 15
                 addChild(road)
+
+                addRelayMarker(from: start, to: end, layout: layout)
             }
         }
+    }
+
+    private func addRelayMarker(from start: CGPoint, to end: CGPoint, layout: HexLayout) {
+        let midpoint = CGPoint(x: (start.x + end.x) / 2, y: (start.y + end.y) / 2)
+        let marker = SKShapeNode(circleOfRadius: max(2.5, layout.hexSize * 0.045))
+        marker.position = midpoint
+        marker.fillColor = SKColor(red: 0.98, green: 0.83, blue: 0.42, alpha: 0.92)
+        marker.strokeColor = SKColor(red: 0.32, green: 0.18, blue: 0.06, alpha: 0.80)
+        marker.lineWidth = 0.8
+        marker.zPosition = 15.2
+        addChild(marker)
     }
 
     private func drawRegionOverlays(renderState: BoardRenderState, layout: HexLayout) {

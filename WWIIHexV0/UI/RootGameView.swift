@@ -1158,6 +1158,7 @@ private struct MingMapLegendView: View {
                     MapLegendBadge(text: "城", title: "城池", tint: MingDesignTokens.imperialGold)
                     MapLegendBadge(text: "关", title: "关隘", tint: MingDesignTokens.cinnabar)
                     MapLegendBadge(text: "粮", title: "粮台", tint: MingDesignTokens.jade)
+                    RelayRoadLegendBadge()
                     UnitTypeLegendBadge()
                     UnitStateLegendBadge()
                     FactionBannerLegendBadge()
@@ -1385,6 +1386,28 @@ private struct FactionBannerLegendBadge: View {
     }
 }
 
+private struct RelayRoadLegendBadge: View {
+    var body: some View {
+        HStack(spacing: 8) {
+            RelayRoadSwatch()
+
+            VStack(alignment: .leading, spacing: 1) {
+                Text("驿道")
+                    .font(.caption.bold())
+                Text("行军粮线")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+            }
+            Spacer(minLength: 0)
+        }
+        .padding(.horizontal, 8)
+        .padding(.vertical, 6)
+        .background(MingDesignTokens.sectionBackground.opacity(0.82), in: RoundedRectangle(cornerRadius: MingDesignTokens.cornerRadius))
+        .accessibilityElement(children: .combine)
+    }
+}
+
 private struct SupplyRouteLegendBadge: View {
     var body: some View {
         HStack(spacing: 8) {
@@ -1506,6 +1529,27 @@ private struct OperationPlanSwatch: View {
                 .frame(width: 19, height: 17)
                 .background(MingDesignTokens.jade, in: RoundedRectangle(cornerRadius: 4))
         }
+        .accessibilityHidden(true)
+    }
+}
+
+private struct RelayRoadSwatch: View {
+    var body: some View {
+        ZStack {
+            Capsule()
+                .fill(Color(red: 0.28, green: 0.18, blue: 0.08).opacity(0.34))
+                .frame(width: 34, height: 8)
+            Capsule()
+                .fill(Color(red: 0.80, green: 0.73, blue: 0.56))
+                .frame(width: 34, height: 3)
+            Circle()
+                .fill(MingDesignTokens.imperialGold)
+                .frame(width: 7, height: 7)
+                .overlay {
+                    Circle().stroke(Color(red: 0.32, green: 0.18, blue: 0.06).opacity(0.8), lineWidth: 1)
+                }
+        }
+        .frame(width: 36, height: 16)
         .accessibilityHidden(true)
     }
 }
