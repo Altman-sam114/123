@@ -28,6 +28,76 @@ struct RegionId: Hashable, Codable, Equatable, RawRepresentable, ExpressibleBySt
         var container = encoder.singleValueContainer()
         try container.encode(rawValue)
     }
+
+    var mingDisplayTitle: String {
+        switch rawValue {
+        case "region_liaodong_rear":
+            return "辽东后路"
+        case "region_jinzhou":
+            return "锦州"
+        case "region_ningyuan":
+            return "宁远"
+        case "region_shanhaiguan":
+            return "山海关"
+        case "region_xuanfu":
+            return "宣府"
+        case "region_datong":
+            return "大同"
+        case "region_yongping":
+            return "永平"
+        case "region_jizhou":
+            return "蓟州"
+        case "region_beijing":
+            return "北京"
+        case "region_baoding":
+            return "保定"
+        case "region_zhending":
+            return "真定"
+        case "region_taiyuan":
+            return "太原"
+        case "region_dengzhou":
+            return "登莱"
+        case "region_jinan":
+            return "济南"
+        case "region_kaifeng":
+            return "开封"
+        case "region_luoyang":
+            return "洛阳"
+        case "region_tongguan":
+            return "潼关"
+        case "region_xian":
+            return "西安"
+        case "region_xuzhou":
+            return "徐州"
+        case "region_guide":
+            return "归德"
+        case "region_nanyang":
+            return "南阳"
+        case "region_xiangyang":
+            return "襄阳"
+        case "region_hanzhong":
+            return "汉中"
+        case "region_shaanxi_hinterland":
+            return "秦陕后路"
+        case "region_huaian":
+            return "淮安"
+        case "region_fengyang":
+            return "凤阳"
+        case "region_wuchang":
+            return "武昌"
+        case "region_jingzhou":
+            return "荆州"
+        case "region_yunyang":
+            return "郧阳"
+        case "region_sichuan_gate":
+            return "川东门户"
+        default:
+            let trimmed = rawValue.hasPrefix("region_")
+                ? String(rawValue.dropFirst("region_".count))
+                : rawValue
+            return trimmed.replacingOccurrences(of: "_", with: " ")
+        }
+    }
 }
 
 // MARK: - 辅助值类型

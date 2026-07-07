@@ -125,7 +125,9 @@ struct AgentPromptBuilder {
     }
 
     private func objectiveSummary(_ objective: ObjectiveSummary, ming: Bool) -> String {
-        let region = objective.regionId?.rawValue ?? "unknown"
+        let region = ming
+            ? objective.regionId?.mingDisplayTitle ?? "未明州府"
+            : objective.regionId?.rawValue ?? "unknown"
         let controller = objective.controller?.displayName ?? "中立"
         if ming {
             return "\(objective.name) 州府:\(region)，控制:\(controller)"
@@ -134,7 +136,9 @@ struct AgentPromptBuilder {
     }
 
     private func divisionSummary(_ division: DivisionSummary, ming: Bool, includeActed: Bool = true) -> String {
-        let region = division.regionId?.rawValue ?? "unknown"
+        let region = ming
+            ? division.regionId?.mingDisplayTitle ?? "未明州府"
+            : division.regionId?.rawValue ?? "unknown"
         if ming {
             let actedText = includeActed ? " 已行:\(division.hasActed)" : ""
             return "\(division.id) \(division.name) 兵力:\(division.strength)/\(division.maxStrength) 州府:\(region) 粮草:\(supplyStateText(division.supplyState))\(actedText)"
@@ -162,10 +166,11 @@ struct AgentPromptBuilder {
     }
 
     private func regionSummary(_ region: RegionSnapshot, ming: Bool) -> String {
-        let neighbors = region.neighbors.map(\.rawValue).joined(separator: ",")
         if ming {
-            return "\(region.id.rawValue) \(region.name) 地形:\(region.terrain.displayName) 控制:\(region.controller.displayName) 邻接:\(neighbors)"
+            let neighbors = region.neighbors.map(\.mingDisplayTitle).joined(separator: "、")
+            return "\(region.id.mingDisplayTitle)（\(region.name)）地形:\(region.terrain.displayName) 控制:\(region.controller.displayName) 邻接:\(neighbors)"
         }
+        let neighbors = region.neighbors.map(\.rawValue).joined(separator: ",")
         return "\(region.id.rawValue) \(region.name) terrain:\(region.terrain.rawValue) controller:\(region.controller.rawValue) neighbors:\(neighbors)"
     }
 }

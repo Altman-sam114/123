@@ -176,6 +176,7 @@ struct MockAIClient: DecisionProvider {
                         continue
                     }
                     if let target = frontAttackTarget(for: division, segment: segment, context: context) {
+                        let segmentName = segment.regionId.mingDisplayTitle
                         orders.append(
                             AgentOrder(
                                 type: .attack,
@@ -185,11 +186,12 @@ struct MockAIClient: DecisionProvider {
                                 reason: frontReason(
                                     context: context,
                                     legacy: "v0.33 deployment: FRONT unit acts on segment \(segment.regionId.rawValue).",
-                                    ming: "前线军伍在 \(segment.regionId.rawValue) 接敌，按当前防区命令出击。"
+                                    ming: "前线军伍在 \(segmentName) 接敌，按当前防区命令出击。"
                                 )
                             )
                         )
                     } else {
+                        let segmentName = segment.regionId.mingDisplayTitle
                         orders.append(
                             AgentOrder(
                                 type: .hold,
@@ -199,7 +201,7 @@ struct MockAIClient: DecisionProvider {
                                 reason: frontReason(
                                     context: context,
                                     legacy: "v0.33 deployment: FRONT unit holds assigned segment \(segment.regionId.rawValue).",
-                                    ming: "前线军伍守 \(segment.regionId.rawValue) 接敌面，先稳城关粮道。"
+                                    ming: "前线军伍守 \(segmentName) 接敌面，先稳城关粮道。"
                                 )
                             )
                         )

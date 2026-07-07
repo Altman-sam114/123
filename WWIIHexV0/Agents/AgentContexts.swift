@@ -96,7 +96,7 @@ struct GovernanceAISummary: Codable, Equatable {
     }
 
     var displaySummary: String {
-        let regionText = lowestComplianceRegionId?.rawValue ?? "无"
+        let regionText = lowestComplianceRegionId?.mingDisplayTitle ?? "无"
         return "控制州府 \(controlledRegions)，不稳 \(unstableRegions)，平均民变 \(averageResistance)，平均行政 \(averageCompliance)，最低行政 \(regionText)"
     }
 }
