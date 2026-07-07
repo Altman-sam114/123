@@ -178,4 +178,7 @@ enum TerrainStyle {
     static let mapBadgeStroke = SKColor(red: 0.20, green: 0.12, blue: 0.08, alpha: 0.86)
     static let cityBadgeFill = SKColor(red: 0.80, green: 0.62, blue: 0.28, alpha: 0.94)
     static let fortressBadgeFill = SKColor(red: 0.55, green: 0.16, blue: 0.11, alpha: 0.94)
+    static let citySealStroke = SKColor(red: 0.94, green: 0.72, blue: 0.28, alpha: 0.72)
+    static let fortressSealStroke = SKColor(red: 0.72, green: 0.12, blue: 0.08, alpha: 0.76)
+    static let supplySealStroke = SKColor(red: 0.22, green: 0.62, blue: 0.38, alpha: 0.62)
 }

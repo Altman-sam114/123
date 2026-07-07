@@ -31,6 +31,7 @@ final class HexNode: SKNode {
         }
 
         addTerrainMotif(for: displayState.terrain, layout: layout)
+        addStrategicSiteFrame(displayState: displayState, supplySourceFaction: supplySourceFaction, path: path, layout: layout)
 
         if isMoveHighlighted {
             addHighlight(path: path, color: TerrainStyle.movementFill, zPosition: 2)
@@ -110,6 +111,38 @@ final class HexNode: SKNode {
         motif.position = CGPoint(x: 0, y: -layout.hexSize * 0.06)
         motif.zPosition = 1.2
         addChild(motif)
+    }
+
+    private func addStrategicSiteFrame(
+        displayState: HexDisplayState,
+        supplySourceFaction: Faction?,
+        path: CGPath,
+        layout: HexLayout
+    ) {
+        let strokeColor: SKColor
+        if displayState.fortressName != nil {
+            strokeColor = TerrainStyle.fortressSealStroke
+        } else if displayState.cityName != nil {
+            strokeColor = TerrainStyle.citySealStroke
+        } else if supplySourceFaction != nil {
+            strokeColor = TerrainStyle.supplySealStroke
+        } else {
+            return
+        }
+
+        let underlay = SKShapeNode(path: path)
+        underlay.fillColor = .clear
+        underlay.strokeColor = strokeColor.withAlphaComponent(0.22)
+        underlay.lineWidth = max(4, layout.hexSize * 0.13)
+        underlay.zPosition = 1.32
+        addChild(underlay)
+
+        let frame = SKShapeNode(path: path)
+        frame.fillColor = .clear
+        frame.strokeColor = strokeColor
+        frame.lineWidth = max(2, layout.hexSize * 0.055)
+        frame.zPosition = 1.34
+        addChild(frame)
     }
 
     private func addObjectiveLabels(displayState: HexDisplayState, supplySourceFaction: Faction?, layout: HexLayout) {

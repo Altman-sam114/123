@@ -1158,6 +1158,7 @@ private struct MingMapLegendView: View {
                     MapLegendBadge(text: "城", title: "城池", tint: MingDesignTokens.imperialGold)
                     MapLegendBadge(text: "关", title: "关隘", tint: MingDesignTokens.cinnabar)
                     MapLegendBadge(text: "粮", title: "粮台", tint: MingDesignTokens.jade)
+                    StrategicSiteFrameLegendBadge()
                     RelayRoadLegendBadge()
                     UnitTypeLegendBadge()
                     UnitStateLegendBadge()
@@ -1386,6 +1387,28 @@ private struct FactionBannerLegendBadge: View {
     }
 }
 
+private struct StrategicSiteFrameLegendBadge: View {
+    var body: some View {
+        HStack(spacing: 8) {
+            StrategicSiteFrameSwatch()
+
+            VStack(alignment: .leading, spacing: 1) {
+                Text("城关印框")
+                    .font(.caption.bold())
+                Text("要冲 / 粮台")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+            }
+            Spacer(minLength: 0)
+        }
+        .padding(.horizontal, 8)
+        .padding(.vertical, 6)
+        .background(MingDesignTokens.sectionBackground.opacity(0.82), in: RoundedRectangle(cornerRadius: MingDesignTokens.cornerRadius))
+        .accessibilityElement(children: .combine)
+    }
+}
+
 private struct RelayRoadLegendBadge: View {
     var body: some View {
         HStack(spacing: 8) {
@@ -1530,6 +1553,47 @@ private struct OperationPlanSwatch: View {
                 .background(MingDesignTokens.jade, in: RoundedRectangle(cornerRadius: 4))
         }
         .accessibilityHidden(true)
+    }
+}
+
+private struct StrategicSiteFrameSwatch: View {
+    var body: some View {
+        ZStack {
+            HexagonShape()
+                .stroke(MingDesignTokens.imperialGold.opacity(0.26), lineWidth: 7)
+                .frame(width: 30, height: 26)
+            HexagonShape()
+                .stroke(MingDesignTokens.cinnabar.opacity(0.82), lineWidth: 2)
+                .frame(width: 30, height: 26)
+            Text("关")
+                .font(.caption2.bold())
+                .foregroundStyle(.white)
+                .frame(width: 16, height: 14)
+                .background(MingDesignTokens.cinnabar, in: RoundedRectangle(cornerRadius: 3))
+        }
+        .frame(width: 34, height: 26)
+        .accessibilityHidden(true)
+    }
+}
+
+private struct HexagonShape: Shape {
+    func path(in rect: CGRect) -> Path {
+        let points = [
+            CGPoint(x: rect.midX, y: rect.minY),
+            CGPoint(x: rect.maxX, y: rect.minY + rect.height * 0.25),
+            CGPoint(x: rect.maxX, y: rect.minY + rect.height * 0.75),
+            CGPoint(x: rect.midX, y: rect.maxY),
+            CGPoint(x: rect.minX, y: rect.minY + rect.height * 0.75),
+            CGPoint(x: rect.minX, y: rect.minY + rect.height * 0.25)
+        ]
+
+        var path = Path()
+        path.move(to: points[0])
+        for point in points.dropFirst() {
+            path.addLine(to: point)
+        }
+        path.closeSubpath()
+        return path
     }
 }
 
