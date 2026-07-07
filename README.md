@@ -4,6 +4,8 @@
 
 > v4.8 发布候选最新增量：`AppContainer` 新增本机单槽自动保存与继续战局首片，玩家军令成功、玩家将令提交和 AI 回合结算后会把完整 `GameState` 写入带 `schemaVersion/savedAt` 的本机 JSON envelope；HUD 的“战局”菜单和 macOS “战局”菜单可继续最近战局，新开战局会清除旧存档。续战只恢复规则权威状态并重建将领分配，选中态、高亮、信息面板、图层开关和交互日志不随存档保存；该片不改变 `Command`、`WarCommandExecutor`、`CommandValidator`、`RuleEngine` 或任何 hex/region/theater/front/deploy 权威。
 
+> v4.6 州府牌最新增量：`RegionInspectorView` 在“州府主值”后新增只读“本州入局”区，从现有 `RegionInspectorState`、`RegionNode` 和 `OccupationState` 派生要冲入局、接敌入局、地方入局、经略入局或后方入局总批，并用天下、政粮、军械三枚 chip 联读控制归属、目标/前线、民变行政、钱粮、粮台、工坊、驿道和友敌军。该区只改变 SwiftUI 展示，不新增 `RegionInspectorState` 字段，不触发目标定位，不写塘报，不提交命令，不改变 hex/region/theater/front/deploy、经济、胜负、朝廷或规则权威。
+
 > v4.6/v4.7 军令牌最新增量：`CommandPanelView` 的只读“要冲军令”区继续增强，落点 chip 现在从 `BattleObjectiveSummary.tracks.targets` 显示目标现控制方和要冲分，并新增只读“朝议四线”压力扫读，把政策、经济、科技、军事四线的状态、压力和急务数放进军令上下文。该区只改变 SwiftUI 展示，不新增按钮，不自动定位目标，不写塘报，不提交 `Command`，不改变 `BattleObjectiveSummary`、`CourtStrategySummary`、胜负、朝廷、经济、AI、移动、攻击、补给、`WarCommandExecutor`、`CommandValidator`、`RuleEngine` 或任何 hex/region/theater/front/deploy 权威。
 
 > v4.7 目标面板最新增量：`BattleObjectivePanelView` 在 header 后新增只读“国势四策”区，从 `BattleObjectiveSummary`、当前势力 `CourtStrategySummary` 和 `FactionEconomyLedger` 派生政策、经济、科技、军事四张扫读牌，把要冲分领先方、朝议主议/备议、府库银粮、火器攻城军和前线压力并列呈现。该区只改变 SwiftUI 展示，不新增按钮，不自动定位目标，不写塘报，不执行朝廷项目，不提交命令，不改变 `GameState`、`BattleObjectiveSummary`、`CourtStrategySummary`、`EconomyRules`、`VictoryRules`、`Command`、`WarCommandExecutor`、`RuleEngine` 或任何 hex/region/theater/front/deploy 权威。

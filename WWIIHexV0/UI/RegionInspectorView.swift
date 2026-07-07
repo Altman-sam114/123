@@ -27,6 +27,7 @@ struct RegionInspectorView: View {
         return VStack(alignment: .leading, spacing: 8) {
             RegionMandateHeader(state: state)
             RegionPrimaryValueSection(state: state, occupation: occupation)
+            RegionSituationBriefSection(state: state, occupation: occupation)
             RegionFourLineSection(state: state, occupation: occupation)
             RegionGovernanceSection(occupation: occupation)
             RegionYieldSection(state: state, occupation: occupation)
@@ -242,6 +243,135 @@ private struct RegionPrimaryValueSection: View {
                 tint: state.frontPressureTint
             )
         ]
+    }
+}
+
+private struct RegionSituationBriefSection: View {
+    let state: RegionInspectorState
+    let occupation: OccupationState
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: MingDesignTokens.compactSpacing) {
+            HStack(alignment: .top, spacing: 8) {
+                Label("本州入局", systemImage: headline.systemImageName)
+                    .font(.caption.bold())
+                    .foregroundStyle(headline.tint)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.78)
+
+                Spacer(minLength: 8)
+
+                Text(headline.badge)
+                    .font(.caption.bold())
+                    .foregroundStyle(headline.tint)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.72)
+                    .padding(.horizontal, 7)
+                    .padding(.vertical, 4)
+                    .background(headline.tint.opacity(0.12), in: RoundedRectangle(cornerRadius: 6))
+            }
+
+            Text(headline.detail)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+
+            LazyVGrid(columns: [GridItem(.adaptive(minimum: 94), spacing: 6)], alignment: .leading, spacing: 6) {
+                ForEach(signals) { signal in
+                    RegionValueChip(signal: signal)
+                }
+            }
+        }
+        .padding(MingDesignTokens.compactSpacing)
+        .background(MingDesignTokens.sectionBackground)
+        .clipShape(RoundedRectangle(cornerRadius: MingDesignTokens.cornerRadius))
+        .accessibilityElement(children: .combine)
+    }
+
+    private var headline: RegionValueSignal {
+        if !state.objectiveNames.isEmpty {
+            return RegionValueSignal(
+                title: "要冲入局",
+                detail: "牵动 \(state.objectiveNames.displaySummary)，当前 \(state.objectiveStatus)；先看军事要冲，再看钱粮、治理和火器支点。",
+                badge: "胜负线",
+                systemImageName: "scope",
+                tint: MingDesignTokens.cinnabar
+            )
+        }
+
+        if state.frontPressure > 0 {
+            return RegionValueSignal(
+                title: "接敌入局",
+                detail: "\(state.frontPressureDisplay)，友军 \(state.friendlyDivisions.count) 支、敌情 \(state.visibleEnemyDivisions.count) 支；军令、防区和粮道应联读。",
+                badge: "前线",
+                systemImageName: "exclamationmark.shield",
+                tint: state.frontPressureTint
+            )
+        }
+
+        if occupation.resistance >= 30 || occupation.compliance < 55 {
+            return RegionValueSignal(
+                title: "地方入局",
+                detail: "民变 \(occupation.resistance)%、行政 \(occupation.compliance)%；政策线宜先看赈济、招抚或团练，再承征饷。",
+                badge: "政策",
+                systemImageName: "scroll",
+                tint: occupation.governanceTint
+            )
+        }
+
+        if state.region.supplyValue > 0 || state.region.factories > 0 || state.region.infrastructure > 0 {
+            return RegionValueSignal(
+                title: "经略入局",
+                detail: "粮台 \(state.region.supplyValue)、工坊 \(state.region.factories)、驿道 \(state.region.infrastructure)；可承接筹粮、修城、火器或粮道项目。",
+                badge: "经略",
+                systemImageName: "shippingbox",
+                tint: MingDesignTokens.imperialGold
+            )
+        }
+
+        return RegionValueSignal(
+            title: "后方入局",
+            detail: "当前未承急线，可作为整补、筹饷、转运或地方治理的后方节点。",
+            badge: "后方",
+            systemImageName: "building.columns",
+            tint: MingDesignTokens.jade
+        )
+    }
+
+    private var signals: [RegionValueSignal] {
+        [
+            RegionValueSignal(
+                title: "天下",
+                detail: worldDetail,
+                badge: state.objectiveNames.isEmpty ? state.region.controller.bannerGlyph : "要冲",
+                systemImageName: "globe.asia.australia",
+                tint: !state.objectiveNames.isEmpty ? MingDesignTokens.cinnabar : state.region.controller.mingBannerTint
+            ),
+            RegionValueSignal(
+                title: "政粮",
+                detail: "民变 \(occupation.resistance)% / 行政 \(occupation.compliance)% / 钱粮 \(occupation.economicYieldPercent)%",
+                badge: "民 \(state.economicOutput.manpower) 银 \(state.economicOutput.industry)",
+                systemImageName: "scroll",
+                tint: occupation.governanceTint
+            ),
+            RegionValueSignal(
+                title: "军械",
+                detail: "粮台 \(state.region.supplyValue)，工坊 \(state.region.factories)，驿道 \(state.region.infrastructure)",
+                badge: "友 \(state.friendlyDivisions.count) / 敌 \(state.visibleEnemyDivisions.count)",
+                systemImageName: "hammer",
+                tint: state.frontPressure > 0 ? state.frontPressureTint : MingDesignTokens.porcelainBlue
+            )
+        ]
+    }
+
+    private var worldDetail: String {
+        if !state.objectiveNames.isEmpty {
+            return "\(state.objectiveNames.displaySummary)：\(state.objectiveStatus)。"
+        }
+        if state.region.owner != state.region.controller {
+            return "原属 \(state.region.owner.displayName)，现由 \(state.region.controller.displayName) 控制。"
+        }
+        return "\(state.region.controller.displayName) 控制，暂无胜负目标在案。"
     }
 }
 
