@@ -24,6 +24,7 @@ struct BattleObjectivePanelView: View {
                     ledger: ledger
                 )
                 BattleObjectiveStrategicEye(summary: summary, onFocusObjective: onFocusObjective)
+                BattleObjectiveMandateRaceStrip(tracks: summary.tracks)
                 BattleObjectiveGapBoard(tracks: summary.tracks, onFocusObjective: onFocusObjective)
                 BattleObjectiveScoreboard(summary: summary)
                 BattleObjectiveLineBriefBoard(briefs: summary.lineBriefs)
@@ -415,6 +416,145 @@ private extension BattleObjectiveSummary.CampaignStageStatus {
         case .achieved:
             return 3
         }
+    }
+}
+
+private struct BattleObjectiveMandateRaceStrip: View {
+    let tracks: [BattleObjectiveSummary.Track]
+
+    var body: some View {
+        if !tracks.isEmpty {
+            VStack(alignment: .leading, spacing: MingDesignTokens.compactSpacing) {
+                HStack(alignment: .firstTextBaseline, spacing: 8) {
+                    Label("终局名分", systemImage: "seal")
+                        .font(.subheadline.bold())
+                        .foregroundStyle(MingDesignTokens.ink)
+
+                    Spacer(minLength: 8)
+
+                    Text(overallStatus)
+                        .font(.caption.bold())
+                        .foregroundStyle(MingDesignTokens.cinnabar)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.78)
+                }
+
+                Text("诸方离称制、入关、据中原或保社稷还差几处城关，在这里先看名分门槛，再回舆图点验。")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+
+                LazyVGrid(columns: [GridItem(.adaptive(minimum: 154), spacing: 8)], alignment: .leading, spacing: 8) {
+                    ForEach(tracks) { track in
+                        BattleObjectiveMandateRaceCard(track: track)
+                    }
+                }
+            }
+            .padding(MingDesignTokens.compactSpacing)
+            .background(MingDesignTokens.sectionBackground, in: RoundedRectangle(cornerRadius: MingDesignTokens.cornerRadius))
+        }
+    }
+
+    private var overallStatus: String {
+        let satisfiedCount = tracks.filter(\.isSatisfied).count
+        if satisfiedCount > 0 {
+            return "已成 \(satisfiedCount) 路"
+        }
+
+        let shortestGap = tracks
+            .map { max($0.requiredCount - $0.controlledCount, 0) }
+            .min() ?? 0
+        return "最近尚缺 \(shortestGap) 处"
+    }
+}
+
+private struct BattleObjectiveMandateRaceCard: View {
+    let track: BattleObjectiveSummary.Track
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 7) {
+            HStack(alignment: .top, spacing: 7) {
+                MingFactionFlagBadge(faction: track.faction)
+
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(track.title)
+                        .font(.caption.bold())
+                        .foregroundStyle(MingDesignTokens.ink)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.76)
+
+                    Text(track.timing.displayName)
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                }
+
+                Spacer(minLength: 4)
+
+                Text(track.isSatisfied ? "名分已具" : "缺 \(missingCount)")
+                    .font(.caption.bold())
+                    .foregroundStyle(track.isSatisfied ? track.faction.mingBannerTint : MingDesignTokens.cinnabar)
+                    .lineLimit(1)
+            }
+
+            ProgressView(value: track.progress, total: 1)
+                .tint(track.faction.mingBannerTint)
+
+            HStack(spacing: 6) {
+                Text("\(track.controlledCount) / \(track.requiredCount) 处")
+                    .font(.caption.monospacedDigit().bold())
+                    .foregroundStyle(track.faction.mingBannerTint)
+
+                Text(track.reason.displayName)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.76)
+            }
+
+            Text(detail)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .lineLimit(3)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .padding(8)
+        .frame(maxWidth: .infinity, minHeight: 122, alignment: .topLeading)
+        .background(track.isSatisfied ? MingDesignTokens.subtleSeal : MingDesignTokens.panelBackground.opacity(0.58), in: RoundedRectangle(cornerRadius: 6))
+        .overlay {
+            RoundedRectangle(cornerRadius: 6)
+                .stroke(track.faction.mingBannerTint.opacity(track.isSatisfied ? 0.48 : 0.2), lineWidth: 1)
+        }
+        .accessibilityElement(children: .combine)
+    }
+
+    private var missingTargets: [BattleObjectiveSummary.Target] {
+        track.targets.filter { !$0.isControlled }
+    }
+
+    private var missingCount: Int {
+        max(track.requiredCount - track.controlledCount, 0)
+    }
+
+    private var highestMissingTarget: BattleObjectiveSummary.Target? {
+        missingTargets.sorted {
+            if $0.points == $1.points {
+                return $0.name < $1.name
+            }
+            return $0.points > $1.points
+        }.first
+    }
+
+    private var detail: String {
+        if track.isSatisfied {
+            return "\(track.faction.displayName)已握此线所需城关，终局前仍要防换手。"
+        }
+
+        guard let highestMissingTarget else {
+            return "此线门槛未明，先看要冲分和当前控制方。"
+        }
+
+        return "离名分尚缺 \(missingCount) 处；先盯 \(highestMissingTarget.name)，现 \(highestMissingTarget.controllerName)，值 \(highestMissingTarget.points) 分。"
     }
 }
 
