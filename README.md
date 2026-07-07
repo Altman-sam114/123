@@ -12,7 +12,7 @@
 
 > v4.6/v4.7 军令牌最新增量：`CommandPanelView` 的只读“要冲军令”区继续增强，落点 chip 现在从 `BattleObjectiveSummary.tracks.targets` 显示目标现控制方和要冲分，并新增只读“朝议四线”压力扫读，把政策、经济、科技、军事四线的状态、压力和急务数放进军令上下文。该区只改变 SwiftUI 展示，不新增按钮，不自动定位目标，不写塘报，不提交 `Command`，不改变 `BattleObjectiveSummary`、`CourtStrategySummary`、胜负、朝廷、经济、AI、移动、攻击、补给、`WarCommandExecutor`、`CommandValidator`、`RuleEngine` 或任何 hex/region/theater/front/deploy 权威。
 
-> v4.7 目标面板最新增量：`BattleObjectivePanelView` 在 header 后新增只读“国势四策”区，从 `BattleObjectiveSummary`、当前势力 `CourtStrategySummary` 和 `FactionEconomyLedger` 派生政策、经济、科技、军事四张扫读牌，把要冲分领先方、朝议主议/备议、府库银粮、火器攻城军和前线压力并列呈现。该区只改变 SwiftUI 展示，不新增按钮，不自动定位目标，不写塘报，不执行朝廷项目，不提交命令，不改变 `GameState`、`BattleObjectiveSummary`、`CourtStrategySummary`、`EconomyRules`、`VictoryRules`、`Command`、`WarCommandExecutor`、`RuleEngine` 或任何 hex/region/theater/front/deploy 权威。
+> v4.7 目标面板最新增量：`BattleObjectivePanelView` 在 header 后新增只读“国势四策”区，从 `BattleObjectiveSummary`、当前势力 `CourtStrategySummary` 和 `FactionEconomyLedger` 派生政策、经济、科技、军事四张扫读牌，把要冲分领先方、朝议主议/备议、府库银粮、火器攻城军和前线压力并列呈现；当前四张卡会优先读取同名 `CampaignLineBrief`，把政策线、经济线、科技线、军事线的压力、急务和主线说明直接接入四策卡。该区只改变 SwiftUI 展示，不新增按钮，不自动定位目标，不写塘报，不执行朝廷项目，不提交命令，不改变 `GameState`、`BattleObjectiveSummary`、`CourtStrategySummary`、`EconomyRules`、`VictoryRules`、`Command`、`WarCommandExecutor`、`RuleEngine` 或任何 hex/region/theater/front/deploy 权威。
 
 > v4.6/v4.7 朝报令条最新增量：`HUDView` 新增只读“朝报要冲”区，直接从 `BattleObjectiveSummary.from(state:)` 派生棋势领先方、最急五线和本旬任务落点，让玩家进入地图第一屏时不切 tab 也能看到中华世界局势、胜负目标和政策/经济/科技/军事压力。该区只改变 SwiftUI 展示，不新增按钮，不触发目标定位，不写塘报，不提交命令，不改变 `GameState`、`BattleObjectiveSummary`、`VictoryRules`、`CourtStrategySummary`、`Command`、`WarCommandExecutor`、`RuleEngine` 或任何 hex/region/theater/front/deploy 权威。
 

@@ -102,15 +102,6 @@ private struct BattleObjectiveFourPolicyBoard: View {
         return "\(leader)暂领要冲分；\(backupClause)。此处只把胜负线、朝议和府库余势合并判读，不自动批票或下令。"
     }
 
-    private var urgentBrief: BattleObjectiveSummary.CampaignLineBrief? {
-        summary.lineBriefs.sorted {
-            if $0.status != $1.status {
-                return $0.status.objectivePanelRank < $1.status.objectivePanelRank
-            }
-            return $0.pressure > $1.pressure
-        }.first
-    }
-
     private var militaryTask: BattleObjectiveSummary.CampaignTask? {
         summary.tasks.first { $0.line == .military && $0.priority == .urgent }
             ?? summary.tasks.first { $0.line == .military }
@@ -123,7 +114,10 @@ private struct BattleObjectiveFourPolicyBoard: View {
                 id: "policy",
                 title: "政策",
                 value: "压 \(courtSummary.policyPressure)",
-                detail: "\(courtSummary.recommendedFocus.domainDisplayName)主议；不稳州府 \(courtSummary.unstableRegions) 处，先判征饷、安民、招抚的名分代价。",
+                detail: lineDetail(
+                    for: .policy,
+                    fallback: "\(courtSummary.recommendedFocus.domainDisplayName)主议；不稳州府 \(courtSummary.unstableRegions) 处，先判征饷、安民、招抚的名分代价。"
+                ),
                 systemImage: BattleObjectiveSummary.CampaignLine.policy.systemImage,
                 tint: BattleObjectiveSummary.CampaignLine.policy.objectivePanelTint
             ),
@@ -139,7 +133,10 @@ private struct BattleObjectiveFourPolicyBoard: View {
                 id: "technology",
                 title: "科技",
                 value: "压 \(courtSummary.technologyPressure)",
-                detail: "火器攻城军 \(courtSummary.fireSupportUnits) 支；看红衣炮、火器整备、修城和粮台驿道能否支撑要冲线。",
+                detail: lineDetail(
+                    for: .technology,
+                    fallback: "火器攻城军 \(courtSummary.fireSupportUnits) 支；看红衣炮、火器整备、修城和粮台驿道能否支撑要冲线。"
+                ),
                 systemImage: BattleObjectiveSummary.CampaignLine.technology.systemImage,
                 tint: BattleObjectiveSummary.CampaignLine.technology.objectivePanelTint
             ),
@@ -154,14 +151,30 @@ private struct BattleObjectiveFourPolicyBoard: View {
         ]
     }
 
-    private var economyDetail: String {
-        if let urgentBrief, urgentBrief.line == .economy || urgentBrief.line == .world {
-            return "\(urgentBrief.title)势 \(urgentBrief.pressure)；府库需同时顾粮道、银饷和本旬要冲落点。"
+    private func brief(for line: BattleObjectiveSummary.CampaignLine) -> BattleObjectiveSummary.CampaignLineBrief? {
+        summary.lineBriefs.first { $0.line == line }
+    }
+
+    private func lineDetail(for line: BattleObjectiveSummary.CampaignLine, fallback: String) -> String {
+        guard let brief = brief(for: line), brief.pressure > 0 else {
+            return fallback
         }
-        return "民力 \(ledger.stockpile.manpower)，入账 \(ledger.lastIncome.compactDisplaySummary)；先看军粮维护与补员消耗。"
+
+        return "\(brief.title)势 \(brief.pressure)：\(brief.detail)"
+    }
+
+    private var economyDetail: String {
+        lineDetail(
+            for: .economy,
+            fallback: "民力 \(ledger.stockpile.manpower)，入账 \(ledger.lastIncome.compactDisplaySummary)；先看军粮维护与补员消耗。"
+        )
     }
 
     private var militaryDetail: String {
+        if let brief = brief(for: .military), brief.pressure > 0 {
+            return "\(brief.title)势 \(brief.pressure)：\(brief.detail)"
+        }
+
         if let militaryTask {
             return "\(militaryTask.priority.displayName)：\(militaryTask.title)。前线 \(courtSummary.activeFronts) 处，先保能调之兵。"
         }
