@@ -173,7 +173,10 @@ struct RootGameView: View {
 
     private var compactPanelWithTabs: some View {
         VStack(spacing: 0) {
-            CompactPanelNavigation(selectedPanel: $selectedCompactPanel)
+            CompactPanelNavigation(
+                selectedPanel: $selectedCompactPanel,
+                summary: BattleObjectiveSummary.from(state: container.gameState)
+            )
 
             compactPanel
         }
@@ -893,6 +896,7 @@ private struct MapLayerNavigationButton: View {
 
 private struct CompactPanelNavigation: View {
     @Binding var selectedPanel: CompactInfoPanel
+    let summary: BattleObjectiveSummary
 
     var body: some View {
         VStack(alignment: .leading, spacing: 7) {
@@ -909,6 +913,12 @@ private struct CompactPanelNavigation: View {
                     .lineLimit(1)
                     .minimumScaleFactor(0.76)
             }
+            .padding(.horizontal, 8)
+
+            CompactPanelBriefStrip(
+                selectedPanel: selectedPanel,
+                summary: summary
+            )
             .padding(.horizontal, 8)
 
             ScrollView(.horizontal, showsIndicators: false) {
@@ -928,6 +938,173 @@ private struct CompactPanelNavigation: View {
         }
         .padding(.top, 8)
         .background(MingDesignTokens.sectionBackground.opacity(0.72))
+    }
+}
+
+private struct CompactPanelBriefStrip: View {
+    let selectedPanel: CompactInfoPanel
+    let summary: BattleObjectiveSummary
+
+    var body: some View {
+        if summary.isMingScenario {
+            HStack(spacing: 6) {
+                CompactPanelBriefChip(
+                    title: "当前",
+                    value: selectedPanel.rawValue,
+                    detail: selectedPanel.briefReading,
+                    systemImageName: selectedPanel.systemImageName,
+                    tint: selectedPanel.tint
+                )
+                CompactPanelBriefChip(
+                    title: "急线",
+                    value: urgentLineTitle,
+                    detail: urgentLineDetail,
+                    systemImageName: urgentLine?.line.systemImage ?? "waveform.path.ecg",
+                    tint: urgentLineTint
+                )
+                CompactPanelBriefChip(
+                    title: "本旬",
+                    value: taskTitle,
+                    detail: taskDetail,
+                    systemImageName: task?.priority.systemImage ?? "scroll",
+                    tint: taskTint
+                )
+            }
+            .padding(7)
+            .background(MingDesignTokens.panelBackground.opacity(0.58), in: RoundedRectangle(cornerRadius: 7))
+            .overlay {
+                RoundedRectangle(cornerRadius: 7)
+                    .stroke(selectedPanel.tint.opacity(0.22), lineWidth: 1)
+            }
+            .accessibilityElement(children: .combine)
+            .accessibilityLabel("军情眉批，当前\(selectedPanel.rawValue)，急线\(urgentLineTitle)，本旬\(taskTitle)")
+        }
+    }
+
+    private var urgentLine: BattleObjectiveSummary.CampaignLineBrief? {
+        summary.lineBriefs.sorted { lhs, rhs in
+            if lhs.status.sortRank == rhs.status.sortRank {
+                return lhs.pressure > rhs.pressure
+            }
+            return lhs.status.sortRank < rhs.status.sortRank
+        }
+        .first
+    }
+
+    private var task: BattleObjectiveSummary.CampaignTask? {
+        summary.tasks.sorted { lhs, rhs in
+            if lhs.priority.sortRank == rhs.priority.sortRank {
+                let lhsPressure = pressure(for: lhs.line)
+                let rhsPressure = pressure(for: rhs.line)
+                if lhsPressure == rhsPressure {
+                    return lhs.title < rhs.title
+                }
+                return lhsPressure > rhsPressure
+            }
+            return lhs.priority.sortRank < rhs.priority.sortRank
+        }
+        .first
+    }
+
+    private var urgentLineTitle: String {
+        urgentLine?.line.displayName ?? "五线"
+    }
+
+    private var urgentLineDetail: String {
+        guard let urgentLine else {
+            return "候报"
+        }
+        if urgentLine.urgentTaskCount > 0 {
+            return "\(urgentLine.status.displayName) · 急务 \(urgentLine.urgentTaskCount)"
+        }
+        return "\(urgentLine.status.displayName) · 势 \(urgentLine.pressure)"
+    }
+
+    private var urgentLineTint: Color {
+        guard let urgentLine else { return .secondary }
+        switch urgentLine.line {
+        case .world:
+            return MingDesignTokens.cinnabar
+        case .policy:
+            return MingDesignTokens.porcelainBlue
+        case .economy:
+            return MingDesignTokens.jade
+        case .technology:
+            return MingDesignTokens.imperialGold
+        case .military:
+            return MingDesignTokens.ink
+        }
+    }
+
+    private var taskTitle: String {
+        task?.priority.displayName ?? "候报"
+    }
+
+    private var taskDetail: String {
+        guard let task else {
+            return "暂无急务"
+        }
+        return task.line.displayName
+    }
+
+    private var taskTint: Color {
+        guard let task else { return .secondary }
+        switch task.priority {
+        case .urgent:
+            return MingDesignTokens.cinnabar
+        case .main:
+            return MingDesignTokens.jade
+        case .watch:
+            return MingDesignTokens.porcelainBlue
+        }
+    }
+
+    private func pressure(for line: BattleObjectiveSummary.CampaignLine) -> Int {
+        summary.lineBriefs.first { $0.line == line }?.pressure ?? 0
+    }
+}
+
+private struct CompactPanelBriefChip: View {
+    let title: String
+    let value: String
+    let detail: String
+    let systemImageName: String
+    let tint: Color
+
+    var body: some View {
+        HStack(spacing: 5) {
+            Image(systemName: systemImageName)
+                .font(.caption.bold())
+                .foregroundStyle(tint)
+                .frame(width: 14)
+                .accessibilityHidden(true)
+
+            VStack(alignment: .leading, spacing: 1) {
+                Text(title)
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+
+                Text(value)
+                    .font(.caption.bold())
+                    .foregroundStyle(tint)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.76)
+
+                Text(detail)
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.7)
+            }
+
+            Spacer(minLength: 0)
+        }
+        .padding(.horizontal, 7)
+        .padding(.vertical, 5)
+        .frame(maxWidth: .infinity, minHeight: 52, alignment: .leading)
+        .background(tint.opacity(0.08), in: RoundedRectangle(cornerRadius: 6))
+        .accessibilityElement(children: .combine)
     }
 }
 
@@ -1528,6 +1705,29 @@ private enum CompactInfoPanel: String, CaseIterable, Identifiable {
             return "急务、战役和回合塘报"
         case .agent:
             return "军机决策、指令和底稿"
+        }
+    }
+
+    var briefReading: String {
+        switch self {
+        case .diplomacy:
+            return "先看诸方"
+        case .objective:
+            return "先看要冲"
+        case .court:
+            return "先看朝议"
+        case .economy:
+            return "先看府库"
+        case .unit:
+            return "先看军令"
+        case .region:
+            return "先看州府"
+        case .general:
+            return "先看督师"
+        case .log:
+            return "先看塘报"
+        case .agent:
+            return "先看军机"
         }
     }
 
