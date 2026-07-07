@@ -129,15 +129,19 @@ final class HexNode: SKNode {
             )
         }
 
-        if displayState.controller != nil || supplySourceFaction != nil {
-            let owner = displayState.controller ?? supplySourceFaction
-            let dot = SKShapeNode(circleOfRadius: max(3, layout.hexSize * 0.10))
-            dot.fillColor = TerrainStyle.controllerColor(for: owner)
-            dot.strokeColor = SKColor(white: 1, alpha: 0.70)
-            dot.lineWidth = 1
-            dot.position = CGPoint(x: -layout.hexSize * 0.42, y: -layout.hexSize * 0.48)
-            dot.zPosition = 7
-            addChild(dot)
+        if let owner = displayState.controller ?? supplySourceFaction {
+            let position = CGPoint(x: -layout.hexSize * 0.42, y: -layout.hexSize * 0.48)
+            if displayState.cityName != nil || displayState.fortressName != nil || supplySourceFaction != nil {
+                addFactionFlagBadge(faction: owner, position: position, layout: layout)
+            } else {
+                let dot = SKShapeNode(circleOfRadius: max(3, layout.hexSize * 0.10))
+                dot.fillColor = TerrainStyle.controllerColor(for: owner)
+                dot.strokeColor = SKColor(white: 1, alpha: 0.70)
+                dot.lineWidth = 1
+                dot.position = position
+                dot.zPosition = 7
+                addChild(dot)
+            }
         }
 
         if let supplySourceFaction {
@@ -170,6 +174,27 @@ final class HexNode: SKNode {
         let label = SKLabelNode(text: text)
         label.fontName = "PingFangSC-Semibold"
         label.fontSize = max(7, layout.hexSize * 0.15)
+        label.fontColor = SKColor(white: 0.96, alpha: 1)
+        label.horizontalAlignmentMode = .center
+        label.verticalAlignmentMode = .center
+        label.position = position
+        label.zPosition = 8
+        addChild(label)
+    }
+
+    private func addFactionFlagBadge(faction: Faction, position: CGPoint, layout: HexLayout) {
+        let badgeSize = CGSize(width: layout.hexSize * 0.30, height: layout.hexSize * 0.24)
+        let badge = SKShapeNode(rectOf: badgeSize, cornerRadius: max(3, layout.hexSize * 0.05))
+        badge.position = position
+        badge.fillColor = TerrainStyle.controllerColor(for: faction).withAlphaComponent(0.94)
+        badge.strokeColor = SKColor(white: 1, alpha: 0.70)
+        badge.lineWidth = 1
+        badge.zPosition = 7
+        addChild(badge)
+
+        let label = SKLabelNode(text: faction.bannerGlyph)
+        label.fontName = "PingFangSC-Semibold"
+        label.fontSize = max(7, layout.hexSize * 0.13)
         label.fontColor = SKColor(white: 0.96, alpha: 1)
         label.horizontalAlignmentMode = .center
         label.verticalAlignmentMode = .center
