@@ -30,13 +30,29 @@ struct NewGameButton: View {
                 Label("新开战局", systemImage: "arrow.counterclockwise")
             }
         } label: {
-            Label("战局", systemImage: "scroll")
-                .font(.caption.weight(.semibold))
-                .lineLimit(1)
-                .minimumScaleFactor(0.65)
+            HStack(spacing: 6) {
+                Image(systemName: savedGameInfo == nil ? "scroll" : "clock.arrow.circlepath")
+                    .foregroundStyle(statusTint)
+                    .accessibilityHidden(true)
+
+                VStack(alignment: .leading, spacing: 1) {
+                    Text("战局")
+                        .font(.caption.bold())
+                        .foregroundStyle(MingDesignTokens.ink)
+                        .lineLimit(1)
+
+                    Text(statusText)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.72)
+                }
+            }
+            .padding(.horizontal, 2)
         }
         .buttonStyle(.bordered)
         .frame(minHeight: MingDesignTokens.minimumTapSize)
+        .accessibilityLabel(accessibilityText)
     }
 
     private var continueTitle: String {
@@ -44,5 +60,23 @@ struct NewGameButton: View {
             return "继续战局"
         }
         return "继续第 \(savedGameInfo.turn) 回合 · \(savedGameInfo.activeFaction.displayName)"
+    }
+
+    private var statusText: String {
+        guard let savedGameInfo else {
+            return "新开"
+        }
+        return "可续 \(savedGameInfo.activeFaction.displayName) 第 \(savedGameInfo.turn) 回合"
+    }
+
+    private var statusTint: Color {
+        savedGameInfo == nil ? .secondary : MingDesignTokens.jade
+    }
+
+    private var accessibilityText: String {
+        guard let savedGameInfo else {
+            return "战局菜单，当前无可续读存档，可新开战局"
+        }
+        return "战局菜单，可续读第 \(savedGameInfo.turn) 回合，当前势力 \(savedGameInfo.activeFaction.displayName)"
     }
 }
