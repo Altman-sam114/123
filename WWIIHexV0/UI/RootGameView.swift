@@ -102,7 +102,12 @@ struct RootGameView: View {
 
             MingMapSituationStrip(summary: BattleObjectiveSummary.from(state: container.gameState))
 
-            MingMapPointInspectionStrip(state: container.selectedRegionInspectorState)
+            MingMapPointInspectionStrip(
+                state: container.selectedRegionInspectorState,
+                objectiveSummary: BattleObjectiveSummary.from(state: container.gameState),
+                selectedDivision: container.selectedDivision,
+                showsSupplyRoutes: container.mapDisplayLayer == .hex && container.showsSupplyRoutes
+            )
 
             Picker("图层", selection: Binding(
                 get: { container.mapDisplayLayer },
@@ -298,6 +303,9 @@ struct RootGameView: View {
 
 private struct MingMapPointInspectionStrip: View {
     let state: RegionInspectorState?
+    let objectiveSummary: BattleObjectiveSummary
+    let selectedDivision: Division?
+    let showsSupplyRoutes: Bool
 
     var body: some View {
         if let state {
@@ -347,6 +355,27 @@ private struct MingMapPointInspectionStrip: View {
                         detail: state.objectiveStatus,
                         systemImageName: "mappin.and.ellipse",
                         tint: objectiveTint(for: state)
+                    )
+                    MingMapPointInspectionChip(
+                        title: "四线",
+                        value: lineTitle,
+                        detail: lineDetail,
+                        systemImageName: lineSystemImage,
+                        tint: lineTint
+                    )
+                    MingMapPointInspectionChip(
+                        title: "粮道",
+                        value: supplyTitle,
+                        detail: supplyDetail,
+                        systemImageName: supplySystemImage,
+                        tint: supplyTint
+                    )
+                    MingMapPointInspectionChip(
+                        title: "部队",
+                        value: divisionTitle,
+                        detail: divisionDetail,
+                        systemImageName: "flag",
+                        tint: divisionTint(for: state)
                     )
                 }
             }
@@ -414,8 +443,126 @@ private struct MingMapPointInspectionStrip: View {
         return MingDesignTokens.jade
     }
 
+    private var leadingLine: BattleObjectiveSummary.CampaignLineBrief? {
+        objectiveSummary.lineBriefs.sorted { lhs, rhs in
+            if lhs.status.sortRank == rhs.status.sortRank {
+                return lhs.pressure > rhs.pressure
+            }
+            return lhs.status.sortRank < rhs.status.sortRank
+        }
+        .first
+    }
+
+    private var lineTitle: String {
+        guard objectiveSummary.isMingScenario, let leadingLine else {
+            return "待判"
+        }
+        return leadingLine.line.displayName
+    }
+
+    private var lineDetail: String {
+        guard objectiveSummary.isMingScenario, let leadingLine else {
+            return "非明末战役"
+        }
+        if leadingLine.urgentTaskCount > 0 {
+            return "\(leadingLine.status.displayName) · 急务 \(leadingLine.urgentTaskCount)"
+        }
+        return "\(leadingLine.status.displayName) · 压力 \(leadingLine.pressure)"
+    }
+
+    private var lineSystemImage: String {
+        leadingLine?.line.systemImage ?? "chart.line.uptrend.xyaxis"
+    }
+
+    private var lineTint: Color {
+        guard let leadingLine else { return .secondary }
+        switch leadingLine.line {
+        case .world:
+            return MingDesignTokens.cinnabar
+        case .policy:
+            return MingDesignTokens.porcelainBlue
+        case .economy:
+            return MingDesignTokens.jade
+        case .technology:
+            return MingDesignTokens.imperialGold
+        case .military:
+            return MingDesignTokens.ink
+        }
+    }
+
+    private var supplyTitle: String {
+        selectedDivision?.supplyState.mapInspectionDisplayName ?? (showsSupplyRoutes ? "粮道开" : "粮道关")
+    }
+
+    private var supplyDetail: String {
+        if let selectedDivision {
+            let routeText = showsSupplyRoutes ? "路线已显" : "路线未显"
+            return "\(routeText) · \(selectedDivision.canAct ? "可调" : "已行")"
+        }
+        return showsSupplyRoutes ? "未选军，粮路可见" : "未选军，粮路隐藏"
+    }
+
+    private var supplySystemImage: String {
+        selectedDivision?.supplyState.mapInspectionSystemImageName ?? "shippingbox"
+    }
+
+    private var supplyTint: Color {
+        selectedDivision?.supplyState.mapInspectionTint ?? (showsSupplyRoutes ? MingDesignTokens.jade : .secondary)
+    }
+
+    private var divisionTitle: String {
+        selectedDivision?.faction.displayName ?? "未选军"
+    }
+
+    private var divisionDetail: String {
+        guard let selectedDivision else {
+            return "点军牌看兵势"
+        }
+        let actionText = selectedDivision.canAct ? "可调" : "已行"
+        return "兵力 \(selectedDivision.strength)/\(selectedDivision.maxStrength) · \(actionText)"
+    }
+
+    private func divisionTint(for state: RegionInspectorState) -> Color {
+        selectedDivision?.faction.mingBannerTint ?? controller(for: state).mingBannerTint
+    }
+
     private func accessibilityText(for state: RegionInspectorState) -> String {
-        "舆图点验，\(coordinateText(for: state))，\(state.region.name)，控制 \(controller(for: state).displayName)，方面 \(MingMapLabelFormat.theaterTitle(theaterId(for: state)))，防区 \(MingMapLabelFormat.frontZoneTitle(frontZoneId(for: state)))，要冲 \(objectiveTitle(for: state))"
+        "舆图点验，\(coordinateText(for: state))，\(state.region.name)，控制 \(controller(for: state).displayName)，方面 \(MingMapLabelFormat.theaterTitle(theaterId(for: state)))，防区 \(MingMapLabelFormat.frontZoneTitle(frontZoneId(for: state)))，要冲 \(objectiveTitle(for: state))，四线 \(lineTitle)，粮道 \(supplyTitle)，部队 \(divisionTitle)"
+    }
+}
+
+private extension SupplyState {
+    var mapInspectionDisplayName: String {
+        switch self {
+        case .supplied:
+            return "有粮"
+        case .lowSupply:
+            return "缺粮"
+        case .encircled:
+            return "断粮"
+        }
+    }
+
+    var mapInspectionSystemImageName: String {
+        switch self {
+        case .supplied:
+            return "leaf"
+        case .lowSupply:
+            return "exclamationmark.triangle"
+        case .encircled:
+            return "xmark.octagon"
+        }
+    }
+
+    var mapInspectionTint: Color {
+        switch self {
+        case .supplied:
+            return MingDesignTokens.jade
+        case .lowSupply:
+            return MingDesignTokens.imperialGold
+        case .encircled:
+            return MingDesignTokens.cinnabar
+        }
     }
 }
 

@@ -4,6 +4,8 @@
 
 > v4.8 发布候选最新增量：`AppContainer` 新增本机单槽自动保存与继续战局首片，玩家军令成功、玩家将令提交和 AI 回合结算后会把完整 `GameState` 写入带 `schemaVersion/savedAt` 的本机 JSON envelope；HUD 的“战局”菜单和 macOS “战局”菜单可继续最近战局，新开战局会清除旧存档。续战只恢复规则权威状态并重建将领分配，选中态、高亮、信息面板、图层开关和交互日志不随存档保存；该片不改变 `Command`、`WarCommandExecutor`、`CommandValidator`、`RuleEngine` 或任何 hex/region/theater/front/deploy 权威。
 
+> v4.6/v4.7 舆图点验最新增量：`RootGameView` 顶部只读“舆图点验”继续增强，在格位、方面、防区、要冲之外新增“四线 / 粮道 / 部队”三枚 chip，从现有 `BattleObjectiveSummary.lineBriefs`、选中 `Division` 和粮道显示开关派生最急五线、军粮状态、路线显隐、兵力和行动态势，让玩家在地图第一视野直接联读中华世界局势、政策/经济/科技/军事压力、粮道和当前军牌兵势。该区只改变 SwiftUI 展示，不新增按钮，不触发目标定位，不写塘报，不提交命令，不改变 `RegionInspectorState`、`BattleObjectiveSummary`、`Division`、`SupplyRules`、`GameState`、hex/region/theater/front/deploy、胜负、朝廷、AI 或任何规则权威。
+
 > v4.6 州府牌最新增量：`RegionInspectorView` 在“州府主值”后新增只读“本州入局”区，从现有 `RegionInspectorState`、`RegionNode` 和 `OccupationState` 派生要冲入局、接敌入局、地方入局、经略入局或后方入局总批，并用天下、政粮、军械三枚 chip 联读控制归属、目标/前线、民变行政、钱粮、粮台、工坊、驿道和友敌军。该区只改变 SwiftUI 展示，不新增 `RegionInspectorState` 字段，不触发目标定位，不写塘报，不提交命令，不改变 hex/region/theater/front/deploy、经济、胜负、朝廷或规则权威。
 
 > v4.6/v4.7 军令牌最新增量：`CommandPanelView` 的只读“要冲军令”区继续增强，落点 chip 现在从 `BattleObjectiveSummary.tracks.targets` 显示目标现控制方和要冲分，并新增只读“朝议四线”压力扫读，把政策、经济、科技、军事四线的状态、压力和急务数放进军令上下文。该区只改变 SwiftUI 展示，不新增按钮，不自动定位目标，不写塘报，不提交 `Command`，不改变 `BattleObjectiveSummary`、`CourtStrategySummary`、胜负、朝廷、经济、AI、移动、攻击、补给、`WarCommandExecutor`、`CommandValidator`、`RuleEngine` 或任何 hex/region/theater/front/deploy 权威。
@@ -22,7 +24,7 @@
 
 > v4.7 舆图本旬先手最新增量：`RootGameView` 顶部 `MingMapSituationStrip` 在“要冲分布”后新增只读“本旬先手”提示，从 `BattleObjectiveSummary.tasks` 选取当前最高优先级任务，并用 `tracks.targets` 补出目标城关、当前控制方和要冲分，让玩家在地图首屏直接看到中华世界局势的本旬落点。该增量只改变 SwiftUI 展示，不提供目标定位按钮，不写塘报，不新增持久状态，不改变 `BattleObjectiveSummary`、`VictoryRules`、`Command`、`WarCommandExecutor`、`RuleEngine` 或任何 hex/region/theater/front/deploy 权威。
 
-> v4.6/v4.7 舆图点验最新增量：`RootGameView` 在“天下急势”舆图条后新增只读“舆图点验”，从当前 `selectedRegionInspectorState` 派生选中格位/州府、控制方旗号、动态方面、防区、友敌军、要冲和前线压力，让玩家点 hex、部队或目标后能在地图第一视野直接看见该点属于哪条战局线。该增量只改变 SwiftUI 展示，不新增状态，不提交命令，不写塘报，不改变 `RegionInspectorState`、`MapDisplayAdapter`、`GameState`、hex/region/theater/front/deploy 权威或任何规则链。
+> v4.6/v4.7 舆图点验增量：`RootGameView` 在“天下急势”舆图条后新增只读“舆图点验”，从当前 `selectedRegionInspectorState` 派生选中格位/州府、控制方旗号、动态方面、防区、友敌军、要冲和前线压力；当前继续补入“四线 / 粮道 / 部队”chip，读取现有 `BattleObjectiveSummary.lineBriefs`、选中 `Division` 和粮道开关状态，显示最急五线、军粮状态、路线显隐、兵力和可调/已行。该增量只改变 SwiftUI 展示，不新增状态，不提交命令，不写塘报，不改变 `RegionInspectorState`、`MapDisplayAdapter`、`BattleObjectiveSummary`、`Division`、`SupplyRules`、`GameState`、hex/region/theater/front/deploy 权威或任何规则链。
 
 > v4.7 朝廷面板最新增量：`CourtPanelView` 在“朝议批票”后新增只读“廷议要冲”区，从 `BattleObjectiveSummary.scoreRows` 和 `leadingFaction` 展示各势力要冲分、控制要冲数、本方分值与领先方，并把要冲归属写入“廷议会看”摘要，帮助朝廷面板把中华世界局势落回政策、经济、科技、军事取舍。该增量只改变 SwiftUI 展示，不提供定位按钮，不写塘报，不执行朝廷项目，不改变 `CourtStrategySummary`、`BattleObjectiveSummary`、`VictoryRules`、`Command.enactCourtProject`、`CommandValidator`、`EconomyRules`、`WarCommandExecutor`、`RuleEngine` 或任何 hex/region/theater/front/deploy 权威。
 
