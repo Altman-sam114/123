@@ -1215,12 +1215,17 @@ private struct UnitStateLegendBadge: View {
                     .foregroundStyle(.white)
                     .frame(width: 16, height: 16)
                     .background(.black.opacity(0.88), in: Circle())
+                Text("令")
+                    .font(.caption2.bold())
+                    .foregroundStyle(.white)
+                    .frame(width: 18, height: 16)
+                    .background(MingDesignTokens.cinnabar, in: RoundedRectangle(cornerRadius: 4))
             }
 
             VStack(alignment: .leading, spacing: 1) {
-                Text("粮草与堆叠")
+                Text("粮草 / 堆叠 / 令签")
                     .font(.caption.bold())
-                Text("满 / 低 / 断 / 数")
+                Text("满 / 低 / 断 / 数 / 可调")
                     .font(.caption2)
                     .foregroundStyle(.secondary)
                     .lineLimit(1)

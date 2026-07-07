@@ -40,6 +40,9 @@ final class UnitNode: SKNode {
 
         addFactionSideStrip(for: division, width: width, height: height)
         addMingUnitEmblem(for: division, width: width, height: height)
+        if isPlayerManaged {
+            addManagedOrderSeal(layout: layout, bodyWidth: width, bodyHeight: height)
+        }
         addReadinessPill(for: division, layout: layout, bodyWidth: width, bodyHeight: height)
         addBattleStatusTag(for: division, layout: layout, bodyWidth: width, bodyHeight: height)
 
@@ -96,6 +99,26 @@ final class UnitNode: SKNode {
             fontSize: max(12, height * 0.38),
             weight: "PingFangSC-Semibold",
             color: SKColor(white: 0.97, alpha: 1)
+        )
+    }
+
+    private func addManagedOrderSeal(layout: HexLayout, bodyWidth: CGFloat, bodyHeight: CGFloat) {
+        let sealSize = CGSize(width: max(12, layout.hexSize * 0.34), height: max(10, layout.hexSize * 0.26))
+        let seal = SKShapeNode(rectOf: sealSize, cornerRadius: min(4, sealSize.height / 2))
+        seal.fillColor = SKColor(red: 0.70, green: 0.10, blue: 0.08, alpha: 0.96)
+        seal.strokeColor = SKColor(red: 1.00, green: 0.82, blue: 0.36, alpha: 0.95)
+        seal.lineWidth = 0.9
+        seal.position = CGPoint(x: 0, y: bodyHeight * 0.47)
+        seal.zPosition = 6
+        addChild(seal)
+
+        addLabel(
+            text: "令",
+            y: seal.position.y,
+            fontSize: max(7, layout.hexSize * 0.15),
+            weight: "PingFangSC-Semibold",
+            color: SKColor(white: 0.98, alpha: 1),
+            zPosition: 7
         )
     }
 
