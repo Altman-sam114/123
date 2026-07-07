@@ -38,6 +38,36 @@ enum TerrainStyle {
         }
     }
 
+    static func terrainMotif(for terrain: BaseTerrain) -> String {
+        switch terrain {
+        case .plain:
+            return "田"
+        case .forest:
+            return "林"
+        case .mountain:
+            return "山"
+        case .hill:
+            return "丘"
+        case .city:
+            return "城"
+        case .fortress:
+            return "关"
+        }
+    }
+
+    static func terrainMotifColor(for terrain: BaseTerrain) -> SKColor {
+        switch terrain {
+        case .forest, .fortress:
+            return SKColor(white: 0.98, alpha: 0.18)
+        case .city:
+            return SKColor(red: 0.24, green: 0.18, blue: 0.13, alpha: 0.18)
+        case .mountain, .hill:
+            return SKColor(red: 0.18, green: 0.15, blue: 0.12, alpha: 0.20)
+        case .plain:
+            return SKColor(red: 0.18, green: 0.28, blue: 0.12, alpha: 0.18)
+        }
+    }
+
     static func unitFillColor(for faction: Faction) -> SKColor {
         switch faction {
         case .germany:

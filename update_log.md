@@ -12,6 +12,7 @@
 ## 明末迁移滚动记录
 
 - 2026-07-07：v4.6/v4.7 明末军情入口与军机摘要本地化补齐：`InfoPanelToggle` 的折叠入口从“信息”改为“军情”，补齐主入口文案收口；`TheaterCommanderPool.contextSummary` 与 `MockAICommander.theaterContext` 在明末势力下输出“防区军令/军机试拟”中文摘要，legacy 德/盟分支继续保留 `zone directive(s)` / `mock directive(s)` 英文回归文案。该片只影响 SwiftUI 入口标签和 `DirectiveEnvelope.theaterContext` 可读文本，不改变 `ZoneDirective` 生成、AI tactic 偏置、JSON schema、命令校验、`WarCommandExecutor`、`CommandValidator`、`RuleEngine` 或任何规则权威。并发子 Agent Epicurus 只读建议后续可做舆图地貌纹理，本轮先采纳更低风险的军机可读性切片；Harvey 超时未阻塞主线。
+- 2026-07-07：v4.6 明末舆图地貌底纹首片落地：`TerrainStyle` 新增平原/林地/山地/丘陵/城池/关隘的低透明地貌字与颜色 token，`HexNode` 在 controller overlay 之后、移动/攻击高亮与城关粮台 badge 之前绘制“田 / 林 / 山 / 丘 / 城 / 关”底纹，让默认 hex 底图更像明末舆图。该片只影响 SpriteKit 展示，不新增地形类型，不改变 `BaseTerrain`、移动成本、战斗修正、补给、控制权、fog、目标、道路/河流、军牌、`GameState`、`Command`、`WarCommandExecutor`、`CommandValidator`、`RuleEngine` 或任何规则权威。
 
 ## v0 - 六角格测试板
 

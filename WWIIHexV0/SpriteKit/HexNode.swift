@@ -29,6 +29,8 @@ final class HexNode: SKNode {
             addControllerOverlay(path: path, controller: controller, layout: layout)
         }
 
+        addTerrainMotif(for: displayState.terrain, layout: layout)
+
         if isMoveHighlighted {
             addHighlight(path: path, color: TerrainStyle.movementFill, zPosition: 2)
         }
@@ -69,6 +71,18 @@ final class HexNode: SKNode {
         overlay.lineWidth = max(1.5, layout.hexSize * 0.04)
         overlay.zPosition = 1
         addChild(overlay)
+    }
+
+    private func addTerrainMotif(for terrain: BaseTerrain, layout: HexLayout) {
+        let motif = SKLabelNode(text: TerrainStyle.terrainMotif(for: terrain))
+        motif.fontName = "PingFangSC-Regular"
+        motif.fontSize = max(12, layout.hexSize * 0.30)
+        motif.fontColor = TerrainStyle.terrainMotifColor(for: terrain)
+        motif.horizontalAlignmentMode = .center
+        motif.verticalAlignmentMode = .center
+        motif.position = CGPoint(x: 0, y: -layout.hexSize * 0.06)
+        motif.zPosition = 1.2
+        addChild(motif)
     }
 
     private func addObjectiveLabels(displayState: HexDisplayState, supplySourceFaction: Faction?, layout: HexLayout) {
