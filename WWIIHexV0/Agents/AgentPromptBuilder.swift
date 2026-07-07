@@ -76,7 +76,7 @@ struct AgentPromptBuilder {
         \(regions)
 
         Supply and grain state:
-        friendly supplied \(context.supplySummary.friendlySupplied), low supply \(context.supplySummary.friendlyLowSupply), encircled \(context.supplySummary.friendlyEncircled)
+        \(supplySummary(context.supplySummary, ming: isMingScenario))
 
         Money, pay, and grain:
         \(context.economySummary.displaySummary)
@@ -137,10 +137,28 @@ struct AgentPromptBuilder {
         let region = division.regionId?.rawValue ?? "unknown"
         if ming {
             let actedText = includeActed ? " 已行:\(division.hasActed)" : ""
-            return "\(division.id) \(division.name) 兵力:\(division.strength)/\(division.maxStrength) 州府:\(region) 粮草:\(division.supplyState.rawValue)\(actedText)"
+            return "\(division.id) \(division.name) 兵力:\(division.strength)/\(division.maxStrength) 州府:\(region) 粮草:\(supplyStateText(division.supplyState))\(actedText)"
         }
         let actedText = includeActed ? " acted:\(division.hasActed)" : ""
         return "\(division.id) \(division.name) str:\(division.strength)/\(division.maxStrength) region:\(region) supply:\(division.supplyState.rawValue)\(actedText)"
+    }
+
+    private func supplySummary(_ summary: SupplySummary, ming: Bool) -> String {
+        if ming {
+            return "本方有粮 \(summary.friendlySupplied)，缺粮 \(summary.friendlyLowSupply)，断粮被围 \(summary.friendlyEncircled)"
+        }
+        return "friendly supplied \(summary.friendlySupplied), low supply \(summary.friendlyLowSupply), encircled \(summary.friendlyEncircled)"
+    }
+
+    private func supplyStateText(_ state: SupplyState) -> String {
+        switch state {
+        case .supplied:
+            return "有粮"
+        case .lowSupply:
+            return "缺粮"
+        case .encircled:
+            return "断粮被围"
+        }
     }
 
     private func regionSummary(_ region: RegionSnapshot, ming: Bool) -> String {

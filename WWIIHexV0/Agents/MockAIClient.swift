@@ -30,7 +30,7 @@ struct MockAIClient: DecisionProvider {
                         stance: "recover",
                         reason: isLegacy
                             ? "Unit is \(division.supplyState.rawValue); recover supply before continuing the attack."
-                            : "\(division.name) 粮草状态为 \(division.supplyState.rawValue)，先整粮再续攻守。"
+                            : "\(division.name) 粮草状态为 \(mingSupplyText(division.supplyState))，先整粮再续攻守。"
                     )
                 )
                 continue
@@ -127,6 +127,17 @@ struct MockAIClient: DecisionProvider {
         context.faction.isLegacyWWIIFaction ? legacy : ming
     }
 
+    private func mingSupplyText(_ state: SupplyState) -> String {
+        switch state {
+        case .supplied:
+            return "有粮"
+        case .lowSupply:
+            return "缺粮"
+        case .encircled:
+            return "断粮被围"
+        }
+    }
+
     private func frontDeploymentDecision(context: AgentContext) -> AgentDecisionEnvelope? {
         let divisionById = Dictionary(uniqueKeysWithValues: context.friendlyDivisions.map { ($0.id, $0) })
         let regionControllers = Dictionary(uniqueKeysWithValues: context.visibleRegions.map { ($0.id, $0.controller) })
@@ -148,7 +159,7 @@ struct MockAIClient: DecisionProvider {
                         reason: frontReason(
                             context: context,
                             legacy: "v0.33 deployment: unit supply is \(division.supplyState.rawValue), recover before front action.",
-                            ming: "\(division.name) 粮草为 \(division.supplyState.rawValue)，先回粮整备再入前线。"
+                            ming: "\(division.name) 粮草为 \(mingSupplyText(division.supplyState))，先回粮整备再入前线。"
                         )
                     )
                 )
