@@ -9,6 +9,10 @@
 - 若本轮只是文档整理、目录迁移、回滚或打捞，不应伪装成新 v 版本；可写入“历史维护记录”。
 - 若 README、测试规范或源码语义发生变化，应同步更新本日志。
 
+## 明末迁移滚动记录
+
+- 2026-07-07：v4.6/v4.7 明末军情入口与军机摘要本地化补齐：`InfoPanelToggle` 的折叠入口从“信息”改为“军情”，补齐主入口文案收口；`TheaterCommanderPool.contextSummary` 与 `MockAICommander.theaterContext` 在明末势力下输出“防区军令/军机试拟”中文摘要，legacy 德/盟分支继续保留 `zone directive(s)` / `mock directive(s)` 英文回归文案。该片只影响 SwiftUI 入口标签和 `DirectiveEnvelope.theaterContext` 可读文本，不改变 `ZoneDirective` 生成、AI tactic 偏置、JSON schema、命令校验、`WarCommandExecutor`、`CommandValidator`、`RuleEngine` 或任何规则权威。并发子 Agent Epicurus 只读建议后续可做舆图地貌纹理，本轮先采纳更低风险的军机可读性切片；Harvey 超时未阻塞主线。
+
 ## v0 - 六角格测试板
 
 完成日期：2026-06-14 至 2026-06-15

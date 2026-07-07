@@ -955,7 +955,10 @@ struct TheaterCommanderPool {
     }
 
     private func contextSummary(for faction: Faction, directives: [ZoneDirective]) -> String {
-        "\(faction.displayName): \(directives.count) zone directive(s)."
+        if faction.isLegacyWWIIFaction {
+            return "\(faction.displayName): \(directives.count) zone directive(s)."
+        }
+        return "\(faction.displayName)：按当前接敌防区拟定 \(directives.count) 道军令，待汇入战区执行链。"
     }
 }
 

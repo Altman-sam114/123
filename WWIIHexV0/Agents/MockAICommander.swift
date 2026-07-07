@@ -74,7 +74,7 @@ struct MockAICommander {
             turn: state.turn,
             directives: directives,
             commanderAgentId: issuerId,
-            theaterContext: "\(faction.displayName): \(directives.count) mock directive(s)."
+            theaterContext: theaterContext(for: faction, directiveCount: directives.count)
         )
     }
 
@@ -91,6 +91,13 @@ struct MockAICommander {
 
     private static func defaultConfig(for zone: FrontZone) -> ZoneCommanderAgentConfig {
         ZoneCommanderDoctrine.defaultConfig(for: zone, idPrefix: "mock")
+    }
+
+    private func theaterContext(for faction: Faction, directiveCount: Int) -> String {
+        if faction.isLegacyWWIIFaction {
+            return "\(faction.displayName): \(directiveCount) mock directive(s)."
+        }
+        return "\(faction.displayName)：军机试拟 \(directiveCount) 道防区军令，仍待统一校验与规则执行。"
     }
 
     private func attackIntensity(for zone: FrontZone, state: GameState) -> AttackIntensity {
