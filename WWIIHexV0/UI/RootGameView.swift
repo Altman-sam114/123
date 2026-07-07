@@ -2,7 +2,7 @@ import SwiftUI
 
 struct RootGameView: View {
     @ObservedObject var container: AppContainer
-    @State private var selectedCompactPanel: CompactInfoPanel = .unit
+    @State private var selectedCompactPanel: CompactInfoPanel = .diplomacy
     @State private var isInfoExpanded = false
     @State private var isGeneralProfilePresented = false
 
@@ -178,13 +178,7 @@ struct RootGameView: View {
 
     private var compactPanelWithTabs: some View {
         VStack(spacing: 0) {
-            Picker("面板", selection: $selectedCompactPanel) {
-                ForEach(CompactInfoPanel.allCases) { panel in
-                    Text(panel.rawValue).tag(panel)
-                }
-            }
-            .pickerStyle(.segmented)
-            .padding(8)
+            CompactPanelNavigation(selectedPanel: $selectedCompactPanel)
 
             compactPanel
         }
@@ -671,6 +665,90 @@ private struct MingInfoEntryBadge: View {
     }
 }
 
+private struct CompactPanelNavigation: View {
+    @Binding var selectedPanel: CompactInfoPanel
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 7) {
+            HStack(spacing: 8) {
+                Label("军情", systemImage: "rectangle.3.group")
+                    .font(.caption.bold())
+                    .foregroundStyle(MingDesignTokens.ink)
+
+                Spacer(minLength: 8)
+
+                Text(selectedPanel.navigationDetail)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.76)
+            }
+            .padding(.horizontal, 8)
+
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 6) {
+                    ForEach(CompactInfoPanel.navigationOrder) { panel in
+                        CompactPanelNavigationButton(
+                            panel: panel,
+                            isSelected: panel == selectedPanel
+                        ) {
+                            selectedPanel = panel
+                        }
+                    }
+                }
+                .padding(.horizontal, 8)
+                .padding(.bottom, 8)
+            }
+        }
+        .padding(.top, 8)
+        .background(MingDesignTokens.sectionBackground.opacity(0.72))
+    }
+}
+
+private struct CompactPanelNavigationButton: View {
+    let panel: CompactInfoPanel
+    let isSelected: Bool
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: 7) {
+                Image(systemName: panel.systemImageName)
+                    .font(.caption.bold())
+                    .foregroundStyle(isSelected ? .white : panel.tint)
+                    .frame(width: 17)
+                    .accessibilityHidden(true)
+
+                VStack(alignment: .leading, spacing: 1) {
+                    Text(panel.rawValue)
+                        .font(.caption.bold())
+                        .foregroundStyle(isSelected ? .white : MingDesignTokens.ink)
+                        .lineLimit(1)
+
+                    Text(panel.navigationSubtitle)
+                        .font(.caption2)
+                        .foregroundStyle(isSelected ? .white.opacity(0.82) : .secondary)
+                        .lineLimit(1)
+                }
+            }
+            .padding(.horizontal, 10)
+            .padding(.vertical, 7)
+            .frame(minWidth: 76, minHeight: MingDesignTokens.minimumTapSize)
+            .background(
+                isSelected ? panel.tint : MingDesignTokens.panelBackground.opacity(0.62),
+                in: RoundedRectangle(cornerRadius: 7)
+            )
+            .overlay {
+                RoundedRectangle(cornerRadius: 7)
+                    .stroke(panel.tint.opacity(isSelected ? 0.72 : 0.22), lineWidth: 1)
+            }
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("切换到\(panel.rawValue)")
+        .accessibilityValue(isSelected ? "当前" : "")
+    }
+}
+
 private struct MingMapPointInspectionChip: View {
     let title: String
     let value: String
@@ -1132,18 +1210,122 @@ private extension BattleObjectiveSummary.CampaignStageStatus {
 }
 
 private enum CompactInfoPanel: String, CaseIterable, Identifiable {
+    case diplomacy = "天下"
+    case objective = "国势"
+    case court = "朝廷"
+    case economy = "钱粮"
     case unit = "军队"
     case region = "州府"
     case general = "将领"
     case log = "塘报"
-    case economy = "钱粮"
-    case court = "朝廷"
-    case objective = "国势"
-    case diplomacy = "天下"
     case agent = "军机"
 
     var id: String {
         rawValue
+    }
+
+    static let navigationOrder: [CompactInfoPanel] = [
+        .diplomacy,
+        .objective,
+        .court,
+        .economy,
+        .unit,
+        .region,
+        .general,
+        .log,
+        .agent
+    ]
+
+    var systemImageName: String {
+        switch self {
+        case .diplomacy:
+            return "globe.asia.australia"
+        case .objective:
+            return "mappin.and.ellipse"
+        case .court:
+            return "building.columns"
+        case .economy:
+            return "shippingbox"
+        case .unit:
+            return "shield"
+        case .region:
+            return "map"
+        case .general:
+            return "person.text.rectangle"
+        case .log:
+            return "scroll"
+        case .agent:
+            return "brain.head.profile"
+        }
+    }
+
+    var navigationSubtitle: String {
+        switch self {
+        case .diplomacy:
+            return "诸方"
+        case .objective:
+            return "要冲"
+        case .court:
+            return "朝议"
+        case .economy:
+            return "府库"
+        case .unit:
+            return "军令"
+        case .region:
+            return "州府"
+        case .general:
+            return "督师"
+        case .log:
+            return "塘报"
+        case .agent:
+            return "复盘"
+        }
+    }
+
+    var navigationDetail: String {
+        switch self {
+        case .diplomacy:
+            return "诸方势力与战和张力"
+        case .objective:
+            return "胜负线、要冲分和本旬任务"
+        case .court:
+            return "朝议、批票和四线取舍"
+        case .economy:
+            return "民力、银两、粮草和营造"
+        case .unit:
+            return "选中军伍、军令和将印"
+        case .region:
+            return "州府治理、钱粮和城关"
+        case .general:
+            return "督师防区、麾下军伍和计划"
+        case .log:
+            return "急务、战役和回合塘报"
+        case .agent:
+            return "军机决策、指令和底稿"
+        }
+    }
+
+    var tint: Color {
+        switch self {
+        case .diplomacy:
+            return MingDesignTokens.cinnabar
+        case .objective:
+            return MingDesignTokens.imperialGold
+        case .court:
+            return MingDesignTokens.porcelainBlue
+        case .economy:
+            return MingDesignTokens.jade
+        case .unit:
+            return MingDesignTokens.ink
+        case .region:
+            return MingDesignTokens.imperialGold
+        case .general:
+            return MingDesignTokens.porcelainBlue
+        case .log:
+            return MingDesignTokens.cinnabar
+        case .agent:
+            return .purple
+        }
     }
 }
 
