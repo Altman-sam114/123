@@ -11,6 +11,7 @@
 
 ## 明末迁移滚动记录
 
+- 2026-07-07：v4.7 军机复盘“军机急奏”补齐：`AgentPanelView` 在军机复盘头部新增只读急奏条，把要冲领先方、最急五线和当旬急务从既有 `CampaignAISummary` 前置到成令/驳回/战区统计下方，让军机界面第一眼能联读天下局势、政策、经济、科技和军事压力。该片只读取既有 `CampaignAISummary.leadingFaction`、`lineBriefs` 与 `activeTasks`，非明末剧本静默隐藏，不新增按钮，不触发目标定位，不写塘报，不提交命令，不改变 AI prompt、doctrine、`Command`、`ZoneDirective`、`WarCommandExecutor`、`CommandValidator`、`RuleEngine` 或任何 hex/region/theater/front/deploy 权威。
 - 2026-07-07：v4.6 将领名帖“帷幄四策”补齐：`GeneralProfileView` 在印信摘要后新增政策、经济、科技、军事四格，只读展示忠诚/军心/手令/本营压力、缺粮营数与粮道、火器攻城军械、防区压力与可调营数，让将领名帖和将印军令同样能联读明末军政钱粮火器处境。该片只读取既有 `GeneralData`、`GeneralAssignment`、`FrontZone` 与 `Division` 状态，不新增按钮，不触发目标定位，不写塘报，不提交命令，不改变 `GameState`、`Command`、`ZoneDirective`、`WarCommandExecutor`、`CommandValidator`、`RuleEngine` 或任何 hex/region/theater/front/deploy 权威。
 - 2026-07-07：v4.7 天下局势“诸方要冲筹码”补齐：`DiplomacyPanelView` 在“诸方势力”行中只读显示各势力要冲分、控制要冲数和领先冠标，并让“天下牵引”的要冲分榜按分值/控制数排序，帮助天下面板把战意、阵营和明末胜负筹码放在同一处扫读。该片只读取既有 `BattleObjectiveSummary.scoreRows` 与 `leadingFaction`，非明末剧本静默隐藏，不新增按钮，不触发目标定位，不写塘报，不提交命令，不改变 `GameState`、胜负、AI、经济、`Command`、`WarCommandExecutor`、`CommandValidator`、`RuleEngine` 或任何 hex/region/theater/front/deploy 权威。
 - 2026-07-07：v4.6 明末地图军牌“令签”首片落地：`UnitNode` 在 `isPlayerManaged` 为真时，于地图军牌顶端显示朱砂“令”签，配合既有金色 halo 让本方可调军牌在第一视野更像可批令部队；`RootGameView` 舆图图例同步补充“令签 / 可调”说明。该片只读既有 `playerCommandState.micromanagedDivisionIds` 经 `BoardScene` 传入的 `isPlayerManaged`，不新增 `Division`、`PlayerCommandState` 或地图 schema，不改变选中、移动、高亮、AI、命令提交、`GameState`、`Command`、`WarCommandExecutor`、`CommandValidator`、`RuleEngine` 或任何 hex/region/theater/front/deploy 权威。

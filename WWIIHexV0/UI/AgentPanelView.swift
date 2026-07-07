@@ -25,7 +25,8 @@ struct AgentPanelView: View {
                 statusTint: panelStatusTint,
                 executedCount: executedCommandCount,
                 rejectedCount: rejectedCommandCount,
-                directiveCount: directiveRecords.count
+                directiveCount: directiveRecords.count,
+                campaignSummary: campaignSummary
             )
 
             decisionSection
@@ -306,6 +307,7 @@ private struct AgentPanelHeader: View {
     let executedCount: Int
     let rejectedCount: Int
     let directiveCount: Int
+    let campaignSummary: CampaignAISummary
 
     var body: some View {
         VStack(alignment: .leading, spacing: MingDesignTokens.compactSpacing) {
@@ -349,8 +351,123 @@ private struct AgentPanelHeader: View {
                 AgentMetricChip(title: "驳回", value: "\(rejectedCount)", systemImage: "xmark.seal", tint: rejectedCount > 0 ? MingDesignTokens.cinnabar : .secondary)
                 AgentMetricChip(title: "战区", value: "\(directiveCount)", systemImage: "map", tint: MingDesignTokens.porcelainBlue)
             }
+
+            AgentPanelSituationStrip(summary: campaignSummary)
         }
         .accessibilityElement(children: .combine)
+    }
+}
+
+private struct AgentPanelSituationStrip: View {
+    let summary: CampaignAISummary
+
+    var body: some View {
+        if summary.isMingScenario {
+            VStack(alignment: .leading, spacing: 6) {
+                Label("军机急奏", systemImage: "rectangle.and.text.magnifyingglass")
+                    .font(.caption.bold())
+                    .foregroundStyle(MingDesignTokens.cinnabar)
+                    .lineLimit(1)
+
+                LazyVGrid(columns: [GridItem(.adaptive(minimum: 112), spacing: 6)], alignment: .leading, spacing: 6) {
+                    AgentInfoChip(
+                        title: "要冲",
+                        value: leaderText,
+                        systemImage: "flag.2.crossed",
+                        tint: MingDesignTokens.imperialGold
+                    )
+                    AgentInfoChip(
+                        title: "急线",
+                        value: urgentLineText,
+                        systemImage: urgentLineImageName,
+                        tint: urgentLineTint
+                    )
+                    AgentInfoChip(
+                        title: "急务",
+                        value: taskCountText,
+                        systemImage: "list.bullet.clipboard",
+                        tint: taskCountTint
+                    )
+                }
+
+                Text(primaryTaskText)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(2)
+                    .minimumScaleFactor(0.82)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(MingDesignTokens.compactSpacing)
+            .background(MingDesignTokens.sectionBackground, in: RoundedRectangle(cornerRadius: 6))
+        }
+    }
+
+    private var leaderText: String {
+        summary.leadingFaction?.displayName ?? "未定"
+    }
+
+    private var urgentBrief: CampaignLineAISummary? {
+        summary.lineBriefs.sorted { lhs, rhs in
+            let lhsWarning = lhs.status == "告急" ? 1 : 0
+            let rhsWarning = rhs.status == "告急" ? 1 : 0
+            if lhsWarning != rhsWarning {
+                return lhsWarning > rhsWarning
+            }
+            if lhs.pressure != rhs.pressure {
+                return lhs.pressure > rhs.pressure
+            }
+            return lhs.urgentTaskCount > rhs.urgentTaskCount
+        }.first
+    }
+
+    private var urgentLineText: String {
+        guard let urgentBrief else {
+            return "五线候报"
+        }
+        return "\(urgentBrief.line) \(urgentBrief.status)"
+    }
+
+    private var urgentLineImageName: String {
+        switch urgentBrief?.line {
+        case "天下":
+            return "globe.asia.australia"
+        case "政策":
+            return "scroll"
+        case "经济":
+            return "shippingbox"
+        case "科技":
+            return "sparkles"
+        case "军事":
+            return "shield.lefthalf.filled"
+        default:
+            return "scope"
+        }
+    }
+
+    private var urgentLineTint: Color {
+        guard let urgentBrief else {
+            return .secondary
+        }
+        if urgentBrief.status == "告急" {
+            return MingDesignTokens.cinnabar
+        }
+        if urgentBrief.pressure >= 70 {
+            return MingDesignTokens.imperialGold
+        }
+        return MingDesignTokens.porcelainBlue
+    }
+
+    private var taskCountText: String {
+        summary.activeTasks.isEmpty ? "暂无急务" : "\(summary.activeTasks.count) 条"
+    }
+
+    private var taskCountTint: Color {
+        summary.activeTasks.isEmpty ? .secondary : MingDesignTokens.jade
+    }
+
+    private var primaryTaskText: String {
+        summary.activeTasks.first.map { "当旬先看：\($0)" } ?? "当旬暂无急务；军机仍需巡看天下、政策、经济、科技和军事五线。"
     }
 }
 
