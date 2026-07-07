@@ -1403,7 +1403,12 @@ struct SimulatedMarshalLLMClient: MarshalLLMClient {
                     intensity: front.strengthRatio >= 1.8 ? .allOut : .limitedCounter,
                     maxCommittedUnits: front.frontUnitCount + max(0, front.depthUnitCount / 2),
                     exploitDepth: front.strengthRatio >= 1.8 ? 1 : 0,
-                    rationale: "Simulated marshal JSON: \(tactic.rawValue) selected from \(summary.faction.displayName) doctrine and strength ratio \(String(format: "%.2f", front.strengthRatio))."
+                    rationale: directiveRationale(
+                        tactic: tactic,
+                        front: front,
+                        faction: summary.faction,
+                        isAttack: true
+                    )
                 )
             }
 
@@ -1419,7 +1424,12 @@ struct SimulatedMarshalLLMClient: MarshalLLMClient {
                 supportRegionIds: front.enemyRegionIds,
                 reserveBias: max(1, min(3, front.depthUnitCount)),
                 maxCommittedUnits: front.frontUnitCount,
-                rationale: "Simulated marshal JSON: \(tactic.rawValue) selected for front status \(front.status)."
+                rationale: directiveRationale(
+                    tactic: tactic,
+                    front: front,
+                    faction: summary.faction,
+                    isAttack: false
+                )
             )
         }
 
@@ -1429,7 +1439,7 @@ struct SimulatedMarshalLLMClient: MarshalLLMClient {
             faction: summary.faction,
             strategicIntent: strategicIntent(summary: summary, bias: config.strategicBias),
             directives: directives,
-            summary: "\(summary.marshalName): \(directives.count) theater directive(s) from summarized fronts; \(summary.economySummary.displaySummary); \(summary.courtSummary.displaySummary); \(summary.campaignSummary.displaySummary)."
+            summary: envelopeSummary(summary: summary, directiveCount: directives.count)
         )
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
@@ -1540,6 +1550,20 @@ struct SimulatedMarshalLLMClient: MarshalLLMClient {
         summary: MarshalBattlefieldSummary,
         bias: MarshalAgentConfig.StrategicBias
     ) -> String {
+        if !summary.faction.isLegacyWWIIFaction {
+            let economy = "钱粮：\(summary.economySummary.displaySummary)。"
+            let court = "朝议：\(summary.courtSummary.displaySummary)。"
+            let campaign = "天下五线：\(summary.campaignSummary.displaySummary)。"
+            switch bias {
+            case .offensive:
+                return "集中有利接敌面，按本势军略择攻势战法；受压战线留少量预备稳住粮道。\(economy) \(court) \(campaign)"
+            case .balanced:
+                return "先稳方面接敌线，只在兵势和粮道允许处进取。\(economy) \(court) \(campaign)"
+            case .defensive:
+                return "先固受压城关与粮道，保留预备军待反击窗口。\(economy) \(court) \(campaign)"
+            }
+        }
+
         let economy = "Money and grain: \(summary.economySummary.displaySummary)."
         let court = "Court debate: \(summary.courtSummary.displaySummary)."
         let campaign = "Campaign mandate: \(summary.campaignSummary.displaySummary)."
@@ -1551,6 +1575,33 @@ struct SimulatedMarshalLLMClient: MarshalLLMClient {
         case .defensive:
             return "Stabilize threatened fronts and keep reserves available for counterattacks. \(economy) \(court) \(campaign)"
         }
+    }
+
+    private func directiveRationale(
+        tactic: TacticName,
+        front: MarshalFrontSummary,
+        faction: Faction,
+        isAttack: Bool
+    ) -> String {
+        if faction.isLegacyWWIIFaction {
+            if isAttack {
+                return "Simulated marshal JSON: \(tactic.rawValue) selected from \(faction.displayName) doctrine and strength ratio \(String(format: "%.2f", front.strengthRatio))."
+            }
+            return "Simulated marshal JSON: \(tactic.rawValue) selected for front status \(front.status)."
+        }
+
+        if isAttack {
+            return "军机推演按\(faction.displayName)军略选用\(tactic.displayName)，兵势比 \(String(format: "%.2f", front.strengthRatio))，优先撬动当前接敌面。"
+        }
+        return "军机推演按接敌面态势\(front.status)选用\(tactic.displayName)，先稳城关粮道与预备军。"
+    }
+
+    private func envelopeSummary(summary: MarshalBattlefieldSummary, directiveCount: Int) -> String {
+        if summary.faction.isLegacyWWIIFaction {
+            return "\(summary.marshalName): \(directiveCount) theater directive(s) from summarized fronts; \(summary.economySummary.displaySummary); \(summary.courtSummary.displaySummary); \(summary.campaignSummary.displaySummary)."
+        }
+
+        return "\(summary.marshalName)：按接敌面汇总生成 \(directiveCount) 道战区指令；\(summary.economySummary.displaySummary)；\(summary.courtSummary.displaySummary)；\(summary.campaignSummary.displaySummary)。"
     }
 }
 
@@ -1588,8 +1639,19 @@ struct TheaterDirectiveCompiler {
             turn: theaterEnvelope.turn,
             directives: compiledDirectives,
             commanderAgentId: theaterEnvelope.issuerId,
-            theaterContext: "\(theaterEnvelope.strategicIntent) Compiled \(compiledDirectives.count) zone directive(s)."
+            theaterContext: compiledContext(
+                intent: theaterEnvelope.strategicIntent,
+                count: compiledDirectives.count,
+                faction: theaterEnvelope.faction
+            )
         )
+    }
+
+    private func compiledContext(intent: String, count: Int, faction: Faction) -> String {
+        if faction.isLegacyWWIIFaction {
+            return "\(intent) Compiled \(count) zone directive(s)."
+        }
+        return "\(intent) 已编成 \(count) 道防区军令。"
     }
 
     private func compile(
@@ -1707,7 +1769,7 @@ struct MarshalAgent {
                 rawTheaterJSON: nil,
                 theaterEnvelope: nil,
                 directiveEnvelope: fallback,
-                diagnostics: ["Marshal \(config.id) belongs to \(config.faction.displayName), fallback used for \(faction.displayName)."]
+                diagnostics: [mismatchedFactionDiagnostic(requestedFaction: faction)]
             )
         }
 
@@ -1739,8 +1801,22 @@ struct MarshalAgent {
                 rawTheaterJSON: nil,
                 theaterEnvelope: nil,
                 directiveEnvelope: fallback,
-                diagnostics: ["Marshal directive decode/compile failed: \(error.localizedDescription). Fallback TheaterCommanderPool used."]
+                diagnostics: [decodeFailureDiagnostic(error: error, faction: faction)]
             )
         }
+    }
+
+    private func mismatchedFactionDiagnostic(requestedFaction: Faction) -> String {
+        if requestedFaction.isLegacyWWIIFaction {
+            return "Marshal \(config.id) belongs to \(config.faction.displayName), fallback used for \(requestedFaction.displayName)."
+        }
+        return "督师 \(config.name) 隶属 \(config.faction.displayName)，不属本旬 \(requestedFaction.displayName)；已改用本势默认军机池。"
+    }
+
+    private func decodeFailureDiagnostic(error: Error, faction: Faction) -> String {
+        if faction.isLegacyWWIIFaction {
+            return "Marshal directive decode/compile failed: \(error.localizedDescription). Fallback TheaterCommanderPool used."
+        }
+        return "督师战区案卷解析或编成未成：\(error.localizedDescription)。已改用默认军机池续行。"
     }
 }
