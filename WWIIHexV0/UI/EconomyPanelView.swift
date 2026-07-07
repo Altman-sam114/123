@@ -28,6 +28,11 @@ struct EconomyPanelView: View {
                 courtSummary: courtSummary,
                 objectiveSummary: objectiveSummary
             )
+            TreasuryFamineRiskSection(
+                ledger: ledger,
+                governance: governance,
+                divisions: divisions
+            )
             TreasuryMilitaryPaySection(
                 ledger: ledger,
                 governance: governance,
@@ -592,6 +597,141 @@ private struct TreasuryWorldPolicyBadge: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(MingDesignTokens.panelBackground.opacity(0.52), in: RoundedRectangle(cornerRadius: 6))
         .accessibilityElement(children: .combine)
+    }
+}
+
+private struct TreasuryFamineRiskSection: View {
+    let ledger: FactionEconomyLedger
+    let governance: GovernanceAISummary
+    let divisions: [Division]
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: MingDesignTokens.compactSpacing) {
+            HStack(alignment: .firstTextBaseline) {
+                Label("民食灾荒", systemImage: status.systemImageName)
+                    .font(.caption.bold())
+                    .foregroundStyle(status.tint)
+                Spacer(minLength: 8)
+                Text(status.title)
+                    .font(.caption.bold())
+                    .foregroundStyle(status.tint)
+                    .lineLimit(1)
+            }
+
+            LazyVGrid(columns: [GridItem(.adaptive(minimum: 78), spacing: 6)], alignment: .leading, spacing: 6) {
+                TreasuryGovernanceBadge(title: "民食", value: publicFoodIndex, detail: "余势", tint: foodTint)
+                TreasuryGovernanceBadge(title: "粮差", value: grainGap, detail: "本旬", tint: grainGapTint)
+                TreasuryGovernanceBadge(title: "不稳", value: governance.unstableRegions, detail: "州府", tint: unrestTint)
+                TreasuryGovernanceBadge(title: "断粮", value: encircledCount, detail: "军伍", tint: encircledTint)
+            }
+
+            Text(detail)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .padding(MingDesignTokens.compactSpacing)
+        .background(MingDesignTokens.sectionBackground)
+        .clipShape(RoundedRectangle(cornerRadius: MingDesignTokens.cornerRadius))
+        .accessibilityElement(children: .combine)
+    }
+
+    private var lowSupplyCount: Int {
+        divisions.filter { $0.supplyState == .lowSupply }.count
+    }
+
+    private var encircledCount: Int {
+        divisions.filter { $0.supplyState == .encircled }.count
+    }
+
+    private var grainGap: Int {
+        max(0, ledger.lastUpkeep.supplies + ledger.lastReinforcementSpend.supplies - ledger.lastIncome.supplies)
+    }
+
+    private var publicFoodIndex: Int {
+        clamp(ledger.stockpile.supplies + governance.averageCompliance - governance.averageResistance - grainGap / 2)
+    }
+
+    private var status: TreasuryFamineRiskStatus {
+        if governance.controlledRegions == 0 && divisions.isEmpty {
+            return .empty
+        }
+        if publicFoodIndex < 35 || encircledCount > 0 {
+            return .crisis
+        }
+        if grainGap > ledger.stockpile.supplies / 2 || governance.unstableRegions > 0 || lowSupplyCount > 0 {
+            return .watch
+        }
+        return .steady
+    }
+
+    private var foodTint: Color {
+        publicFoodIndex < 35 ? MingDesignTokens.cinnabar : MingDesignTokens.jade
+    }
+
+    private var grainGapTint: Color {
+        grainGap > ledger.stockpile.supplies / 2 ? MingDesignTokens.cinnabar : MingDesignTokens.imperialGold
+    }
+
+    private var unrestTint: Color {
+        governance.unstableRegions > 0 ? MingDesignTokens.cinnabar : .secondary
+    }
+
+    private var encircledTint: Color {
+        encircledCount > 0 ? MingDesignTokens.cinnabar : .secondary
+    }
+
+    private var detail: String {
+        "民食会看：库存粮 \(ledger.stockpile.supplies)，本旬粮差 \(grainGap)，缺粮军伍 \(lowSupplyCount)，断粮被围 \(encircledCount)，民变 \(governance.averageResistance)，行政 \(governance.averageCompliance)。此处只作灾荒风险提示，不执行事件效果。"
+    }
+
+    private func clamp(_ value: Int) -> Int {
+        max(0, min(100, value))
+    }
+}
+
+private enum TreasuryFamineRiskStatus {
+    case empty
+    case crisis
+    case watch
+    case steady
+
+    var title: String {
+        switch self {
+        case .empty:
+            return "暂无民食"
+        case .crisis:
+            return "灾荒急"
+        case .watch:
+            return "民食紧"
+        case .steady:
+            return "民食可支"
+        }
+    }
+
+    var systemImageName: String {
+        switch self {
+        case .empty:
+            return "tray"
+        case .crisis,
+             .watch:
+            return "exclamationmark.triangle"
+        case .steady:
+            return "leaf"
+        }
+    }
+
+    var tint: Color {
+        switch self {
+        case .empty:
+            return .secondary
+        case .crisis:
+            return MingDesignTokens.cinnabar
+        case .watch:
+            return MingDesignTokens.imperialGold
+        case .steady:
+            return MingDesignTokens.jade
+        }
     }
 }
 

@@ -16,7 +16,7 @@
   -> v4.3 默认明末单位使用明末 template，战术展示名开始明末化
   -> v4.4 钱粮、治理与天下局势首片把 economy 展示为民力、银两、粮草，民变/行政掌控影响收入，天下面板展示战和关系，并进入 AI 摘要
   -> v4.5 朝廷首片把政策、经济、科技、军事四线压力派生为 CourtStrategySummary，并进入 UI / AI 摘要
-  -> v4.6/v4.7 UI 首片用 MingDesignTokens、MingMapLabelFormat、独立 CourtPanelView、朝议总纲、朝议批票、朝议争点、朝廷五线态势、朝廷项目行动状态提示、朝报令条、军令牌/舆图军令提示/要冲军令/朝议四线、命令交互回执中文化、军机/战区诊断中文化、默认中文塘报、将印军令/帷幄四线/督师要冲、将领名帖、军机复盘牌/军机五线/军机底稿/命令短令/raw 错误显示中文化、最高意志朱批中文化、塘报战记/急务战役分类/回执前缀中文化、部队军情牌/军令战备/军械火力/驻防归属可读化、舆图军牌浮签/军位/要冲牵引、州府牌主值/本州入局/州府四线牵引/政粮械兵/归属旗号/方面防区可读化、府库牌收支急报/府库四线牵引/经世策眼/军饷民心/生产状态提示、天下急势/天下牵引/朝议重心可读化、舆图天下急势/舆图要冲分布/本旬先手/舆图点验四线粮道部队联判、天下战和张力条、阵营名义卡、中文军牌、势力旗号、地图军牌战备小签、城/关/粮 badge、粮道虚线/开关、军令计划线、舆图图例/舆图判读、兵种/粮草/堆叠图例和四线交叉项目分组 polish 主界面、地图部队和朝廷/将领/军令/AI 面板
+  -> v4.6/v4.7 UI 首片用 MingDesignTokens、MingMapLabelFormat、独立 CourtPanelView、朝议总纲、朝议批票、朝议争点、朝廷五线态势、朝廷项目行动状态提示、朝报令条、军令牌/舆图军令提示/要冲军令/朝议四线、命令交互回执中文化、军机/战区诊断中文化、默认中文塘报、将印军令/帷幄四线/督师要冲、将领名帖、军机复盘牌/军机五线/军机底稿/命令短令/raw 错误显示中文化、最高意志朱批中文化、塘报战记/急务战役分类/回执前缀中文化、部队军情牌/军令战备/军械火力/驻防归属可读化、舆图军牌浮签/军位/要冲牵引、州府牌主值/本州入局/州府四线牵引/政粮械兵/归属旗号/方面防区可读化、府库牌收支急报/府库四线牵引/经世策眼/民食灾荒/军饷民心/生产状态提示、天下急势/天下牵引/朝议重心可读化、舆图天下急势/舆图要冲分布/本旬先手/舆图点验四线粮道部队联判、天下战和张力条、阵营名义卡、中文军牌、势力旗号、地图军牌战备小签、城/关/粮 badge、粮道虚线/开关、军令计划线、舆图图例/舆图判读、兵种/粮草/堆叠图例和四线交叉项目分组 polish 主界面、地图部队和朝廷/将领/军令/AI 面板
   -> v4.6 朝廷项目首片把征饷、赈济、招抚、农政、修城、整训团练/地方驻防、火器、红衣炮、粮台驿道等主议/备议落到 Command.enactCourtProject 和 EconomyRules
   -> v4.7 明末胜负链首片把 ScenarioDefinition.victoryConditions 写入 GameState，并让清破关入京、大顺据中原秦陕、大西据湖广粮区、明廷守住京师关口等条件进入 BattleObjectiveSummary / VictoryRules，在“目标”“朝廷”和“军机复盘”面板显示只读天下五线态势，并在目标面板显示国势四策、天下棋眼、要冲缺口、进度、控制方旗号、只读战役提示、军械类火器城防提示、开封围城压力、本旬任务链和阶段战局链，回合末把提示和急务/主线任务入塘报；CampaignAISummary 把同一五线态势送入 AgentContext、MarshalBattlefieldSummary 和 AgentPanelView；CourtStrategySummary 读取同一战役线压力加权朝廷主议；ZoneCommanderDoctrine 让明廷谨慎、清/大顺/大西进取、地方自保，并贯通 TheaterCommanderPool、AppContainer 空将领 registry fallback、MockAICommander、SimulatedMarshalLLMClient 和不同 tactic 映射，明末模拟元帅 intent / rationale / 编译摘要 / fallback 诊断输出军机中文口径；legacy Agent D 的 prompt、MockAI 理由和 contextSummary 也按明末势力转成军机/粮草/城关/五线语境，明末 prompt/MockAI 粮草状态显示为有粮、缺粮、断粮被围，明末 Agent 州府摘要显示州府名而非 region raw id；AgentPanelView 只读展示势力军略、诸势军略、风格、技能标签和战术偏向；目标 chip、天下棋眼、要冲缺口和任务按钮可只读定位对应 hex / 州府，并在舆图显示“标”令牌、脉冲圈和同胜负线城关连线；目标 hex 换手会写塘报
   -> v4.8 发布候选首片加入本机单槽自动保存和继续战局：成功命令、玩家将令和 AI 回合结算后保存完整 GameState，HUD / macOS 战局菜单可继续最近战局，新开战局清除旧存档；续战只恢复规则权威状态并清空 UI 临时态，不改变命令、AI、胜负、经济或 hex/region/theater/front/deploy 权威
@@ -54,7 +54,7 @@ flowchart TD
     DIP["天下局势 / 外交关系<br/>DiplomacyState + BattleObjectiveSummary<br/>诸方势力、阵营名义、战和张力、天下牵引、天下棋势"]:::state
     ECO["钱粮总账<br/>EconomyState / EconomyRules<br/>民力、银两、粮草、治理修正、生产队列、自动补员"]:::economy
     HUDINFO["朝报令条 / 朝报要冲<br/>HUDView<br/>回合、势力、胜负、钱粮、入账、营造、棋势、急线、本旬和四线压力"]:::ui
-    ECONINFO["府库牌<br/>EconomyPanelView<br/>库存、入账、维护、补员、净收支、府库四线牵引、经世策眼、军饷民心、生产状态、募兵筹粮和营造队列"]:::ui
+    ECONINFO["府库牌<br/>EconomyPanelView<br/>库存、入账、维护、补员、净收支、府库四线牵引、经世策眼、民食灾荒、军饷民心、生产状态、募兵筹粮和营造队列"]:::ui
     COURT["朝廷摘要<br/>CourtStrategySummary<br/>政策、经济、科技、军事四线压力、战役线加权和议题建议"]:::economy
     COURTDEBATE["朝议总纲 / 朝议批票 / 廷议要冲 / 朝议争点<br/>CourtPanelView / CourtCouncilBriefSection + CourtPolicyTicketSection + CourtObjectiveBalanceSection + CourtDebateSection<br/>主议、票拟项目、要冲归属、四线压力、战役最急线、安民与征饷、火器与团练、粮道与城防只读展示"]:::ui
     COURTFIVE["朝廷五线态势<br/>CourtPanelView / CourtCampaignLineSection<br/>复用 CampaignLineBrief 扫读天下、政策、经济、科技、军事压力"]:::ui
@@ -83,7 +83,7 @@ flowchart TD
     GENERALINFO["将印军令 / 帷幄四线 / 督师要冲 / 将领名帖<br/>GeneralCommandPanelView + GeneralProfileView<br/>防区、主将、忠诚、军心、政策/经济/科技/军事、本旬要冲、麾下军伍和军令计划"]:::ui
     UNITINFO["部队军情牌 / 舆图军牌浮签<br/>UnitInspectorView + UnitTooltipView<br/>势力旗号、兵力、粮草、退守、军令战备、军械火力、部队详情要冲牵引、舆图军位、舆图要冲牵引、本旬、落点、相距、兵势、攻守行程察、兵种编成和驻防归属只读展示"]:::ui
     REGIONINFO["州府牌<br/>RegionInspectorView<br/>州府主值、本州入局、州府四线牵引、政粮械兵、城关粮坊、治理、钱粮城防、控制方旗号、原属章和当前格只读展示"]:::ui
-    UI["地图和面板显示<br/>SpriteKit / SwiftUI Overlay<br/>v4.6/v4.7 明末舆图、舆图天下急势/舆图要冲分布/本旬先手/舆图点验四线粮道部队联判、朝报令条/朝报要冲、军令牌/舆图军令提示/要冲军令/朝议四线/命令回执中文化、军机/战区诊断中文化、默认中文塘报、将印军令/帷幄四线/督师要冲、将领名帖、军机复盘牌、军机五线态势、势力军略、诸势军略、军机底稿、命令短令、raw 错误显示中文化、最高意志朱批中文化、塘报战记/急务战役分类/回执前缀中文化、目标国势四策/要冲缺口、天下急势/天下牵引/天下棋势/战和张力、朝议重心可读化、朝议批票、廷议要冲、朝议争点、朝廷五线态势、朝廷项目行动状态提示、部队军情牌/军令战备/军械火力/驻防归属可读化、舆图军牌浮签/军位/要冲牵引、州府牌主值/本州入局/州府四线牵引/政粮械兵/方面防区可读化、府库牌/府库四线牵引/经世策眼/军饷民心/生产状态提示、中文图层名、舆图判读、城/关/粮/兵种军牌/粮草堆叠/势力旗/战备小签/军令计划图例、粮道虚线/开关、中文军牌、朝廷四线兼线项目、AI 面板 polish"]:::ui
+    UI["地图和面板显示<br/>SpriteKit / SwiftUI Overlay<br/>v4.6/v4.7 明末舆图、舆图天下急势/舆图要冲分布/本旬先手/舆图点验四线粮道部队联判、朝报令条/朝报要冲、军令牌/舆图军令提示/要冲军令/朝议四线/命令回执中文化、军机/战区诊断中文化、默认中文塘报、将印军令/帷幄四线/督师要冲、将领名帖、军机复盘牌、军机五线态势、势力军略、诸势军略、军机底稿、命令短令、raw 错误显示中文化、最高意志朱批中文化、塘报战记/急务战役分类/回执前缀中文化、目标国势四策/要冲缺口、天下急势/天下牵引/天下棋势/战和张力、朝议重心可读化、朝议批票、廷议要冲、朝议争点、朝廷五线态势、朝廷项目行动状态提示、部队军情牌/军令战备/军械火力/驻防归属可读化、舆图军牌浮签/军位/要冲牵引、州府牌主值/本州入局/州府四线牵引/政粮械兵/方面防区可读化、府库牌/府库四线牵引/经世策眼/民食灾荒/军饷民心/生产状态提示、中文图层名、舆图判读、城/关/粮/兵种军牌/粮草堆叠/势力旗/战备小签/军令计划图例、粮道虚线/开关、中文军牌、朝廷四线兼线项目、AI 面板 polish"]:::ui
     LOG["日志和复盘记录<br/>EventLog / WarDirectiveRecord / AgentDecisionRecord / RulerDecisionRecord<br/>用于 UI 展示和后续调试"]:::ui
 
     ME --> JSON --> DL --> GS
@@ -291,7 +291,7 @@ flowchart TD
     INCOME["收入计算<br/>EconomyRules.income<br/>基础民力/银两/粮草 * 治理修正<br/>底层字段仍兼容 manpower / industry / supplies"]:::economy
     LEDGER["阵营总账<br/>FactionEconomyLedger<br/>库存、上回合收入、维护费、补员消耗、队列"]:::economy
 
-    UI["府库牌<br/>EconomyPanelView<br/>展示库存、入账、维护、补员、净收支、府库四线牵引、经世策眼、军饷民心、生产状态、募兵筹粮和营造队列"]:::ui
+    UI["府库牌<br/>EconomyPanelView<br/>展示库存、入账、维护、补员、净收支、府库四线牵引、经世策眼、民食灾荒、军饷民心、生产状态、募兵筹粮和营造队列"]:::ui
     QUEUE["生产命令<br/>Command.queueProduction<br/>玩家/未来 AI 共用底层命令"]:::command
     VALIDATE["生产校验<br/>CommandValidator.validateProduction<br/>检查 phase 与资源是否足够"]:::rules
     PAY["预付成本并入队<br/>EconomyRules.queueProduction<br/>扣民力/银两/粮草，追加 ProductionOrder"]:::economy
