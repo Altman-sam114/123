@@ -4,6 +4,8 @@
 
 > v4.8 发布候选最新增量：`AppContainer` 新增本机单槽自动保存与继续战局首片，玩家军令成功、玩家将令提交和 AI 回合结算后会把完整 `GameState` 写入带 `schemaVersion/savedAt` 的本机 JSON envelope；HUD 的“战局”菜单和 macOS “战局”菜单可继续最近战局，新开战局会清除旧存档。续战只恢复规则权威状态并重建将领分配，选中态、高亮、信息面板、图层开关和交互日志不随存档保存；该片不改变 `Command`、`WarCommandExecutor`、`CommandValidator`、`RuleEngine` 或任何 hex/region/theater/front/deploy 权威。
 
+> v4.6/v4.7 主入口文案最新增量：`RootGameView` 的底部抽屉入口从“信息”改为“军情”，紧凑面板中的目标 tab 改为“国势”，`BattleObjectivePanelView` 中的“目标线”指标改为“胜负线”；`GamePhase.displayName` 继续保留 `.germanAI` / `.alliedPlayer` legacy case 与 Codable raw value，但玩家可见文案统一显示为“军机行动 / 玩家行令”，不再带 `Legacy` 前缀。该片只改变 UI/日志可读文案，不改变 `GamePhase.allowsHumanCommands`、`turnOrder`、AI 控制方、目标摘要、胜负判定、命令校验、回合推进或任何规则权威。
+
 > v4.6/v4.7 舆图点验最新增量：`RootGameView` 顶部只读“舆图点验”继续增强，在格位、方面、防区、要冲之外新增“四线 / 粮道 / 部队”三枚 chip，从现有 `BattleObjectiveSummary.lineBriefs`、选中 `Division` 和粮道显示开关派生最急五线、军粮状态、路线显隐、兵力和行动态势，让玩家在地图第一视野直接联读中华世界局势、政策/经济/科技/军事压力、粮道和当前军牌兵势。该区只改变 SwiftUI 展示，不新增按钮，不触发目标定位，不写塘报，不提交命令，不改变 `RegionInspectorState`、`BattleObjectiveSummary`、`Division`、`SupplyRules`、`GameState`、hex/region/theater/front/deploy、胜负、朝廷、AI 或任何规则权威。
 
 > v4.6 州府牌最新增量：`RegionInspectorView` 在“州府主值”后新增只读“本州入局”区，从现有 `RegionInspectorState`、`RegionNode` 和 `OccupationState` 派生要冲入局、接敌入局、地方入局、经略入局或后方入局总批，并用天下、政粮、军械三枚 chip 联读控制归属、目标/前线、民变行政、钱粮、粮台、工坊、驿道和友敌军。该区只改变 SwiftUI 展示，不新增 `RegionInspectorState` 字段，不触发目标定位，不写塘报，不提交命令，不改变 hex/region/theater/front/deploy、经济、胜负、朝廷或规则权威。

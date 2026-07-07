@@ -41,13 +41,13 @@ struct RootGameView: View {
                 Button {
                     isInfoExpanded.toggle()
                 } label: {
-                    Label("信息", systemImage: isInfoExpanded ? "sidebar.left" : "sidebar.leading")
+                    Label("军情", systemImage: isInfoExpanded ? "sidebar.left" : "sidebar.leading")
                         .font(.caption.weight(.semibold))
                         .lineLimit(1)
                 }
                 .buttonStyle(.bordered)
                 .frame(minHeight: MingDesignTokens.minimumTapSize)
-                .accessibilityLabel(isInfoExpanded ? "收起信息面板" : "展开信息面板")
+                .accessibilityLabel(isInfoExpanded ? "收起军情面板" : "展开军情面板")
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomLeading)
                 .padding(10)
 
@@ -1033,7 +1033,7 @@ private enum CompactInfoPanel: String, CaseIterable, Identifiable {
     case log = "塘报"
     case economy = "钱粮"
     case court = "朝廷"
-    case objective = "目标"
+    case objective = "国势"
     case diplomacy = "天下"
     case agent = "军机"
 

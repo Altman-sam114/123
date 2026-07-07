@@ -592,7 +592,7 @@ private struct BattleObjectiveHeader: View {
                     tint: summary.leadingFaction?.mingBannerTint ?? .secondary
                 )
                 BattleObjectiveMetricChip(
-                    title: "目标线",
+                    title: "胜负线",
                     value: summary.isMingScenario ? "\(summary.tracks.count) 条" : "旧制",
                     systemImage: "scope",
                     tint: MingDesignTokens.imperialGold
