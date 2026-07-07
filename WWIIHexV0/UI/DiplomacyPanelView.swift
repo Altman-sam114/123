@@ -125,7 +125,9 @@ struct DiplomacyPanelView: View {
                 CountryPowerRow(
                     country: country,
                     blocName: blocName(for: country.blocId),
-                    isActive: country.faction == activeFaction
+                    isActive: country.faction == activeFaction,
+                    objectiveScore: objectiveScore(for: country.faction),
+                    isObjectiveLeader: objectiveSummary?.leadingFaction == country.faction
                 )
             }
         }
@@ -303,6 +305,23 @@ struct DiplomacyPanelView: View {
         diplomacyState.blocs.first { $0.id == blocId }?.name ?? MingMapLabelFormat.blocTitle(blocId)
     }
 
+    private var objectiveScoreRows: [BattleObjectiveSummary.ScoreRow] {
+        guard let objectiveSummary, objectiveSummary.isMingScenario else {
+            return []
+        }
+
+        return objectiveSummary.scoreRows.sorted { lhs, rhs in
+            if lhs.points == rhs.points {
+                return lhs.objectiveCount > rhs.objectiveCount
+            }
+            return lhs.points > rhs.points
+        }
+    }
+
+    private func objectiveScore(for faction: Faction) -> BattleObjectiveSummary.ScoreRow? {
+        objectiveScoreRows.first { $0.faction == faction }
+    }
+
     private func statusColor(for status: DiplomaticStatus) -> Color {
         switch status {
         case .atWar, .hostile:
@@ -412,7 +431,12 @@ private struct WorldObjectiveContext {
             taskDetail = "暂无急务或主线任务。"
         }
 
-        scoreRows = Array(summary.scoreRows.prefix(5))
+        scoreRows = Array(summary.scoreRows.sorted { lhs, rhs in
+            if lhs.points == rhs.points {
+                return lhs.objectiveCount > rhs.objectiveCount
+            }
+            return lhs.points > rhs.points
+        }.prefix(5))
     }
 
     private static func urgentLine(in summary: BattleObjectiveSummary) -> BattleObjectiveSummary.CampaignLineBrief? {
@@ -533,6 +557,8 @@ private struct CountryPowerRow: View {
     let country: CountryProfile
     let blocName: String
     let isActive: Bool
+    let objectiveScore: BattleObjectiveSummary.ScoreRow?
+    let isObjectiveLeader: Bool
 
     var body: some View {
         HStack(alignment: .center, spacing: 8) {
@@ -575,6 +601,24 @@ private struct CountryPowerRow: View {
                     .foregroundStyle(.secondary)
                 Text("\(country.warSupport)")
                     .font(.caption.monospacedDigit().bold())
+
+                if let objectiveScore {
+                    HStack(spacing: 3) {
+                        if isObjectiveLeader {
+                            Image(systemName: "crown.fill")
+                                .font(.caption2.bold())
+                                .accessibilityHidden(true)
+                        }
+                        Text("要冲 \(objectiveScore.points) / \(objectiveScore.objectiveCount)处")
+                            .font(.caption2.monospacedDigit().bold())
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.72)
+                    }
+                    .foregroundStyle(country.faction.mingBannerTint)
+                    .padding(.horizontal, 6)
+                    .padding(.vertical, 3)
+                    .background(country.faction.mingBannerTint.opacity(0.12), in: RoundedRectangle(cornerRadius: 6))
+                }
             }
         }
         .padding(.vertical, 6)
