@@ -41,9 +41,11 @@ struct RootGameView: View {
                 Button {
                     isInfoExpanded.toggle()
                 } label: {
-                    Label("军情", systemImage: isInfoExpanded ? "sidebar.left" : "sidebar.leading")
-                        .font(.caption.weight(.semibold))
-                        .lineLimit(1)
+                    MingInfoEntryBadge(
+                        isExpanded: isInfoExpanded,
+                        selectedPanel: selectedCompactPanel,
+                        summary: BattleObjectiveSummary.from(state: container.gameState)
+                    )
                 }
                 .buttonStyle(.bordered)
                 .frame(minHeight: MingDesignTokens.minimumTapSize)
@@ -563,6 +565,106 @@ private extension SupplyState {
         case .encircled:
             return MingDesignTokens.cinnabar
         }
+    }
+}
+
+private struct MingInfoEntryBadge: View {
+    let isExpanded: Bool
+    let selectedPanel: CompactInfoPanel
+    let summary: BattleObjectiveSummary
+
+    var body: some View {
+        HStack(spacing: 8) {
+            Text(isExpanded ? "收" : "情")
+                .font(.caption.bold())
+                .foregroundStyle(.white)
+                .frame(width: 24, height: 22)
+                .background(MingDesignTokens.cinnabar, in: RoundedRectangle(cornerRadius: 5))
+
+            VStack(alignment: .leading, spacing: 2) {
+                HStack(spacing: 5) {
+                    Text(isExpanded ? "收起军情" : "军情")
+                        .font(.caption.bold())
+                        .foregroundStyle(MingDesignTokens.ink)
+                        .lineLimit(1)
+
+                    Text(selectedPanel.rawValue)
+                        .font(.caption2.bold())
+                        .foregroundStyle(MingDesignTokens.cinnabar)
+                        .padding(.horizontal, 5)
+                        .padding(.vertical, 2)
+                        .background(MingDesignTokens.subtleSeal, in: RoundedRectangle(cornerRadius: 4))
+                        .lineLimit(1)
+                }
+
+                Text(detailText)
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.72)
+            }
+
+            if summary.isMingScenario {
+                VStack(spacing: 1) {
+                    if let leadingFaction = summary.leadingFaction {
+                        MingFactionFlagBadge(faction: leadingFaction)
+                    } else {
+                        Text("局")
+                            .font(.caption2.bold())
+                            .foregroundStyle(.white)
+                            .frame(width: 24, height: 20)
+                            .background(.secondary, in: RoundedRectangle(cornerRadius: 5))
+                    }
+                    Text(pointsText)
+                        .font(.caption2.bold())
+                        .foregroundStyle(MingDesignTokens.imperialGold)
+                        .lineLimit(1)
+                }
+                .accessibilityHidden(true)
+            }
+
+            Image(systemName: isExpanded ? "chevron.down" : "chevron.up")
+                .font(.caption.bold())
+                .foregroundStyle(.secondary)
+                .accessibilityHidden(true)
+        }
+        .frame(minHeight: MingDesignTokens.minimumTapSize)
+        .accessibilityElement(children: .combine)
+    }
+
+    private var detailText: String {
+        guard summary.isMingScenario else {
+            return isExpanded ? "面板已开" : "展开面板"
+        }
+        guard let leadingLine else {
+            return "五线待判"
+        }
+        if urgentTaskCount > 0 {
+            return "\(leadingLine.line.displayName) \(leadingLine.status.displayName) · 急务 \(urgentTaskCount)"
+        }
+        return "\(leadingLine.line.displayName) \(leadingLine.status.displayName) · 压力 \(leadingLine.pressure)"
+    }
+
+    private var leadingLine: BattleObjectiveSummary.CampaignLineBrief? {
+        summary.lineBriefs.sorted { lhs, rhs in
+            if lhs.status.sortRank == rhs.status.sortRank {
+                return lhs.pressure > rhs.pressure
+            }
+            return lhs.status.sortRank < rhs.status.sortRank
+        }
+        .first
+    }
+
+    private var urgentTaskCount: Int {
+        summary.tasks.filter { $0.priority == .urgent }.count
+    }
+
+    private var pointsText: String {
+        guard let faction = summary.leadingFaction,
+              let row = summary.scoreRows.first(where: { $0.faction == faction }) else {
+            return "要0"
+        }
+        return "要\(row.points)"
     }
 }
 
